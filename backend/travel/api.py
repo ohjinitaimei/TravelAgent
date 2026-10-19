@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 
 from fastapi import APIRouter, Header, Query, Request
+from typing import Annotated
 from fastapi.responses import StreamingResponse
 
 from services.amap_client import AmapClient
@@ -15,6 +16,7 @@ from travel.tools import TravelTools
 router = APIRouter(prefix="/api/v1/travel", tags=["travel"], responses={
     code: {"model": ErrorResponse} for code in (404, 409, 422, 429, 500, 502, 503, 504)
 })
+SubmissionKey = Annotated[str | None, Header(min_length=8, max_length=128, pattern=r"^[A-Za-z0-9_.:-]+$")]
 
 
 def manager(request: Request):
@@ -46,13 +48,26 @@ def capabilities():
 
 
 @router.post("/tasks", response_model=Task, status_code=202)
-async def create_task(body: PlanRequest, request: Request):
-    return manager(request).create({"request": body.model_dump(mode="json")})
+async def create_task(body: PlanRequest, request: Request, idempotency_key: SubmissionKey = None):
+    return manager(request).create({"request": body.model_dump(mode="json")}, idempotency_key)
 
 
 @router.post("/drafts", response_model=Task, status_code=202)
-async def create_draft(body: DraftRequest, request: Request):
-    return manager(request).create({"kind":"draft","request":body.model_dump(mode="json")})
+async def create_draft(body: DraftRequest, request: Request, idempotency_key: SubmissionKey = None):
+    return manager(request).create({"kind":"draft","request":body.model_dump(mode="json")}, idempotency_key)
+
+
+@router.get("/submissions/{submission_key}", response_model=Task)
+def get_submission(submission_key: str, request: Request):
+    task = manager(request).store.submission(submission_key)
+    if not task:
+        raise TravelFailure("submission_not_found", "尚未找到该提交，可使用相同标识恢复提交", status=404)
+    return task
+
+
+@router.post("/tasks/{task_id}/retry", response_model=Task, status_code=202)
+async def retry_task(task_id: str, request: Request, idempotency_key: SubmissionKey = None):
+    return manager(request).retry(task_id, idempotency_key)
 
 
 @router.get("/drafts/{draft_id}", response_model=Draft)
@@ -131,7 +146,7 @@ def get_itinerary(itinerary_id: str, request: Request):
 
 
 @router.post("/itineraries/{itinerary_id}/adjust", response_model=Task, status_code=202)
-async def adjust(itinerary_id: str, body: EditRequest, request: Request):
+async def adjust(itinerary_id: str, body: EditRequest, request: Request, idempotency_key: SubmissionKey = None):
     trip = trip_or_fail(request, itinerary_id)
     if len(body.poi_ids_by_day) != trip.request.days:
         raise TravelFailure("invalid_day_count", "调整行程必须保留原有天数", status=422)
@@ -148,7 +163,7 @@ async def adjust(itinerary_id: str, body: EditRequest, request: Request):
     except ValidationError:
         raise TravelFailure("invalid_constraints", "每日结束时间须晚于开始时间，其他约束须在允许范围内", status=422) from None
     return manager(request).create({"request": validated.model_dump(mode="json"),
-        "poi_ids_by_day": body.poi_ids_by_day, "optimize_order": body.optimize_order, "parent_id": trip.id})
+        "poi_ids_by_day": body.poi_ids_by_day, "optimize_order": body.optimize_order, "parent_id": trip.id}, idempotency_key)
 
 
 @router.get("/pois", response_model=PoiList)

@@ -1,7 +1,7 @@
 # Docs Index
 
-TravelAgent is a development snapshot and is still being optimized. Start with
-the root README and RELEASE_STATUS.md. Most backend/spec/setup documents below
+Start with the root README, ACCEPTANCE.md and RELEASE_STATUS.md for TravelAgent.
+Most backend/spec/setup documents below
 describe the preserved MT/Muse implementation and may require excluded legacy
 POI data; they are not a claim that every historical feature is complete.
 

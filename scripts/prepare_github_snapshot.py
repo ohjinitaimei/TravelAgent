@@ -1,4 +1,4 @@
-"""Export a reviewed development snapshot without touching the original Git history."""
+"""Export reviewed sources without touching the original Git history."""
 import argparse
 import hashlib
 import json
@@ -9,7 +9,7 @@ ROOT=Path(__file__).resolve().parents[1]
 EXCLUDED={"backend/pois.json","backend/pois.amap.enriched.json","backend/pois.amap.report.json",
           ".vscode/settings.json","adb.ps1","flutter.ps1"}
 ROOT_FILES={"README.md","NOTICE.md",".gitignore",".gitattributes",".metadata","pubspec.yaml","pubspec.lock",
-            "analysis_options.yaml","package.json","package-lock.json"}
+            "analysis_options.yaml","package.json","package-lock.json","playwright.config.ts"}
 DIRECTORIES={".github","apps","backend","docs","lib","android","windows","test","tests","scripts","packages"}
 FORBIDDEN_PARTS={".git","node_modules",".venv","__pycache__",".cache",".tmp","artifacts","data"}
 
@@ -49,7 +49,7 @@ def main():
         destination.parent.mkdir(parents=True,exist_ok=True)
         destination.write_bytes(data)
         manifest.append({"path":name,"bytes":len(data),"sha256":hashlib.sha256(data).hexdigest()})
-    report={"status":"development_not_production_ready","source_base_commit":subprocess.check_output(["git","rev-parse","HEAD"],cwd=ROOT,text=True).strip(),
+    report={"purpose":"source_inventory","source_base_commit":subprocess.check_output(["git","rev-parse","HEAD"],cwd=ROOT,text=True).strip(),
         "includes_working_tree_changes":True,"history_exported":False,"excluded_existing_files":sorted(EXCLUDED),"files":manifest}
     (output/"PUBLISH_MANIFEST.json").write_text(json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     print(json.dumps({"snapshot":str(output),"file_count":len(files)+1,"bytes":sum(len(data) for _,data in files)},ensure_ascii=True))

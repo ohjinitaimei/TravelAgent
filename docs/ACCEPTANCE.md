@@ -1,0 +1,50 @@
+# Web 验收记录
+
+验收环境：2026-10-19，Python 3.12、Node.js、Windows、Chromium Headless。GitHub Actions 另在 Ubuntu / Node.js 22 上执行相同检查，结果以对应提交的 Actions 记录为准。
+
+## 可复现检查
+
+先按根 README 安装 Python、Node 与可选 Agent/MCP 锁定依赖，再执行：
+
+```powershell
+.\.venv\Scripts\python.exe scripts/verify_repository.py
+$env:PLAYWRIGHT_BROWSERS_PATH = "$PWD/.cache/playwright"
+npx playwright install --only-shell chromium
+.\.venv\Scripts\python.exe scripts/verify_browser.py
+.\.venv\Scripts\python.exe scripts/update_publish_manifest.py --check
+```
+
+Linux 浏览器首次安装使用 `npx playwright install --with-deps --only-shell chromium`，并设置 `export PLAYWRIGHT_BROWSERS_PATH="$PWD/.cache/playwright"`。单独执行 `npm run test:browser` 需要专用服务地址；推荐使用上述 Python 编排脚本，自动启动并关闭隔离 API 和 Vite。
+
+| 检查 | 数量 | 覆盖范围 |
+| --- | ---: | --- |
+| Python | 27 | 旅行 API 13、Agent 6、澄清 4、MCP 1、任务恢复 3 |
+| TypeScript 客户端 | 9 | HTTP 契约、轮询期限/取消、暂时断线、提交收据恢复、表单与编辑状态 |
+| Chromium | 7 | 以下真实页面操作 |
+| Web / Schema | — | TypeScript 检查、Vite 构建、OpenAPI 生成文件一致性 |
+
+浏览器场景：
+
+1. 自然语言缺字段草案 → 用户补全与确认 → 来源和未处理需求保留 → 应用表单 → 更新草案时提示表单版本 → 刷新恢复。
+2. 后端已受理但 POST 响应丢失 → 恢复同一提交 → 使用原任务 ID，无重复 POST。
+3. 另一页面已更新草案 → 保存返回版本冲突 → 未保存答案保留 → 用户显式加载最新草案。
+4. 暂时调用失败 → 修改当前表单 → 按原条件重试仍使用服务端原请求，新任务关联原任务，原失败记录保留。
+5. SSE 不可用且短暂网络失败 → 有界退避轮询恢复 → 刷新后继续显示同一任务与行程。
+6. 取消进行中的任务 → 状态终结 → 提供显式原条件重试。
+7. 打开已保存多日行程 → 录入站点费用 → 编辑重算创建新版本 → 原行程可读，缺失费用仍为未知。
+
+## 数据与功能边界
+
+测试服务必须显式传入 `--test-fixtures-only`，只绑定本机地址，数据库限制在仓库 `.tmp/`。FixtureProvider、固定模型回复和故障注入仅在 `tests/` 定义；生产服务不提供开启测试数据的配置。浏览器测试屏蔽外部 HTTPS，所有 POI 名称使用 TEST ONLY 标识。日志、截图和 trace 保存在被 Git 排除的 `artifacts/` 中，CI 仅在失败时上传测试诊断。
+
+这些结果验证页面、API 与后端算法之间的调用和状态一致性。高德 POI、真实交通时间、地图 SDK 及授权限制需要取得合法 Key 后另行验收；票价、库存、评论等无授权来源时保持缺失。未使用测试数据替代生产接口结果。
+
+当前验收范围为本机单用户、单 API 进程的 Web 工作台。公网多用户部署所需鉴权/隔离、多实例队列、移动端真机和 Agent MCP 客户端连接在 [后续计划](RELEASE_STATUS.md) 单列。
+
+## API 恢复约定
+
+创建规划、草案、编辑或重试任务可携带 `Idempotency-Key`（8–128 位字母、数字、下划线、点、冒号或连字符）。同一标识与同一请求返回原任务；标识复用于其他请求返回 `409 idempotency_conflict`。未传标识的旧客户端保持原行为。
+
+`GET /api/v1/travel/submissions/{key}` 查询提交收据。Web 在发送前保存请求快照与标识；页面刷新只查收据，未找到时等待用户显式恢复。临时网络失败保留快照，明确拒绝的请求清除快照。
+
+`POST /api/v1/travel/tasks/{id}/retry` 仅允许可重试的失败、超时或取消任务，沿用服务端保存的请求，创建关联 `retry_of` 的新任务。旧记录没有请求快照时禁止伪造重试。SQLite 以新增表兼容已有记录。

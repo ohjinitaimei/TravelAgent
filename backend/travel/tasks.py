@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import multiprocessing as mp
+import hashlib
+import json
 from queue import Empty
 from time import monotonic
 from uuid import uuid4
@@ -25,22 +27,40 @@ class TaskManager:
             if task.status not in TERMINAL:
                 self.finish(task.id, "failed", Error(code="service_restarted", message="服务已重启，未完成任务请重新提交", retryable=True))
 
-    def create(self, payload: dict) -> Task:
+    def create(self, payload: dict, idempotency_key: str | None = None, retry_of: str | None = None) -> Task:
+        fingerprint = hashlib.sha256(json.dumps({"payload":payload,"retry_of":retry_of},sort_keys=True,ensure_ascii=False).encode()).hexdigest()
+        existing = self.store.submission(idempotency_key, fingerprint) if idempotency_key else None
+        if existing:
+            return existing
         if len(self.runners) >= self.capacity:
             raise TravelFailure("queue_full", "规划队列已满，请稍后重试", True, 429)
-        task = Task(id=uuid4().hex, status="queued", kind=payload.get("kind", "plan"))
-        self.store.put_task(task)
+        task = Task(id=uuid4().hex, status="queued", kind=payload.get("kind", "plan"), retry_of=retry_of)
+        task, created = self.store.register_task(task, payload, idempotency_key, fingerprint)
+        if not created:
+            return task
         self.store.event(task.id, "queued", "任务已进入需求解析队列" if task.kind == "draft" else "任务已进入真实规划队列")
         runner = asyncio.create_task(self.execute(task.id, payload))
         self.runners[task.id] = runner
         runner.add_done_callback(lambda _: self.runners.pop(task.id, None))
         return task
 
+    def retry(self, task_id: str, idempotency_key: str | None = None) -> Task:
+        task = self.store.task(task_id)
+        if task is None:
+            raise TravelFailure("task_not_found", "任务不存在", status=404)
+        if task.status not in {"failed", "timed_out", "cancelled"} or not task.retry_available:
+            raise TravelFailure("task_not_retryable", "该任务不能直接重试，请核对配置或修改条件后重新提交", status=409)
+        payload = self.store.task_request(task_id)
+        if payload is None:
+            raise TravelFailure("retry_unavailable", "历史任务未保存请求条件，请重新填写表单", status=409)
+        return self.create(payload, idempotency_key, retry_of=task_id)
+
     def finish(self, task_id: str, status: str, error: Error | None = None):
         task = self.store.task(task_id)
         if task is None or task.status in TERMINAL:
             return
         task.status, task.error, task.updated_at = status, error, now()
+        task.retry_available = self.store.task_request(task_id) is not None and (status == "cancelled" or bool(error and error.retryable))
         self.store.put_task(task)
         self.store.event(task_id, status, error.message if error else "任务已取消")
 

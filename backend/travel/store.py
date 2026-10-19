@@ -18,12 +18,40 @@ class Store:
           CREATE TABLE IF NOT EXISTS events (task_id TEXT, seq INTEGER, data TEXT NOT NULL, PRIMARY KEY(task_id, seq));
           CREATE TABLE IF NOT EXISTS itineraries (id TEXT PRIMARY KEY, data TEXT NOT NULL);
           CREATE TABLE IF NOT EXISTS drafts (id TEXT PRIMARY KEY, data TEXT NOT NULL);
+          CREATE TABLE IF NOT EXISTS task_requests (task_id TEXT PRIMARY KEY, data TEXT NOT NULL);
+          CREATE TABLE IF NOT EXISTS submission_keys (key TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, task_id TEXT NOT NULL);
         """)
         self.db.commit()
 
     def put_task(self, task: Task):
         with self.lock, self.db:
             self.db.execute("INSERT OR REPLACE INTO tasks VALUES (?, ?)", (task.id, task.model_dump_json()))
+
+    def submission(self, key: str, fingerprint: str | None = None) -> Task | None:
+        from travel.provider import TravelFailure
+        with self.lock:
+            row = self.db.execute("SELECT fingerprint, task_id FROM submission_keys WHERE key=?", (key,)).fetchone()
+            if row and fingerprint is not None and row[0] != fingerprint:
+                raise TravelFailure("idempotency_conflict", "同一提交标识不能用于不同条件，请重新提交", status=409)
+            return self.task(row[1]) if row else None
+
+    def register_task(self, task: Task, payload: dict, key: str | None, fingerprint: str) -> tuple[Task, bool]:
+        import json
+        with self.lock, self.db:
+            existing = self.submission(key, fingerprint) if key else None
+            if existing:
+                return existing, False
+            self.db.execute("INSERT INTO tasks VALUES (?, ?)", (task.id, task.model_dump_json()))
+            self.db.execute("INSERT INTO task_requests VALUES (?, ?)", (task.id, json.dumps(payload, ensure_ascii=False)))
+            if key:
+                self.db.execute("INSERT INTO submission_keys VALUES (?, ?, ?)", (key, fingerprint, task.id))
+            return task, True
+
+    def task_request(self, task_id: str) -> dict | None:
+        import json
+        with self.lock:
+            row = self.db.execute("SELECT data FROM task_requests WHERE task_id=?", (task_id,)).fetchone()
+        return json.loads(row[0]) if row else None
 
     def task(self, task_id: str) -> Task | None:
         with self.lock:

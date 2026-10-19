@@ -1,9 +1,10 @@
 import type { PlanRequest } from './api'
+import type { PendingSubmission } from './submissions'
 
 const KEY = 'travelagent.workspace.v1'
-export type WorkspaceSession = { form?: PlanRequest; taskId?: string; itineraryId?: string; draftId?: string }
+export type WorkspaceSession = { form?: PlanRequest; taskId?: string; itineraryId?: string; draftId?: string; pendingSubmission?:PendingSubmission; appliedDraft?:{id:string;revision:number} }
 
-/** Persist only user form and server IDs, never provider datasets or credentials. */
+/** Persist user inputs, pending submissions and server IDs, never provider datasets or credentials. */
 export function readSession(): WorkspaceSession {
   try { const value = JSON.parse(localStorage.getItem(KEY) || '{}'); return value && typeof value === 'object' ? value : {} }
   catch { return {} }

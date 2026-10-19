@@ -6,6 +6,8 @@ import { restoreForm } from '../apps/web/src/session'
 import { userPrices } from '../apps/web/src/editor'
 import { clarificationRequest, draftForm } from '../apps/web/src/draft'
 import type { Draft } from '../packages/api-schema/client'
+import { newSubmission, restoreSubmission, sendSubmission, recoverSubmission } from '../apps/web/src/submissions'
+import { reactive } from 'vue'
 
 test('polling cancels an in-flight request and enforces its deadline', async () => {
   const server = createServer((_request,_response)=>{})
@@ -60,4 +62,48 @@ test('clarification sends selected changes, preserves zero and confirms existing
   assert.throws(()=>clarificationRequest(draft,{query:'博物馆'},{query:true}),/请选择/)
   const api=new TravelClient(async(path,init)=>{assert.equal(path,'/drafts/test-only%2Fid');assert.equal(init?.method,'PATCH');assert.deepEqual(init?.body,body);return draft})
   assert.equal((await api.clarifyDraft(draft.id,body)).id,draft.id)
+})
+
+test('polling reconnects with bounded backoff and does not restart the task',async()=>{
+  let failures=2,posts=0,reads=0
+  const states:string[]=[]
+  const task={id:'test-only',status:'succeeded',kind:'plan',itinerary_id:'test-trip'}
+  const api=new TravelClient(async(path,init)=>{
+    if(init?.method==='POST') posts++
+    if(path.endsWith('/events?after=0')) throw new TravelApiError('network_error','TEST ONLY',true)
+    reads++
+    if(failures-->0) throw new TravelApiError('network_error','TEST ONLY',true)
+    return task
+  })
+  assert.equal((await api.wait(task.id,()=>{}, {retryDelayMs:1,onConnection:state=>states.push(state)})).status,'succeeded')
+  assert.equal(reads,3)
+  assert.equal(posts,0)
+  assert.deepEqual(states,['reconnecting','reconnecting','connected'])
+  failures=99
+  await assert.rejects(()=>api.wait(task.id,()=>{}, {retryDelayMs:1,maxConsecutiveErrors:1}),(error:unknown)=>error instanceof TravelApiError&&error.code==='network_error')
+  const missing=new TravelClient(async()=>{throw new TravelApiError('task_not_found','TEST ONLY',false)})
+  await assert.rejects(()=>missing.wait('missing',()=>{}),(error:unknown)=>error instanceof TravelApiError&&error.code==='task_not_found')
+})
+
+test('a lost POST response is recovered by receipt with no duplicate submission',async()=>{
+  let posts=0
+  const task={id:'test-only-task',status:'queued',kind:'plan'}
+  const api=new TravelClient(async(path,init)=>{
+    if(init?.method==='POST') {posts++;assert.equal(init.headers?.['Idempotency-Key'],'test-only-key');throw new TravelApiError('network_error','TEST ONLY',true)}
+    assert.equal(path,'/submissions/test-only-key');return task
+  })
+  const request=reactive({city:'TEST ONLY',query:'TEST ONLY',start_date:'2026-10-20',user_prices:{}})
+  const pending=newSubmission({kind:'plan',request},'test-only-key')
+  request.city='CHANGED AFTER SUBMIT'
+  assert.equal(pending.operation.kind==='plan'&&pending.operation.request.city,'TEST ONLY')
+  await assert.rejects(()=>sendSubmission(api,pending),/TEST ONLY/)
+  assert.equal((await recoverSubmission(api,pending))?.id,task.id)
+  assert.equal(posts,1)
+  assert.equal(restoreSubmission({key:'bad',operation:{kind:'shell'}}),null)
+  let sent=0
+  const notAccepted=new TravelClient(async(_path,init)=>{if(init?.method==='POST'){sent++;return task}throw new TravelApiError('submission_not_found','TEST ONLY')})
+  assert.equal(await recoverSubmission(notAccepted,pending,true),null)
+  assert.equal(sent,0)
+  assert.equal((await recoverSubmission(notAccepted,pending))?.id,task.id)
+  assert.equal(sent,1)
 })

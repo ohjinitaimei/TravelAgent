@@ -1,0 +1,148 @@
+import { test, expect, type Page } from '@playwright/test'
+
+// This suite runs only against scripts/verify_browser.py's explicit TEST ONLY server.
+test.beforeEach(async ({ page }) => {
+  await page.route(/https:\/\//, route => route.abort())
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: '这次，去哪里？' })).toBeVisible()
+})
+
+async function fillPlan(page: Page, query = 'TEST ONLY 地点') {
+  const form = page.locator('.planner-form')
+  await form.getByLabel('目的地', { exact: true }).fill('TEST ONLY 测试城市')
+  await form.getByLabel('地点关键词', { exact: false }).fill(query)
+  await form.getByLabel('出发日期', { exact: true }).fill('2026-10-20')
+  await form.getByLabel('旅行天数').selectOption('1')
+  await form.getByLabel('每天站数').selectOption('2')
+}
+
+async function currentTask(page: Page) {
+  const text = await page.locator('.task-id').innerText()
+  const id = text.replace(/^任务\s+/, '').split(' · ')[0].trim()
+  const response = await page.request.get(`/api/v1/travel/tasks/${id}`)
+  expect(response.ok()).toBeTruthy()
+  return response.json()
+}
+
+test('draft clarification preserves evidence, revision and applied form after reload', async ({ page }) => {
+  await page.getByLabel('旅行需求', { exact: true }).fill('TEST ONLY 想逛博物馆，需要预约')
+  await page.getByRole('button', { name: '整理为草案' }).click()
+  await expect(page.getByRole('heading', { name: '待核对的需求草案' })).toBeVisible()
+  await page.getByLabel('草案目的地', { exact: true }).fill('杭州')
+  await page.getByLabel('草案出发日期', { exact: true }).fill('2026-10-20')
+  await page.getByLabel('保存地点关键词', { exact: true }).check()
+  await page.getByRole('button', { name: '保存补充与确认' }).click()
+  await expect(page.locator('.draft-review .status-pill')).toContainText('第 2 版')
+  await expect(page.locator('.draft-unhandled')).toContainText('需要预约')
+  await expect(page.locator('.draft-fields')).toContainText('用户填写')
+  await page.getByRole('button', { name: '填入表单并核对' }).click()
+  await expect(page.locator('.planner-form').getByLabel('目的地', { exact: true })).toHaveValue('杭州')
+  await page.locator('.clarification-panel > summary').click()
+  await page.getByLabel('草案预算上限', { exact: true }).fill('800')
+  await page.getByRole('button', { name: '保存补充与确认' }).click()
+  await expect(page.getByText('草案已更新至第 3 版', { exact: false })).toBeVisible()
+  await expect(page.getByRole('button', { name: '开始规划' })).toBeDisabled()
+  await page.getByRole('button', { name: '填入最新草案', exact: true }).click()
+  await page.reload()
+  await expect(page.locator('.draft-review .status-pill')).toContainText('第 3 版')
+  await expect(page.locator('.planner-form').getByLabel('总预算（可选）')).toHaveValue('800')
+  await expect(page.getByRole('button', { name: '开始规划' })).toBeEnabled()
+})
+
+test('lost submission response recovers the accepted task without duplicate POST', async ({ page }) => {
+  await fillPlan(page)
+  let posts = 0
+  let accepted: any
+  await page.route('**/api/v1/travel/tasks', async route => {
+    if (route.request().method() !== 'POST') return route.continue()
+    posts++
+    const response = await route.fetch()
+    accepted = await response.json()
+    await route.abort('failed')
+  })
+  await page.getByRole('button', { name: '开始规划' }).click()
+  await expect(page.getByRole('button', { name: '恢复上次提交' })).toBeEnabled()
+  await page.getByRole('button', { name: '恢复上次提交' }).click()
+  await expect(page.getByText('行程已生成并保存', { exact: true })).toBeVisible()
+  expect(posts).toBe(1)
+  expect((await currentTask(page)).id).toBe(accepted.id)
+  await expect(page.locator('.timeline')).toContainText('TEST ONLY fixture-a')
+})
+
+test('concurrent draft update preserves unsaved answers until explicit reload', async ({ page }) => {
+  await page.getByLabel('旅行需求', { exact: true }).fill('TEST ONLY 想逛博物馆，需要预约')
+  await page.getByRole('button', { name: '整理为草案' }).click()
+  await expect(page.getByRole('heading', { name: '待核对的需求草案' })).toBeVisible()
+  const task = await currentTask(page)
+  const response = await page.request.patch(`/api/v1/travel/drafts/${task.draft_id}`, {
+    data: { expected_revision: 1, values: { city: '北京' }, confirm_fields: ['city'] },
+  })
+  expect(response.ok()).toBeTruthy()
+  await page.getByLabel('草案目的地', { exact: true }).fill('杭州')
+  await page.getByRole('button', { name: '保存补充与确认' }).click()
+  await expect(page.locator('.draft-conflict')).toBeVisible()
+  await expect(page.getByLabel('草案目的地', { exact: true })).toHaveValue('杭州')
+  await page.getByRole('button', { name: '加载最新草案（替换未保存补充）' }).click()
+  await expect(page.getByLabel('草案目的地', { exact: true })).toHaveValue('北京')
+  await expect(page.locator('.draft-review .status-pill')).toContainText('第 2 版')
+  await expect(page.locator('.draft-conflict')).toHaveCount(0)
+})
+
+test('transient failure retries original inputs even after editing the form', async ({ page }) => {
+  await fillPlan(page, 'TEST ONLY retry')
+  await page.getByRole('button', { name: '开始规划' }).click()
+  await expect(page.getByRole('button', { name: '按原条件重试' })).toBeEnabled()
+  const original = await currentTask(page)
+  await page.locator('.planner-form').getByLabel('目的地', { exact: true }).fill('不会用于重试的城市')
+  await page.getByRole('button', { name: '按原条件重试' }).click()
+  await expect(page.getByText('行程已生成并保存', { exact: true })).toBeVisible()
+  const retried = await currentTask(page)
+  expect(retried.retry_of).toBe(original.id)
+  const trip = await (await page.request.get(`/api/v1/travel/itineraries/${retried.itinerary_id}`)).json()
+  expect(trip.request.city).toBe('TEST ONLY 测试城市')
+  expect(trip.request.query).toBe('TEST ONLY retry')
+  expect((await (await page.request.get(`/api/v1/travel/tasks/${original.id}`)).json()).status).toBe('failed')
+})
+
+test('polling survives SSE and temporary network failures and reload keeps task identity', async ({ page }) => {
+  await fillPlan(page, 'TEST ONLY slow')
+  let failures = 0
+  await page.route('**/tasks/*/events/stream?*', route => route.abort())
+  await page.route(/\/tasks\/[^/]+$/, route => {
+    if (route.request().method() === 'GET' && failures++ < 2) return route.abort()
+    return route.continue()
+  })
+  await page.getByRole('button', { name: '开始规划' }).click()
+  await expect(page.getByText('行程已生成并保存', { exact: true })).toBeVisible()
+  const task = await currentTask(page)
+  await page.reload()
+  await expect(page.locator('.task-id')).toContainText(task.id)
+  await expect(page.locator('.timeline')).toContainText('TEST ONLY fixture-a')
+  expect((await currentTask(page)).itinerary_id).toBe(task.itinerary_id)
+})
+
+test('cancellation is terminal and supports explicit retry', async ({ page }) => {
+  await fillPlan(page, 'TEST ONLY slow')
+  await page.getByRole('button', { name: '开始规划' }).click()
+  await page.getByRole('button', { name: '取消任务', exact: true }).click()
+  await expect(page.locator('.execution .status-pill')).toHaveText('已取消')
+  expect((await currentTask(page)).status).toBe('cancelled')
+  await expect(page.getByRole('button', { name: '按原条件重试' })).toBeEnabled()
+  await expect(page.getByRole('button', { name: '取消任务', exact: true })).toHaveCount(0)
+})
+
+test('saved multi-day itinerary editing creates a new version and preserves original', async ({ page }) => {
+  await page.getByRole('button', { name: '已保存行程', exact: false }).first().click()
+  await page.locator('.saved-card').first().click()
+  await expect(page.getByRole('button', { name: '编辑行程', exact: true })).toBeEnabled()
+  await page.getByRole('button', { name: '编辑行程', exact: true }).click()
+  await page.getByLabel('用户录入费用').first().fill('20')
+  await page.getByRole('button', { name: '保存并重算', exact: true }).click()
+  await expect(page.getByText('行程已生成并保存', { exact: true })).toBeVisible()
+  const task = await currentTask(page)
+  const trip = await (await page.request.get(`/api/v1/travel/itineraries/${task.itinerary_id}`)).json()
+  expect(trip.parent_id).toBeTruthy()
+  expect((await page.request.get(`/api/v1/travel/itineraries/${trip.parent_id}`)).ok()).toBeTruthy()
+  expect(trip.budget.known_subtotal).toBe(20)
+  expect(trip.budget.unknown_items.length).toBeGreaterThan(0)
+})

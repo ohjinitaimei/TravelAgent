@@ -1,4 +1,4 @@
-name: Development checks
+name: Acceptance checks
 
 on:
   push:
@@ -37,10 +37,25 @@ jobs:
           python -m pip install -r backend/requirements.helloagents.txt -r backend/requirements.mcp.txt -c backend/requirements.travel.lock.txt
           python -m pip check
           npm ci
-      - name: Verify development snapshot without live API keys
+      - name: Verify repository without live API keys
         run: python scripts/verify_repository.py
       - name: Verify generated API contract
         run: |
           python scripts/export_openapi.py
           npm run schema:generate
           git diff --exit-code -- packages/api-schema/openapi.json packages/api-schema/schema.d.ts
+      - name: Install Chromium headless browser
+        run: npx playwright install --with-deps --only-shell chromium
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: .cache/playwright
+      - name: Verify isolated browser interactions
+        run: python scripts/verify_browser.py
+      - name: Verify source inventory
+        run: python scripts/update_publish_manifest.py --check
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-diagnostics-test-only
+          path: |
+            artifacts/browser-results
+            artifacts/browser-diagnostics

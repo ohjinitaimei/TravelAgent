@@ -208,6 +208,8 @@ class Task(Model):
     itinerary_id: str | None = None
     draft_id: str | None = None
     error: Error | None = None
+    retry_of: str | None = None
+    retry_available: bool = False
 
 
 class Capabilities(Model):

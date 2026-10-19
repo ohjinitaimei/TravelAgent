@@ -23,7 +23,7 @@ def main():
         raise SystemExit("Node.js/npm is required")
     def run(*command):
         subprocess.run(command,cwd=ROOT,env=env,check=True)
-    for script in ("test_travel.py","test_agent_intake.py","test_draft_clarification.py","test_mcp.py"):
+    for script in ("test_travel.py","test_agent_intake.py","test_draft_clarification.py","test_mcp.py","test_task_recovery.py"):
         run(sys.executable,str(ROOT/"tests"/script),"-v")
     with tempfile.TemporaryDirectory(prefix="travelagent-check-",dir=ROOT/".tmp") as directory:
         env["TRAVEL_DB_PATH"]=str(Path(directory)/"verification.sqlite3")
