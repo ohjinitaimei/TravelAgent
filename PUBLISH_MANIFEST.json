@@ -30,8 +30,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 9247,
-      "sha256": "77e11cfc51fc8d6fb4fd18faa22b5e8eb2783648190bb20914112cc1924851e7"
+      "bytes": 9242,
+      "sha256": "34b0446bc9cb3bf7b6d05c822dcc28bc126f42c20d12c0122530a1339078fc0e"
     },
     {
       "path": "analysis_options.yaml",
@@ -740,8 +740,8 @@
     },
     {
       "path": "docs/ACCEPTANCE.md",
-      "bytes": 6986,
-      "sha256": "4af1265862faa54630e1cf3090250ac30afd48799913c1a41ada86f3989b5a14"
+      "bytes": 7152,
+      "sha256": "a488d5a45bc80446309ae2b09fa8c30b40dadcbf01ee6d7fc9cf8ff907a46593"
     },
     {
       "path": "docs/README.md",
@@ -750,8 +750,8 @@
     },
     {
       "path": "docs/RELEASE_STATUS.md",
-      "bytes": 5796,
-      "sha256": "cfe82e225ec72a5230d95303412f19a1049229ba462138e57d2d06d94cb8d4a6"
+      "bytes": 5909,
+      "sha256": "0ab01a0e0c21128e7c0dcc78027ebb1e3beacc7b5b782099c92a51ff37d57d80"
     },
     {
       "path": "docs/TECHNICAL_REPORT.md",
@@ -795,8 +795,8 @@
     },
     {
       "path": "docs/architecture/LIVE_AMAP.md",
-      "bytes": 3762,
-      "sha256": "f8dccd22d1a743b4dd7a2bed568babe0da2aa6b494de53d58c242861ff710c29"
+      "bytes": 4936,
+      "sha256": "98c84004412a7ac709399fd323aa87dde12f332d15014e172877b6730120c23c"
     },
     {
       "path": "docs/architecture/MCP_CLIENT.md",
