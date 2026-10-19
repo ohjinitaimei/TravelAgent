@@ -1,0 +1,118 @@
+# TravelAgent · Web 开发版
+
+> **当前为 v0.1 开发快照，仍在持续优化，尚未完成生产验收。**
+> Web 优先；uni-app 尚未开发。高德真实路线成功联调、完整浏览器验收及生产部署仍待完成。
+
+TravelAgent 将自然语言旅行需求整理为可核对草案，再由统一 FastAPI 后端查询授权数据，复用已有推荐、排序和时间调度算法生成行程。模型不负责计算真实交通时间或路线成本，缺失数据不以模拟地点、价格、评论或交通降级补齐。
+
+## 当前可用范围
+
+| 模块 | 状态 |
+| --- | --- |
+| Vue3 / TypeScript / Vite PC 工作台 | 已实现规划表单、草案核对、执行状态、地图容器、多日时间轴、POI、编辑、预算和保存页面 |
+| HelloAgents 需求提取 | 单 Agent 适配已实现，历史环境已完成真实模型验证 |
+| 草案澄清 | 同一 ID 多轮补充、字段确认、来源标记、修订冲突保护，不再次调用模型 |
+| 统一任务服务 | 有界工作进程、SQLite、SSE、轮询、取消、超时和重启处理 |
+| POI / 路线 | 真实高德 Provider 已接入；成功链路待使用者授权 Key 验证 |
+| 推荐 / 排序 / 调度 | 复用既有后端算法；生产入口不读取旧测试 POI |
+| MCP | 可选 stdio 工具服务已实现；Agent MCP 客户端连接尚未验收 |
+| App | 保留原 Flutter 源码；apps/mobile 是后续 uni-app 预留说明，不是可运行 App |
+| 部署 | 当前适合 localhost 单用户、单实例；不承诺可直接公网部署 |
+
+行程生成与编辑的成功检查使用 tests 中隔离的 FixtureProvider，不能视为真实高德验收。最新一轮浏览器交互验收未完成。详细状态及待办见 [开发状态与优化计划](docs/RELEASE_STATUS.md)。
+
+## 工程结构
+
+```text
+apps/web/               Vue3 PC 工作台
+apps/mobile/            未来 uni-app 接入说明
+packages/api-schema/    OpenAPI、生成的 TS 类型和共享客户端
+backend/travel/         Schema、Provider、Tools、任务、持久化和 API
+backend/agent/          既有受控协调器与 HelloAgents 适配
+backend/services/       既有推荐、排序、调度模块
+tests/                  隔离测试，不作为生产数据入口
+scripts/                契约生成、检查与显式真实联调脚本
+lib/ android/ windows/  保留的 Flutter 历史客户端
+docs/                   当前状态、架构审计和历史记录
+```
+
+## 安装
+
+环境：Python 3.12、Node.js 22.12+、npm。依赖有锁文件；不要未经兼容性验证升级核心依赖。
+
+```powershell
+git clone https://github.com/ohjinitaimei/TravelAgent.git
+cd TravelAgent
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r backend/requirements.travel.lock.txt
+npm ci
+Copy-Item backend/.env.example backend/.env
+```
+
+Linux/macOS 使用 `python3 -m venv .venv`、`.venv/bin/python` 和 `cp backend/.env.example backend/.env`。
+
+### 启动 Web 与后端
+
+```powershell
+# 终端一：仅绑定本机，单实例、单 worker
+.\.venv\Scripts\python.exe -m uvicorn main:app --app-dir backend --host 127.0.0.1 --port 8000
+# 终端二
+npm run dev
+```
+
+访问 <http://127.0.0.1:5173/>；接口文档 <http://127.0.0.1:8000/docs>，统一前缀 `/api/v1/travel`。如 8000 被占用，可改后端端口，并在启动 Web 前设置 `$env:TRAVEL_BACKEND_URL='http://127.0.0.1:18000'`。
+
+示例默认 `TRAVEL_PRODUCTION=1`，关闭旧 `/api/route/`、`/api/map/`、`/api/eval/`、`/api/context/` 数据入口。仍须自行完成鉴权等部署改造，不能把该开关当成生产安全保证。
+
+### 可选：模型需求整理
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r backend/requirements.helloagents.txt -c backend/requirements.travel.lock.txt
+```
+
+在后端 `.env` 配置自己的 DASHSCOPE_* / OPENAI_*，或 TRAVEL_LLM_API_KEY、TRAVEL_LLM_BASE_URL、TRAVEL_LLM_MODEL，设置 `TRAVEL_AGENT_ENABLED=1` 和 `LLM_INTENT_DISABLE_LLM=0` 后重启后端。模型需支持原生 Function Calling；自定义地址填兼容服务根路径（如 `/v1`）。全部凭证留在后端。
+
+没有模型配置时可直接填写结构化表单；没有高德 Key 时可以运行工作台和需求整理，但 POI/路线查询会明确失败。
+
+### 可选：真实地图与路线
+
+- 后端高德 Web 服务 Key：填入 `backend/.env` 的 `AMAP_WEB_KEY`，按账号设置合法权限和配额，重启后端。
+- 浏览器地图使用独立的 JS API Key：复制 `apps/web/.env.example` 为 `.env.local`，配置 `VITE_AMAP_JS_KEY` 与 `VITE_AMAP_SECURITY_CODE` 及域名白名单。
+- 不要把后端密钥放入 VITE 变量；VITE 变量会进入浏览器构建产物。
+- 地点评分、营业时间和消费字段可能缺失；预算未知项不视为免费，预约与未来日期营业状态尚未验证。
+
+## 可复现检查
+
+完整检查需要两个可选适配依赖，使用隔离数据库，不调用真实高德或模型：
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r backend/requirements.helloagents.txt -r backend/requirements.mcp.txt -c backend/requirements.travel.lock.txt
+.\.venv\Scripts\python.exe -m pip check
+.\.venv\Scripts\python.exe scripts/verify_repository.py
+```
+
+检查旅行 API、Agent、澄清、MCP、共享客户端及 Web 构建；自动启动专用缺 Key 服务，不使用正在运行的开发库。GitHub Actions 使用同一脚本。初次运行可能需要网络安装依赖，但业务 API 不使用真实凭证。
+
+契约变更后运行并提交生成文件：
+
+```powershell
+.\.venv\Scripts\python.exe scripts/export_openapi.py
+npm run schema:generate
+npm run build
+```
+
+`scripts/verify_live_*.py` 为显式真实联调工具，使用者提供合法 Key 后自行运行，会产生外部调用或费用，验证产物不提交。
+
+## 发布边界与后续优化
+
+本次只发布整理后的源码快照，不带入原 Git 历史、机器配置、缓存、密钥、运行数据库、个人行程和未核验的旧 POI 数据。原本地工程及历史保持不变。原接口和 Flutter 源码作为历史实现保留，依赖旧 POI 的功能不承诺在此快照可运行。
+
+优先继续：Web 浏览器验收和失败恢复 → 高德真实多日路线/编辑联调 → MCP 客户端实际连接 → 鉴权、数据隔离和部署 → App 接入 → 高级优化与 Memory。
+
+- [开发状态、验收边界与优化清单](docs/RELEASE_STATUS.md)
+- [来源、第三方依赖与许可边界](NOTICE.md)
+- [架构审计与阶段交付](docs/architecture/TRAVEL_DELIVERY.md)
+- [需求澄清实现记录](docs/architecture/DRAFT_CLARIFICATION.md)
+- [原工程说明（历史）](docs/legacy/MUSE_README.md)
+
+历史文档中的本机路径、任务 ID、截图及 artifacts 不随仓库上传，不代表克隆后已有验收产物。当前尚未指定新的开源许可证，首版作为私有开发仓库整理；公开前需确认原始代码和第三方数据的来源与授权。

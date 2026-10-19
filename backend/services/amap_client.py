@@ -1,0 +1,96 @@
+"""Shared GaoDe Web API client helpers."""
+
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+from typing import Any, Optional
+
+import httpx
+
+
+AMAP_KEY = os.getenv("AMAP_KEY") or os.getenv("AMAP_WEB_KEY", "")
+AMAP_BASE_URL = os.getenv("AMAP_WEB_BASE_URL", "https://restapi.amap.com").rstrip("/")
+AMAP_TIMEOUT_SECONDS = float(os.getenv("AMAP_WEB_TIMEOUT_SECONDS", "10"))
+
+
+@dataclass
+class AmapClient:
+    key: str = AMAP_KEY
+    base_url: str = AMAP_BASE_URL
+    timeout_seconds: float = AMAP_TIMEOUT_SECONDS
+
+    @property
+    def enabled(self) -> bool:
+        return bool(self.key)
+
+    def _get(self, path: str, params: dict[str, Any]) -> dict[str, Any]:
+        if not self.enabled:
+            return {}
+        url = f"{self.base_url.rstrip('/')}/{path.lstrip('/')}"
+        resp = httpx.get(url, params=params, timeout=self.timeout_seconds)
+        resp.raise_for_status()
+        data = resp.json()
+        return data if isinstance(data, dict) else {}
+
+    def geocode(self, address: str, city: str | None = None) -> dict[str, Any]:
+        params: dict[str, Any] = {
+            "key": self.key,
+            "address": address,
+            "output": "JSON",
+        }
+        if city:
+            params["city"] = city
+        return self._get("/v3/geocode/geo", params)
+
+    def reverse_geocode(self, longitude: float, latitude: float) -> dict[str, Any]:
+        params: dict[str, Any] = {
+            "key": self.key,
+            "location": f"{longitude},{latitude}",
+            "output": "JSON",
+            "extensions": "base",
+        }
+        return self._get("/v3/geocode/regeo", params)
+
+    def search_poi(
+        self,
+        keyword: str,
+        city: str | None = None,
+        *,
+        page: int = 1,
+        offset: int = 5,
+        types: str | None = None,
+        location: str | None = None,
+        radius: int | None = None,
+    ) -> dict[str, Any]:
+        params: dict[str, Any] = {
+            "key": self.key,
+            "keywords": keyword,
+            "output": "JSON",
+            "page": page,
+            "offset": offset,
+        }
+        if city:
+            params["city"] = city
+        if types:
+            params["types"] = types
+        if city:
+            params["citylimit"] = "true"
+        if location:
+            params["location"] = location
+            if radius:
+                params["radius"] = radius
+            return self._get("/v3/place/around", params)
+        return self._get("/v3/place/text", params)
+
+    def poi_detail(self, poi_id: str) -> dict[str, Any]:
+        params = {"key": self.key, "id": poi_id, "output": "JSON"}
+        return self._get("/v3/place/detail", params)
+
+    def directions(self, origin: str, destination: str, mode: str = "walking") -> dict[str, Any]:
+        if mode not in {"walking", "driving"}:
+            raise ValueError("Unsupported authorized routing mode")
+        return self._get(f"/v3/direction/{mode}", {
+            "key": self.key, "origin": origin, "destination": destination, "output": "JSON",
+        })
+

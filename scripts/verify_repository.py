@@ -1,0 +1,62 @@
+"""Reproduce CI locally: isolated DB, no model/Amap credentials or business API calls."""
+import os
+from pathlib import Path
+import shutil
+import socket
+import subprocess
+import sys
+import tempfile
+import time
+import urllib.error
+import urllib.request
+
+ROOT=Path(__file__).resolve().parents[1]
+
+
+def main():
+    (ROOT/".tmp").mkdir(exist_ok=True)
+    env=dict(os.environ,TRAVEL_PRODUCTION="1",TRAVEL_AGENT_ENABLED="0",LLM_INTENT_DISABLE_LLM="1",PYTHONIOENCODING="utf-8")
+    for name in ("AMAP_KEY","AMAP_WEB_KEY","DASHSCOPE_API_KEY","OPENAI_API_KEY","TRAVEL_LLM_API_KEY"):
+        env[name]=""
+    npm=shutil.which("npm.cmd" if os.name=="nt" else "npm")
+    if not npm:
+        raise SystemExit("Node.js/npm is required")
+    def run(*command):
+        subprocess.run(command,cwd=ROOT,env=env,check=True)
+    for script in ("test_travel.py","test_agent_intake.py","test_draft_clarification.py","test_mcp.py"):
+        run(sys.executable,str(ROOT/"tests"/script),"-v")
+    with tempfile.TemporaryDirectory(prefix="travelagent-check-",dir=ROOT/".tmp") as directory:
+        env["TRAVEL_DB_PATH"]=str(Path(directory)/"verification.sqlite3")
+        with socket.socket() as port_probe:
+            port_probe.bind(("127.0.0.1",0))
+            port=port_probe.getsockname()[1]
+        base=f"http://127.0.0.1:{port}/api/v1/travel"
+        env["TRAVEL_TEST_URL"]=base
+        log_path=Path(directory)/"api.log"
+        stop_file=Path(directory)/"stop"
+        with log_path.open("w",encoding="utf-8") as log:
+            process=subprocess.Popen([sys.executable,"scripts/verification_server.py","--port",str(port),"--stop-file",str(stop_file)],cwd=ROOT,env=env,stdout=log,stderr=subprocess.STDOUT)
+            try:
+                deadline=time.monotonic()+20
+                while time.monotonic()<deadline:
+                    if process.poll() is not None:
+                        raise RuntimeError("Verification API exited; inspect isolated api.log")
+                    try:
+                        with urllib.request.urlopen(base+"/capabilities",timeout=1): break
+                    except (urllib.error.URLError,TimeoutError): time.sleep(.1)
+                else:
+                    raise RuntimeError("Verification API did not become ready")
+                run(npm,"run","test:client")
+            finally:
+                # Let FastAPI lifespan close workers and SQLite before deleting
+                # the isolated test folder. Windows terminate() is not graceful.
+                stop_file.touch()
+                try: process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.terminate(); process.wait(timeout=5)
+    run(npm,"run","build")
+    print("Repository checks passed (isolated API, no live credentials).")
+
+
+if __name__=="__main__":
+    main()

@@ -1,0 +1,1081 @@
+{
+  "status": "development_not_production_ready",
+  "source_base_commit": "11dc97c2e9616240a741a8e1366f55a789926263",
+  "includes_working_tree_changes": true,
+  "history_exported": false,
+  "excluded_existing_files": [
+    ".vscode/settings.json",
+    "adb.ps1",
+    "backend/pois.amap.enriched.json",
+    "backend/pois.amap.report.json",
+    "backend/pois.json",
+    "flutter.ps1"
+  ],
+  "files": [
+    {
+      "path": ".gitattributes",
+      "bytes": 81,
+      "sha256": "dbb6be933d4832b172426a0cfc822777723f39ef981d8848461e8a4ce7ea23ef"
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "bytes": 1307,
+      "sha256": "5824c9b7466fb91906063bb0568c3675c02898a73adf19b87db91b077bbf49a0"
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 1327,
+      "sha256": "1ad3699bb9332294a4c22347f92e1f343f548a76d203ec7e225d88cdbf155f13"
+    },
+    {
+      "path": ".metadata",
+      "bytes": 968,
+      "sha256": "1ee9287d9e13fd2432390a1de979222013a72915b3fbc4cd82a1a1c798c4a0a2"
+    },
+    {
+      "path": "NOTICE.md",
+      "bytes": 1395,
+      "sha256": "57b0ca32aed0866649b29f542463dd127de9ea296b57e1f31740f1cd6a47db32"
+    },
+    {
+      "path": "README.md",
+      "bytes": 6975,
+      "sha256": "53e380899b8bd181a651513fea7c746fa1881232ffe2b54621c3918d62872b36"
+    },
+    {
+      "path": "analysis_options.yaml",
+      "bytes": 1420,
+      "sha256": "e0ea485cfdbc3e12b93efb8679a5ea73ebfe20ea4ca0c473dc594fc2fb274ed5"
+    },
+    {
+      "path": "android/.gitignore",
+      "bytes": 253,
+      "sha256": "b027c9de1011765c015e5819bf857c0d75bfcd0886fb01721c091159012e50f1"
+    },
+    {
+      "path": "android/app/build.gradle.kts",
+      "bytes": 1399,
+      "sha256": "b515440c4ee52ee13628291676dcd9490adcf02650dd6818dee8b2436d503d3a"
+    },
+    {
+      "path": "android/app/src/debug/AndroidManifest.xml",
+      "bytes": 378,
+      "sha256": "30b0832ed8b92dfbd6ae2abfa939ccf26333d37600056b1572bd4a397a18a74b"
+    },
+    {
+      "path": "android/app/src/main/AndroidManifest.xml",
+      "bytes": 2267,
+      "sha256": "5ec549bfc5be20c10fe81201514e5cd2d5dd9ef549c6bc34062edc23e4ae0cd2"
+    },
+    {
+      "path": "android/app/src/main/kotlin/com/example/meituanagent/MainActivity.kt",
+      "bytes": 126,
+      "sha256": "8da5357be52218741eee58d0f7138dfeae07f31ec7cf271fa984ba000e151ced"
+    },
+    {
+      "path": "android/app/src/main/res/drawable-v21/launch_background.xml",
+      "bytes": 438,
+      "sha256": "7ca6d5cec2169c5a98661a119db23a6f3399c8fef2256ff04f3a642831282478"
+    },
+    {
+      "path": "android/app/src/main/res/drawable/launch_background.xml",
+      "bytes": 434,
+      "sha256": "94433756fe10005ddd6fc55cc5c0b1e9f3c10b66a08ceac795ece6713d34e28a"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-hdpi/ic_launcher.png",
+      "bytes": 544,
+      "sha256": "6a7c8f0d703e3682108f9662f813302236240d3f8f638bb391e32bfb96055fef"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-mdpi/ic_launcher.png",
+      "bytes": 442,
+      "sha256": "c7c0c0189145e4e32a401c61c9bdc615754b0264e7afae24e834bb81049eaf81"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xhdpi/ic_launcher.png",
+      "bytes": 721,
+      "sha256": "e14aa40904929bf313fded22cf7e7ffcbf1d1aac4263b5ef1be8bfce650397aa"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png",
+      "bytes": 1031,
+      "sha256": "4d470bf22d5c17d84edc5f82516d1ba8a1c09559cd761cefb792f86d9f52b540"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",
+      "bytes": 1443,
+      "sha256": "3c34e1f298d0c9ea3455d46db6b7759c8211a49e9ec6e44b635fc5c87dfb4180"
+    },
+    {
+      "path": "android/app/src/main/res/values-night/styles.xml",
+      "bytes": 995,
+      "sha256": "8c5bad5152f217e837519f9c15211d19f39bd45f5f67faf6dd81cb4b299e518f"
+    },
+    {
+      "path": "android/app/src/main/res/values/styles.xml",
+      "bytes": 996,
+      "sha256": "937d7c82f539c72eb94fd3a3773f29b3d3fef1997213c92cb632298cedf4bda9"
+    },
+    {
+      "path": "android/app/src/profile/AndroidManifest.xml",
+      "bytes": 378,
+      "sha256": "30b0832ed8b92dfbd6ae2abfa939ccf26333d37600056b1572bd4a397a18a74b"
+    },
+    {
+      "path": "android/build.gradle.kts",
+      "bytes": 537,
+      "sha256": "6a26dba2cb8dfba1e74f540b0d17a89d96c1301d3c3bfda14348bed257fddcba"
+    },
+    {
+      "path": "android/gradle.properties",
+      "bytes": 300,
+      "sha256": "0f82b18017fba6bb5ce3aa4b2d1a00c9382fc8aae7b1d9326e44b18abd66d80b"
+    },
+    {
+      "path": "android/gradle/wrapper/gradle-wrapper.properties",
+      "bytes": 215,
+      "sha256": "0f81b468262d1278d533865dbdf9d98416a3b6405680af801f1781a7a0950cee"
+    },
+    {
+      "path": "android/settings.gradle.kts",
+      "bytes": 771,
+      "sha256": "b76d554153a63772dddbe2ee91abdf582f5f871af40698b80a2ef7b70903d96f"
+    },
+    {
+      "path": "apps/mobile/README.md",
+      "bytes": 954,
+      "sha256": "c2be8a1a1f337acf467703b16a8c62ccd905d3a3b142e4e1a0d97d3cf1063ff2"
+    },
+    {
+      "path": "apps/web/.env.example",
+      "bytes": 190,
+      "sha256": "ce5e42af494bfc2296bf2597b243917b19a70f56c2c5c19f393ae5b257149607"
+    },
+    {
+      "path": "apps/web/index.html",
+      "bytes": 322,
+      "sha256": "d3fc742626c326627e06b060f1a0e70ebe6f563d32f1e94bff0f71acae8eecec"
+    },
+    {
+      "path": "apps/web/package.json",
+      "bytes": 415,
+      "sha256": "88456aebd02f3417685012b6b8bf9a3eca6686ccfd4413915ea5eaa28ed0e3e9"
+    },
+    {
+      "path": "apps/web/src/App.vue",
+      "bytes": 28327,
+      "sha256": "7b2f81c769155895494bf588e7aaf452e7f44bc3a8e42b0a9f1c5a458aebb1a3"
+    },
+    {
+      "path": "apps/web/src/api.ts",
+      "bytes": 342,
+      "sha256": "f62be55547b03cdec94bea10cdecb17171fb4d992d8decb1219bb576c25f15d5"
+    },
+    {
+      "path": "apps/web/src/components/RequestAssistant.vue",
+      "bytes": 7639,
+      "sha256": "cbf4fa4e89328ec598e150cfa9a2c8e51555e364fc43deddfa68d1ab73a25da7"
+    },
+    {
+      "path": "apps/web/src/components/RouteMap.vue",
+      "bytes": 2877,
+      "sha256": "40a8c8f27e276a3a1c4d41d93a3b1dd1d87ba883ff2b49d2f6f33bb88a83eec2"
+    },
+    {
+      "path": "apps/web/src/draft.ts",
+      "bytes": 2543,
+      "sha256": "cf1d4e679cbff3b4cf3181edf90d3b706b62f439ba617c717e1d6caafbb42483"
+    },
+    {
+      "path": "apps/web/src/editor.ts",
+      "bytes": 487,
+      "sha256": "783e5af671521e954e6c12a3d02716903c1fbc860e2c0ec976cff08ca8f96ced"
+    },
+    {
+      "path": "apps/web/src/main.ts",
+      "bytes": 111,
+      "sha256": "0d42fb6bb74a51d647f20a0cd2bcdcc7b89b146f4cdfbf6f1f7b640e7e036119"
+    },
+    {
+      "path": "apps/web/src/session.ts",
+      "bytes": 1555,
+      "sha256": "5fdae0d558c7d0702e47db09499b3b6c4315cba0ada6db4f340b2e0a020bbcda"
+    },
+    {
+      "path": "apps/web/src/style.css",
+      "bytes": 16839,
+      "sha256": "9abb3c7e4bc9ab4321cff2292a353a0d62dbd5e264692ad4e4935046c27e3e97"
+    },
+    {
+      "path": "apps/web/tsconfig.json",
+      "bytes": 322,
+      "sha256": "ec1bfc08f1e046a557b0f1ce1e5abb6d0e4989f133b9d5853bbb528c76d0e5eb"
+    },
+    {
+      "path": "apps/web/vite.config.ts",
+      "bytes": 310,
+      "sha256": "41e32707830486bad2d095883f1441ae5657c97f4efcce79920538a2de102319"
+    },
+    {
+      "path": "backend/.env.example",
+      "bytes": 1078,
+      "sha256": "51c2cc0c464c5b23ac5dce4298bb6ab3abdfc998ca7143bc888cb740324da26a"
+    },
+    {
+      "path": "backend/MAP_POI_INTEGRATION.md",
+      "bytes": 3223,
+      "sha256": "2a62013afb4fb18aa2653f5695fc63e3295cdb43edf7c12a8baa99b8521e1622"
+    },
+    {
+      "path": "backend/README.md",
+      "bytes": 7189,
+      "sha256": "890a475f2fb2be270fdf8682c28148ad592e5c2f418a875f8b171694f048b0e7"
+    },
+    {
+      "path": "backend/ROUTE_POLICY_GUIDE.md",
+      "bytes": 4641,
+      "sha256": "f4260d4136650c9249a6dba61a0fa422fcd3d32c2926e95ec97ada30303a35b9"
+    },
+    {
+      "path": "backend/agent/__init__.py",
+      "bytes": 646,
+      "sha256": "0a27811b162850774c457aeb380a32fec7341186fba1dc96dfda591ccac81781"
+    },
+    {
+      "path": "backend/agent/coordinator.py",
+      "bytes": 26328,
+      "sha256": "419e687ed93b35460cd06b509dbfefe7a611c097c695fdb406dd22fe8b885613"
+    },
+    {
+      "path": "backend/agent/intent_repair.py",
+      "bytes": 6216,
+      "sha256": "b328e0664b9b2a543c12fdde7f1809f852d5266a11c3f15b3ad02dc3e95cd8ab"
+    },
+    {
+      "path": "backend/agent/planning.py",
+      "bytes": 4602,
+      "sha256": "ff74c9d526a72a50cd1e16e670b06846acd52787e614e4b96a1657aff159ebc6"
+    },
+    {
+      "path": "backend/agent/state.py",
+      "bytes": 4866,
+      "sha256": "6227494f0a9ee95171bcf5d4060aefd83f2ec731745eb527aa93a463fecbed04"
+    },
+    {
+      "path": "backend/agent/tool_layer.py",
+      "bytes": 2304,
+      "sha256": "68387a02d146cb987f787255b5467d3a58c72895391516954cf22cb8350b3bae"
+    },
+    {
+      "path": "backend/agent/travel_intake.py",
+      "bytes": 9515,
+      "sha256": "6bbe84afc9890d3899cc9c51cf7e8ea71b99b1eaf9e25c92b7da9b5674b590be"
+    },
+    {
+      "path": "backend/agent/travel_tool_bridge.py",
+      "bytes": 1764,
+      "sha256": "4d7199a27bfdeb6c3d69cc7f3fce6abf3b1e6423f6a7a958910c2fea0bd42fdb"
+    },
+    {
+      "path": "backend/capabilities.json",
+      "bytes": 8071,
+      "sha256": "ba1d9d840bde084f2321dc8bd48f81a4d37519e010e13cd06f9232b03c53fb04"
+    },
+    {
+      "path": "backend/core/README.md",
+      "bytes": 1639,
+      "sha256": "0fabbb8db5f9c4c6ad51642cc6bbbe0f9fc618167c70cd5f1e6285605a6827bd"
+    },
+    {
+      "path": "backend/core/__init__.py",
+      "bytes": 190,
+      "sha256": "c7844aff39da7eb220696bc247029fb0dc4c5de1b0f08e77343c7eec9bae11d6"
+    },
+    {
+      "path": "backend/core/api_contracts.py",
+      "bytes": 1979,
+      "sha256": "84a59d3d31432c2679aaeff53f3da878d6ccb4300a9c6e289535dfe1e6c3b6c1"
+    },
+    {
+      "path": "backend/core/capability_registry.py",
+      "bytes": 13257,
+      "sha256": "4e9e214d29d58180e921caa353d12690b1d512ecf9dadbd1bb0bb53f7e0b2a83"
+    },
+    {
+      "path": "backend/core/context_models.py",
+      "bytes": 5745,
+      "sha256": "e2ef8b8b46f3825e21b8a3029682b8a4b36e20e5367fb1ba075093ff6238b458"
+    },
+    {
+      "path": "backend/core/contracts.py",
+      "bytes": 1798,
+      "sha256": "5d1d7535d9732ea269ca655f2f633cf02d550e4cea0495d2830fa372f026b63a"
+    },
+    {
+      "path": "backend/core/display_labels.py",
+      "bytes": 4298,
+      "sha256": "7764dc95eb9bf541981cc4f59c5661c0404077e03c4d4dab99ce077cfe93ba84"
+    },
+    {
+      "path": "backend/core/intent_ir.py",
+      "bytes": 4680,
+      "sha256": "7f9f0dc4559e1e381a04f673bda3aab5b4645be6cb37e90eed5da3aabf59cfec"
+    },
+    {
+      "path": "backend/core/intent_lexicon.py",
+      "bytes": 13475,
+      "sha256": "126cdf6ed8f7cae5a86e12fe479ecf68c56bcc71374b79b232cc1a9220308c9c"
+    },
+    {
+      "path": "backend/core/intent_parser.py",
+      "bytes": 50238,
+      "sha256": "629a590aec67dea7b5d4697bdcca2c2f483ea2994dd7f6b16d5fa5ab090a71df"
+    },
+    {
+      "path": "backend/core/llm_intent_client.py",
+      "bytes": 19677,
+      "sha256": "8b567804e2e98580950af4c4d2afc44f5410721ecde88cdc0350ff279d62be77"
+    },
+    {
+      "path": "backend/core/map_schemas.py",
+      "bytes": 6488,
+      "sha256": "db502a201528bbc6f66f784cf7c7bd9152907273e5d2137853d5fee7a47b0749"
+    },
+    {
+      "path": "backend/core/prompt_templates.py",
+      "bytes": 14662,
+      "sha256": "9a300cc553c2ea464f737d1ee9a4bd008ebdc9efd44c8b9ccc36e58b59aaa594"
+    },
+    {
+      "path": "backend/core/route_context.py",
+      "bytes": 1514,
+      "sha256": "4dbbcd629be1f87064e8df6c6f0a12b6126a13180d05b29fa3499274b6fac49f"
+    },
+    {
+      "path": "backend/core/route_policy.py",
+      "bytes": 4074,
+      "sha256": "9443f585f878398b22714ceec69e2e7d29d5303c6151c6e2cecd72137a798b22"
+    },
+    {
+      "path": "backend/core/schemas.py",
+      "bytes": 25909,
+      "sha256": "91d3076682e6895fecf25316eb7e1d5e3e2b2b88304ce1116c58fb489bfe5d59"
+    },
+    {
+      "path": "backend/core/semantic_intent.py",
+      "bytes": 11013,
+      "sha256": "c395ac4fa16660470b92d69af54ad401cc9644917f68011e6502c28b8c7f4e33"
+    },
+    {
+      "path": "backend/core/semantic_ontology.py",
+      "bytes": 7791,
+      "sha256": "67b34460a74bbe162948c6a235a722258b5c4394f47cbed9d02e22145e7420c8"
+    },
+    {
+      "path": "backend/core/text_tokenizer.py",
+      "bytes": 1440,
+      "sha256": "10bac11b14018472eca4551023df5b5dba4a0650f38bd0cdd38a830593c1c755"
+    },
+    {
+      "path": "backend/eval/README.md",
+      "bytes": 1570,
+      "sha256": "4dce7ea4d53e7c62f4287a260dfc3cdc25609eeb0b5f666415e5276b7e39c7c9"
+    },
+    {
+      "path": "backend/eval/__init__.py",
+      "bytes": 1,
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "path": "backend/eval/check_quality.py",
+      "bytes": 333,
+      "sha256": "fda99a44649a21fb97bd4f1dd4d4300714589f8cf2e29a4f33176d030ca6a602"
+    },
+    {
+      "path": "backend/eval/eval_runner.py",
+      "bytes": 53686,
+      "sha256": "d1a4ab4c9783dc756368af1e41b3806d06453dffb196df2927c6cf582a14d1c1"
+    },
+    {
+      "path": "backend/eval/tune_route_policy.py",
+      "bytes": 3066,
+      "sha256": "77bb620623699087cc337e0b2039047209d6e021f71d54288be26bfc62b7c6b1"
+    },
+    {
+      "path": "backend/eval/watch_quality.py",
+      "bytes": 1873,
+      "sha256": "ab73b72ac1489c615be48686a6faf57e496fac6e12d545cbad8646e138af048e"
+    },
+    {
+      "path": "backend/eval_cases.json",
+      "bytes": 32855,
+      "sha256": "1006e2185c1343118370ca5795cd1f2805a2b287e300d35fe8e4f897909e275d"
+    },
+    {
+      "path": "backend/intent_lexicon.json",
+      "bytes": 3625,
+      "sha256": "7af2598f0c8f5b32b154e73b8469a718ffb5f9c8495a3e40a2003f4a95a6b187"
+    },
+    {
+      "path": "backend/lexicon/README.md",
+      "bytes": 827,
+      "sha256": "d9de1794f6c2d8a9b0b25e73ad5dba76c729844d577a25800a09057cb04e2802"
+    },
+    {
+      "path": "backend/lexicon/avoids.json",
+      "bytes": 1054,
+      "sha256": "0c636b470127cc1c3c8f27978ee4650e1f999dc5e0d7ca27c6adcb9edaacec13"
+    },
+    {
+      "path": "backend/lexicon/categories.json",
+      "bytes": 2070,
+      "sha256": "6af891a29767164f13ff59bbf935d83d28cf036e2eee69a466e90745cfb78ebb"
+    },
+    {
+      "path": "backend/lexicon/cities.json",
+      "bytes": 500,
+      "sha256": "69dc81ea8a94d46fa97363fa805e831c8ea7b012d13df29e52b7215fa2f04be5"
+    },
+    {
+      "path": "backend/lexicon/display_labels.json",
+      "bytes": 520,
+      "sha256": "d77ba86c329c82832449485f2e9c6e3d7d5cb6f0a246ec86d1a8a376bd4268c5"
+    },
+    {
+      "path": "backend/lexicon/preferences.json",
+      "bytes": 4240,
+      "sha256": "d1b2548b463866ba56aa7eaea5a73c81593be24ff4d0aa4229824d2bf1d3af28"
+    },
+    {
+      "path": "backend/lexicon/transports.json",
+      "bytes": 563,
+      "sha256": "dde7df8cd8626c7d3d36ed0620513ee450aaf632230c14d6a6108d88dcb681d5"
+    },
+    {
+      "path": "backend/main.py",
+      "bytes": 16549,
+      "sha256": "c4ffa95a98b4a6e17366ab342d947058e993867780176290560dfdb866fecf85"
+    },
+    {
+      "path": "backend/policy/README.md",
+      "bytes": 990,
+      "sha256": "cf2b55c3bc4b97e7bc2a48abcd3759e37339a3a9f77ef1d9bb0bfd087cc555ea"
+    },
+    {
+      "path": "backend/policy/poi_ranker_weights.json",
+      "bytes": 351,
+      "sha256": "3aa2a08a19f336bb21e8151851a0fc886fbcf4c1a068a9b4db560f9b402f83fb"
+    },
+    {
+      "path": "backend/requirements.helloagents.lock.txt",
+      "bytes": 372,
+      "sha256": "43b68ca00f6f6213a7c4e8a32a825a219bd8a9015265951f412e6cef5b2a1dd3"
+    },
+    {
+      "path": "backend/requirements.helloagents.txt",
+      "bytes": 113,
+      "sha256": "e993a455c7585f1c39b9de3c518fe775c14819ad3b660fbe78c3039f65382f3b"
+    },
+    {
+      "path": "backend/requirements.mcp.lock.txt",
+      "bytes": 341,
+      "sha256": "31ef0d939a5052d09332f5d4f11d6d5cb275345f6e6d83d081436120d38e8c82"
+    },
+    {
+      "path": "backend/requirements.mcp.txt",
+      "bytes": 105,
+      "sha256": "0fd450e21eb224a1f4e7add1e12f038e50feb043e0fcf73d07053c17fd1e35b7"
+    },
+    {
+      "path": "backend/requirements.travel.lock.txt",
+      "bytes": 396,
+      "sha256": "7af7ed72f169e2a462bfb691855dfd0f86f2df3801d86edda96bbbc6cc702461"
+    },
+    {
+      "path": "backend/requirements.txt",
+      "bytes": 85,
+      "sha256": "5eac1531d848995c4c99296e8e8bcb1316d116f95cb0dfb2da5e808f5b110b6a"
+    },
+    {
+      "path": "backend/route_policy.json",
+      "bytes": 2034,
+      "sha256": "cf93243417313efaed7e04cfb054039a40ef6345719a9a922f9c42853f9e1cc9"
+    },
+    {
+      "path": "backend/services/README.md",
+      "bytes": 5056,
+      "sha256": "1b3e2686f9acbf39ac641137118a120604503ae2d0f8344a3b4807243afcf4a6"
+    },
+    {
+      "path": "backend/services/__init__.py",
+      "bytes": 209,
+      "sha256": "d2ce85c54a22544952149d55e112b7323c1dc30321a7d494785251ca280d4d5e"
+    },
+    {
+      "path": "backend/services/amap_client.py",
+      "bytes": 3061,
+      "sha256": "d7511097045f52c92859ed1d60e4dd8205f2e1825434c333460679be8d6824eb"
+    },
+    {
+      "path": "backend/services/candidate_builder.py",
+      "bytes": 6786,
+      "sha256": "036680ebe073a7978b81fc04821ec3a60866220fbe4dfe8df7845fec697263ff"
+    },
+    {
+      "path": "backend/services/constraint_checker.py",
+      "bytes": 1859,
+      "sha256": "026b1546937974716a9fc88433956a84c3499841b6b2274e13feadabffe4e788"
+    },
+    {
+      "path": "backend/services/context_service.py",
+      "bytes": 37159,
+      "sha256": "6ef7e4034d1da0f0a2a9bd2a21eb6bc76f31100083ae4618d74c095669c1e615"
+    },
+    {
+      "path": "backend/services/map_service.py",
+      "bytes": 27523,
+      "sha256": "962490fbb62cd55754eede44566795374c5381a9b3787c22a367188b6f9a16b8"
+    },
+    {
+      "path": "backend/services/model_backends.py",
+      "bytes": 5803,
+      "sha256": "7f1318a1b7bcc2831c7b9d6aa679626a7c367b8105b172c0cc9d152cc7dab656"
+    },
+    {
+      "path": "backend/services/poi_ranker.py",
+      "bytes": 106,
+      "sha256": "1667df6a08f86437b7c21c757ae627e2efae455c5e20785a4bb534d4aa953410"
+    },
+    {
+      "path": "backend/services/poi_ranker_policy.py",
+      "bytes": 4661,
+      "sha256": "595f238fbda5706123af6f18b86fa1a966179ae383a2f704c8b56286b733cbc2"
+    },
+    {
+      "path": "backend/services/poi_retriever.py",
+      "bytes": 18479,
+      "sha256": "7c95f3c0336579271ed2c96979cb5c36dbc6827992db7c0eabb21f1461991974"
+    },
+    {
+      "path": "backend/services/ranker_engine.py",
+      "bytes": 22214,
+      "sha256": "f1cbdb7b605d8d75ccb0ecee1d08ecb207f55a6c9e0ab74945e2e571cc413917"
+    },
+    {
+      "path": "backend/services/response_generator.py",
+      "bytes": 41765,
+      "sha256": "edc2200ac71bd2679b90a6ab87b3f1cb9f04451e444080545716210cb45fbbcc"
+    },
+    {
+      "path": "backend/services/review_analyzer.py",
+      "bytes": 5447,
+      "sha256": "f08b2806da82b4a434b038342f9f1a1cce7dfbf35ea3a52334abf83dd0c04409"
+    },
+    {
+      "path": "backend/services/route_planner.py",
+      "bytes": 52916,
+      "sha256": "490c5cea84874e810882d568d3e071d49864b6e344472695f88a627cd73d4f6d"
+    },
+    {
+      "path": "backend/services/route_service.py",
+      "bytes": 54314,
+      "sha256": "917c11dd87bba309b1eb689287fd0df317ed6eb46e7635716d1cca9ef9df0ff5"
+    },
+    {
+      "path": "backend/services/route_tools.py",
+      "bytes": 26024,
+      "sha256": "ca5cc06847b5d522d46335cb310322c128eb8f142471a80511c285d1fd9f41c9"
+    },
+    {
+      "path": "backend/services/route_verifier.py",
+      "bytes": 15073,
+      "sha256": "c73dbbd6adc40526becbfc2f88ef5bc528ffdb379d592eb377dcc4a289bbeb97"
+    },
+    {
+      "path": "backend/services/semantic_retriever.py",
+      "bytes": 17401,
+      "sha256": "0af6363df14f7bd10fb4d3eedd686d32549a2fedfaf8727c47e16d7994eb007c"
+    },
+    {
+      "path": "backend/services/tianditu_client.py",
+      "bytes": 5318,
+      "sha256": "e37bc2aa2abf1545863206f1c460bb8ab1a7ba99e9921ccf1e3cf67d95207b76"
+    },
+    {
+      "path": "backend/services/workflow_guard.py",
+      "bytes": 3313,
+      "sha256": "226ea8226ae468b48a601ae5cd39ec69ca09653df1aa7207125ab73754aeff87"
+    },
+    {
+      "path": "backend/tools/README.md",
+      "bytes": 2712,
+      "sha256": "ff8cd09d7a7a21e91024f82ada6c6f2d9774703df59dfaa1998cf141f684e15f"
+    },
+    {
+      "path": "backend/tools/amap_poi_sync.py",
+      "bytes": 8796,
+      "sha256": "4655657ce9ba55c7f65c0b2fbcd57d569a38c28d3365c521036128c7e6fbc60f"
+    },
+    {
+      "path": "backend/tools/enrich_area_clusters.py",
+      "bytes": 5984,
+      "sha256": "393705df0ea1a2ae84759c287f04d786959833de29957132506f4380b6dd6a20"
+    },
+    {
+      "path": "backend/tools/expand_local_pois.py",
+      "bytes": 80517,
+      "sha256": "eb42ebcc51236f1ee9ea4beb898fec6bdbf3c2b63d76ab446c36fa8f77d3e740"
+    },
+    {
+      "path": "backend/tools/generate_mock_ugc.py",
+      "bytes": 12400,
+      "sha256": "93f9811819d3aac8fcccf894ca6833b3c51c82e8027bf31f69dc23c3452a7110"
+    },
+    {
+      "path": "backend/travel/__init__.py",
+      "bytes": 79,
+      "sha256": "5f83e38bea4bcfbd7229f445ee1fdfceaeb7b86655582f897d0b74b5c2e56d29"
+    },
+    {
+      "path": "backend/travel/api.py",
+      "bytes": 7105,
+      "sha256": "e005bd2f2367ecb938c7ce6cba4d585cb4b300df6c4718a0e9d3ffc5dab2f348"
+    },
+    {
+      "path": "backend/travel/drafts.py",
+      "bytes": 2467,
+      "sha256": "89592eaead7b38b103265b5268dec3dc047d0d39787a09c51394459abc445b0f"
+    },
+    {
+      "path": "backend/travel/mcp_server.py",
+      "bytes": 1957,
+      "sha256": "dfbe781b1f4377853b767f7006125809ed45729d93daf8f7bd7dd974acfe1040"
+    },
+    {
+      "path": "backend/travel/planner.py",
+      "bytes": 6171,
+      "sha256": "902f3e3991d5b1df3463ceae2c364cc72035af954a4f17b11bf44f6abd090be1"
+    },
+    {
+      "path": "backend/travel/provider.py",
+      "bytes": 5946,
+      "sha256": "c88d7b704759775a9cf0c9241e33d866781eb19e09e77eed0f6259987e9fe464"
+    },
+    {
+      "path": "backend/travel/runtime.py",
+      "bytes": 2026,
+      "sha256": "f8000add3961b2c818c8e9fe378fe9a355f1202c28964508da9403fb17aed084"
+    },
+    {
+      "path": "backend/travel/schemas.py",
+      "bytes": 10470,
+      "sha256": "31a57f468fca6727c8994c32aa3f62622a56343f58c4206930c72aa4333f4678"
+    },
+    {
+      "path": "backend/travel/store.py",
+      "bytes": 4699,
+      "sha256": "dbf9768b853000b2225caa80efe929f5806b5c47b8d6c64513e30d719b89232d"
+    },
+    {
+      "path": "backend/travel/tasks.py",
+      "bytes": 6309,
+      "sha256": "a52fa30eef6f26a73285fd9c8988b8bd2b6a3049dc00bbfefbe7914eacc8579f"
+    },
+    {
+      "path": "backend/travel/tools.py",
+      "bytes": 2956,
+      "sha256": "09487a7e7a60f4943788eb29fde2411996bdde72ffe3b56149b2acbd73e8f341"
+    },
+    {
+      "path": "backend/travel/worker.py",
+      "bytes": 1282,
+      "sha256": "cce0f928ec2f454a2a89873c3e63c39e233086e5f26f651a1622574ee64fbbc0"
+    },
+    {
+      "path": "docs/README.md",
+      "bytes": 1143,
+      "sha256": "39bca8bc9f6c5c7af69928c35b1150015a705d70688e8d93a12ad93bbafc2ce3"
+    },
+    {
+      "path": "docs/RELEASE_STATUS.md",
+      "bytes": 4544,
+      "sha256": "875154c7359a2edaf5f42efcd8bffaca237a9cbe11fba970b7754fff433e6514"
+    },
+    {
+      "path": "docs/TECHNICAL_REPORT.md",
+      "bytes": 18007,
+      "sha256": "472beee0227d2c67f398efcec4fd0756e642a1df3b8edfa1babd7431275b0c8e"
+    },
+    {
+      "path": "docs/TECHNICAL_REPORT_DETAILED.md",
+      "bytes": 9327,
+      "sha256": "599f1b923d707bff9cbf7da556b1fdeda29deac760e82089856085d59d4e9a13"
+    },
+    {
+      "path": "docs/architecture/AGENT_COORDINATOR_SPEC.md",
+      "bytes": 9778,
+      "sha256": "ddd6b59886474cfb123af990a5d19e84b6982253dd9048eb9b1a2ca93712603f"
+    },
+    {
+      "path": "docs/architecture/AGENT_HARNESS_SPEC.md",
+      "bytes": 4699,
+      "sha256": "b9074f66dc4b1a71c4e055083851f89ef6bfef9da6302540f2b36ce4255aba5c"
+    },
+    {
+      "path": "docs/architecture/DRAFT_CLARIFICATION.md",
+      "bytes": 6955,
+      "sha256": "ceeb7697017d917b44c96115c08489db4aeac3e148968db63e824eb117a7bd2f"
+    },
+    {
+      "path": "docs/architecture/FLUTTER_STRUCTURE.md",
+      "bytes": 1879,
+      "sha256": "c2ef0ce6e615f08c8d0b7787d441be843e50f8c230320ccb4b58e213b77b50d3"
+    },
+    {
+      "path": "docs/architecture/HELLOAGENTS_INTAKE.md",
+      "bytes": 9264,
+      "sha256": "9a40789798d4139747b490db73e60a95290c16d7dc44e70d446424a5e772c642"
+    },
+    {
+      "path": "docs/architecture/README.md",
+      "bytes": 1483,
+      "sha256": "4795686cc2631ab3cd486cc33b0b9be1ddd6d4831dc080d3d8392a1b1fbdeaee"
+    },
+    {
+      "path": "docs/architecture/SKILL_SPEC.md",
+      "bytes": 6685,
+      "sha256": "ba8d9106dbf3724e8950291a0393cfde31339ce56c402997ccaf99db36237a65"
+    },
+    {
+      "path": "docs/architecture/TRAVEL_ARCHITECTURE_AUDIT.md",
+      "bytes": 4737,
+      "sha256": "43192e8637a338018b4d99f00dcba1ec879074a3a650f7d75f23e64470d05ad0"
+    },
+    {
+      "path": "docs/architecture/TRAVEL_DELIVERY.md",
+      "bytes": 19079,
+      "sha256": "3a9b0b77369d4643f52e97a25adc007097a43ee01b2e7809e2e1544bc4443ad6"
+    },
+    {
+      "path": "docs/architecture/WEB_CONTINUATION.md",
+      "bytes": 5254,
+      "sha256": "d48dda848407ebc9c3e52085c20323636ffda64096dd4eaa054087c410c71316"
+    },
+    {
+      "path": "docs/legacy/MUSE_README.md",
+      "bytes": 5159,
+      "sha256": "8caf905e28190b69ae748066f0a894f8808fd81de76b8f707f89e6be25f535fd"
+    },
+    {
+      "path": "docs/setup/COMMANDS.md",
+      "bytes": 2236,
+      "sha256": "459de628db70b31d3cbb26dc14b0c235847268c861dcef561491a2460f629389"
+    },
+    {
+      "path": "docs/setup/QUICKSTART.md",
+      "bytes": 1731,
+      "sha256": "143ac9d7b3d746000711a60e8f9675c11d79e66332f115652910fb2c4497e2f3"
+    },
+    {
+      "path": "docs/setup/README.md",
+      "bytes": 416,
+      "sha256": "77366240fa6c33ebefcd3b6ecb8d215bb480adbef2ebfccfdd8f2669211eaf54"
+    },
+    {
+      "path": "docs/specs/CONTEXT_SPEC.md",
+      "bytes": 3997,
+      "sha256": "092196f2b56d55fe0c3e099208f76ad79db1e54e2033394e7a1eee8a14d4a5b4"
+    },
+    {
+      "path": "docs/specs/CURRENT_SYSTEM.md",
+      "bytes": 4005,
+      "sha256": "50b1bdd783d8557b6b38877de531565569b6ea9979424a70cbc9f7e7d817e5b4"
+    },
+    {
+      "path": "docs/specs/INTENT_UNDERSTANDING_SPEC.md",
+      "bytes": 5096,
+      "sha256": "bd44a1ed906990ab2ef2195c3eef9e69af22e7bfdee7f629b3f2bcb724930926"
+    },
+    {
+      "path": "docs/specs/MULTI_TURN_SPEC.md",
+      "bytes": 3353,
+      "sha256": "81923e7feb00f33d3e5229fcc54d88f70ad9767d8808eabbed1e79aaf6457556"
+    },
+    {
+      "path": "docs/specs/README.md",
+      "bytes": 1067,
+      "sha256": "4e43cccb0adcdf77c63a65f1c36f6859f23ef98d29d6113dfa101c00e7883551"
+    },
+    {
+      "path": "docs/specs/ROADMAP.md",
+      "bytes": 2278,
+      "sha256": "d9a15ef21f51d3465e1ffcc5795d7f2d18005333b10a9522d22997d6ec8026bd"
+    },
+    {
+      "path": "docs/specs/SCHEMA_CONTRACTS.md",
+      "bytes": 7253,
+      "sha256": "0de4f828e7bb238a5fd8ddbdf80b048fa3f5b23639592bde8e48eb8561eb05d0"
+    },
+    {
+      "path": "docs/specs/STITCH_UI_SPEC.md",
+      "bytes": 10455,
+      "sha256": "c9f6091ad159968fb2666e8e0f94c2e3fc2da85c8e8fbbcc123f118c5dee731d"
+    },
+    {
+      "path": "lib/main.dart",
+      "bytes": 41056,
+      "sha256": "7d587c3edac98595d658439831c63876de7047ebfb41184adfac1c7f4861c72d"
+    },
+    {
+      "path": "lib/models/route_models.dart",
+      "bytes": 18396,
+      "sha256": "6b0d040e14672792af0bdd4f33c02ca68d53db0c53bea5f5d9642f518755a836"
+    },
+    {
+      "path": "lib/pages/clarification_page.dart",
+      "bytes": 26402,
+      "sha256": "2b9860068b96c8ff576e36d7f48c3f12f24e3e6f188bb1c7882aabe563d12670"
+    },
+    {
+      "path": "lib/pages/knowledge_explanation_page.dart",
+      "bytes": 27929,
+      "sha256": "295d77b0e175f94b7d6a1cd081270c550cb9a286b7d264c80ca866316ad75eac"
+    },
+    {
+      "path": "lib/pages/route_result_page.dart",
+      "bytes": 54656,
+      "sha256": "f9d1eb333d59b27e9b32e865fa95bf54672272640e356924498781a557f0dcce"
+    },
+    {
+      "path": "lib/services/map_api_service.dart",
+      "bytes": 3305,
+      "sha256": "4bdf9e0635f662e4c460a51df47ea94982af0c4af77f17fd22ef40c19d98cb6d"
+    },
+    {
+      "path": "lib/services/route_api_service.dart",
+      "bytes": 21532,
+      "sha256": "d4da58e18fd92722915b88f68de8769c42b8f501df4c84e9a251b19c89b35b10"
+    },
+    {
+      "path": "lib/widgets/route_map_view.dart",
+      "bytes": 2336,
+      "sha256": "29f1409cd141e529a8aa54396082442ef733562c6bc5989db47bda0a401b12d8"
+    },
+    {
+      "path": "lib/widgets/tianditu_route_map.dart",
+      "bytes": 17187,
+      "sha256": "1ce3d61129650162feadac049715b47e6bd631c4ab3e7831f0417a38901cea69"
+    },
+    {
+      "path": "lib/widgets/virtual_route_map.dart",
+      "bytes": 13362,
+      "sha256": "4be261339f6a6f47c75a9b32e97411d2110cbd9e76036cb821226fdc91e40fa7"
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 78341,
+      "sha256": "81e9adb1dc068f3a702cf507b46680ec70004348fdfd680b9375f6b5447d7d22"
+    },
+    {
+      "path": "package.json",
+      "bytes": 498,
+      "sha256": "6927c3d32b55a1f65f23a7ea34da9c4914ed3afa6c0f6bdc58aedb8e984ababa"
+    },
+    {
+      "path": "packages/api-schema/README.md",
+      "bytes": 878,
+      "sha256": "8667474050097b1a0d9503ea21cceaa9bd6f0b9f75a45f72136ca07335612426"
+    },
+    {
+      "path": "packages/api-schema/client.ts",
+      "bytes": 5318,
+      "sha256": "c778ea859dd68f9dc5b376e2586a6f0ca60362f5eddaab9a8ac0404cd6e47475"
+    },
+    {
+      "path": "packages/api-schema/openapi.json",
+      "bytes": 80721,
+      "sha256": "b37d80f12f1d173245023ea80d9cdf51975202ab990955a8aa0d0192c0ec04ac"
+    },
+    {
+      "path": "packages/api-schema/schema.d.ts",
+      "bytes": 66232,
+      "sha256": "73663802ccec78a704c1517bf978610cd2b5923c7103afd114d4635be5214772"
+    },
+    {
+      "path": "pubspec.lock",
+      "bytes": 8273,
+      "sha256": "dcb435cf7c83e3dd1f1ee5a63ed377e7893b3cbd3ab362a50e329a515750c14a"
+    },
+    {
+      "path": "pubspec.yaml",
+      "bytes": 3754,
+      "sha256": "c12163b7727f1a929b53f2858acd8d56312187f4b59edd9b222e38773da119f5"
+    },
+    {
+      "path": "scripts/export_openapi.py",
+      "bytes": 1283,
+      "sha256": "e4fe1b2d88920b0c26def3accf2eaa67eb247deb4aad4705869644890c114b39"
+    },
+    {
+      "path": "scripts/prepare_github_snapshot.py",
+      "bytes": 3140,
+      "sha256": "60d1ea765210565a7af5aaf81b52a300102c7d6d199b1590ec668763d279f504"
+    },
+    {
+      "path": "scripts/verification_server.py",
+      "bytes": 812,
+      "sha256": "ce3c0d8592864f8f06811d6f7a7caf9261ad2890dcd1e96d00adaf247fef1620"
+    },
+    {
+      "path": "scripts/verify_live_clarification.py",
+      "bytes": 3887,
+      "sha256": "9145b03479d2a735339da18255ab2d518df7e512e31f395629a6ac5c492110c5"
+    },
+    {
+      "path": "scripts/verify_live_intake.py",
+      "bytes": 1815,
+      "sha256": "54564c063e233ad88ba6a37db63eae874416973afa41fa091a7d3d86e73102db"
+    },
+    {
+      "path": "scripts/verify_live_travel.py",
+      "bytes": 2326,
+      "sha256": "4d054dd798d75183bf84fc662670d01eb4a062a81e76418dbfd63d1813f8a495"
+    },
+    {
+      "path": "scripts/verify_repository.py",
+      "bytes": 2811,
+      "sha256": "11a476ae1f9b358a02bc99b1da61cf1cae4fa1fa66145ba228ca72c75452afd8"
+    },
+    {
+      "path": "test/widget_test.dart",
+      "bytes": 349,
+      "sha256": "ff5462c9edd3562c4cf23c8a297e1a9c07cc1616978385e1241674d0014d8dd3"
+    },
+    {
+      "path": "tests/browser_fixture_server.py",
+      "bytes": 2192,
+      "sha256": "49bdb5bc8358488c54ec9ee2555f52352763371996310e94220a4218b665688c"
+    },
+    {
+      "path": "tests/client.integration.test.ts",
+      "bytes": 2383,
+      "sha256": "eada14015b1e0197de418ae3be924cf37213eebfcf6d1019c0675464d0fbf1fe"
+    },
+    {
+      "path": "tests/client.lifecycle.test.ts",
+      "bytes": 4212,
+      "sha256": "03586a83cf90891bbba13e68345f9319af955dc4144233c5f79a38a04bfb79fa"
+    },
+    {
+      "path": "tests/test_agent_intake.py",
+      "bytes": 7513,
+      "sha256": "2ff58590922bf129fd2b7fef1ee20caa5386823177778bb051842f920dc4f146"
+    },
+    {
+      "path": "tests/test_draft_clarification.py",
+      "bytes": 7128,
+      "sha256": "a2254f09bfb373d09689d660487ebc923e6328c343d461155709c244cf8d4c9d"
+    },
+    {
+      "path": "tests/test_mcp.py",
+      "bytes": 1766,
+      "sha256": "60889f4c9921afd5976b88c3cc6cd0f67a6160d22df6c60d4ea3949f32766b26"
+    },
+    {
+      "path": "tests/test_travel.py",
+      "bytes": 13637,
+      "sha256": "3602e3b2d2c35f9388e005202182ece4254c055d4fd4f5d1bd925296f93b5f95"
+    },
+    {
+      "path": "windows/.gitignore",
+      "bytes": 291,
+      "sha256": "96345475f1a3c66bd32d28178fba151ab1506b35b1f7857b8f7651863093ea11"
+    },
+    {
+      "path": "windows/CMakeLists.txt",
+      "bytes": 4160,
+      "sha256": "b19479bfb4c199de9cf25e2cd0ab8825bea241ba3bda135c4332a60cb20a7cb6"
+    },
+    {
+      "path": "windows/flutter/CMakeLists.txt",
+      "bytes": 3742,
+      "sha256": "1fe418971b6f41bb35ceb3d64113a835f3f6f171ecaa707bf232492b57a588d6"
+    },
+    {
+      "path": "windows/flutter/generated_plugin_registrant.cc",
+      "bytes": 164,
+      "sha256": "82e02567f2faf5e732dc92a2fb0d01104f7ba8c48973f8cfd41a860b4fac3f3b"
+    },
+    {
+      "path": "windows/flutter/generated_plugin_registrant.h",
+      "bytes": 302,
+      "sha256": "dbc11635d7b1ba1887adf40df5b83d634e9c3ab0bee34510c71528bb4d73602a"
+    },
+    {
+      "path": "windows/flutter/generated_plugins.cmake",
+      "bytes": 743,
+      "sha256": "286346b0d5303dc6b41072f9582d4c52bca35255b85b27b310f858e264dfdc56"
+    },
+    {
+      "path": "windows/runner/CMakeLists.txt",
+      "bytes": 1796,
+      "sha256": "34119ec122e36940235ef4bc245fcfb43b6960ed443e28af1a8d833a81209b9e"
+    },
+    {
+      "path": "windows/runner/Runner.rc",
+      "bytes": 3045,
+      "sha256": "0ac0c109faca8d17acc4fc339ccd2ed13e25257652feed9146b41851f5190762"
+    },
+    {
+      "path": "windows/runner/flutter_window.cpp",
+      "bytes": 2122,
+      "sha256": "dd185884c0b5301d400b58f12ebb36b1c8b326531597e531b40e44a6eeb0e943"
+    },
+    {
+      "path": "windows/runner/flutter_window.h",
+      "bytes": 928,
+      "sha256": "38e0fcd3a0b83895852ec295cb70d90179c0dcd40d58f065eb5232a4ecd84898"
+    },
+    {
+      "path": "windows/runner/main.cpp",
+      "bytes": 1265,
+      "sha256": "694fa70824fc770fa86cb38e12ef8e29bf494e032dcbbf591cf54ac4aabf7274"
+    },
+    {
+      "path": "windows/runner/resource.h",
+      "bytes": 432,
+      "sha256": "1fa98588b04561590ba1cf0521ab86a9db4a878312f21c9d5861d965ddd8d1ae"
+    },
+    {
+      "path": "windows/runner/resources/app_icon.ico",
+      "bytes": 33772,
+      "sha256": "c098d3fc85cacff98b8e69811b48e9f0d852fcee278132d794411d978869cbf8"
+    },
+    {
+      "path": "windows/runner/runner.exe.manifest",
+      "bytes": 602,
+      "sha256": "825d243e9fa1542619909c1b72d09b3ed7c1f3b225bb8367c125835e5dc3f8aa"
+    },
+    {
+      "path": "windows/runner/utils.cpp",
+      "bytes": 2168,
+      "sha256": "6c2c87106b4b29d534c7edcafb3b7f7b9079caa3cdafa7e56671ad2adf5a2543"
+    },
+    {
+      "path": "windows/runner/utils.h",
+      "bytes": 672,
+      "sha256": "95a7f7dddb832997cefa937a96f89472332277e75734a5de553610760b744b03"
+    },
+    {
+      "path": "windows/runner/win32_window.cpp",
+      "bytes": 8534,
+      "sha256": "9065f31ccf746cf8b390121f958f9e959033af864aed779597066625ed56bc36"
+    },
+    {
+      "path": "windows/runner/win32_window.h",
+      "bytes": 3522,
+      "sha256": "7dd03746b19dcf3542829b2f6e8ed40a2714ce5f2cb3b0e23f0118a2fcf62d62"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "travelagent-workspace",
+  "private": true,
+  "workspaces": ["apps/web"],
+  "scripts": {
+    "dev": "npm run dev --workspace apps/web",
+    "build": "npm run build --workspace apps/web",
+    "schema:generate": "openapi-typescript packages/api-schema/openapi.json -o packages/api-schema/schema.d.ts",
+    "test:client": "tsx --test tests/client.integration.test.ts tests/client.lifecycle.test.ts"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.10.1",
+    "tsx": "4.20.6"
+  }
+}

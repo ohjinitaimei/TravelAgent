@@ -1,0 +1,2 @@
+# Optional transport only. Validated lock includes unchanged core versions.
+-r requirements.mcp.lock.txt
