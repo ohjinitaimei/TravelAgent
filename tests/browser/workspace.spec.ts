@@ -279,6 +279,7 @@ test('opening another itinerary and starting a plan guard edits, and rejected sa
   const dialog=page.getByRole('dialog',{name:'有未保存的行程修改'})
   await expect(dialog.getByRole('button',{name:'放弃修改并打开行程'})).toBeVisible()
   await dialog.getByRole('button',{name:'继续编辑'}).click()
+  await expect(page.locator('.saved-card').first()).toBeFocused()
   await page.getByRole('button',{name:'返回行程编辑'}).click()
   await fillPlan(page)
   let posts=0
@@ -287,6 +288,7 @@ test('opening another itinerary and starting a plan guard edits, and rejected sa
   await expect(dialog.getByRole('button',{name:'放弃修改并提交新任务'})).toBeVisible()
   expect(posts).toBe(0)
   await dialog.getByRole('button',{name:'继续编辑'}).click()
+  await expect(page.locator('.planner-form button[type=submit]')).toBeFocused()
   await page.route('**/api/v1/travel/itineraries/*/adjust',route=>route.fulfill({status:422,contentType:'application/json',body:JSON.stringify({error:{code:'invalid_constraints',message:'TEST ONLY 保存拒绝',retryable:false}})}))
   await page.getByRole('button',{name:'保存并重算'}).click()
   await expect(page.getByRole('alert')).toContainText('TEST ONLY 保存拒绝')
@@ -300,4 +302,79 @@ test('opening another itinerary and starting a plan guard edits, and rejected sa
   const result=await (await page.request.get(`/api/v1/travel/itineraries/${task.itinerary_id}`)).json()
   expect(result.budget.known_subtotal).toBe(20)
   expect((await (await page.request.get(`/api/v1/travel/itineraries/${result.parent_id}`)).json()).budget.known_subtotal).toBe(0)
+})
+
+test('delayed task responses disable repeat submission and keep one accepted task',async({page})=>{
+  await fillPlan(page,'TEST ONLY slow')
+  let posts=0,acceptedId=''
+  await page.route('**/api/v1/travel/tasks',async route=>{
+    if(route.request().method()!=='POST')return route.continue()
+    posts++
+    const response=await route.fetch()
+    acceptedId=(await response.json()).id
+    await new Promise(resolve=>setTimeout(resolve,900))
+    await route.fulfill({response})
+  })
+  await page.route(/\/tasks\/[^/]+$/,async route=>{
+    await new Promise(resolve=>setTimeout(resolve,350))
+    await route.continue()
+  })
+  await page.getByRole('button',{name:'开始规划'}).click()
+  await expect(page.locator('.planner-form button[type=submit]')).toBeDisabled()
+  // Exercise the form handler again while the first response is delayed.
+  await page.locator('.planner-form form').evaluate(form=>(form as HTMLFormElement).requestSubmit())
+  await expect(page.getByText('行程已生成并保存',{exact:true})).toBeVisible()
+  expect(posts).toBe(1)
+  expect((await currentTask(page)).id).toBe(acceptedId)
+  await expect(page.locator('.timeline')).toContainText('TEST ONLY fixture-a')
+})
+
+test('browser offline and online transitions recover the accepted task without another POST',async({page,context})=>{
+  await fillPlan(page,'TEST ONLY slow')
+  let posts=0,offline=false,failedReads=0
+  page.on('request',request=>{if(request.method()==='POST'&&request.url().endsWith('/api/v1/travel/tasks'))posts++})
+  page.on('requestfailed',request=>{if(offline&&/\/tasks\/[^/?]+$/.test(request.url()))failedReads++})
+  await page.getByRole('button',{name:'开始规划'}).click()
+  await expect(page.locator('.task-id')).toBeVisible()
+  const taskText=await page.locator('.task-id').innerText()
+  offline=true
+  try {
+    await context.setOffline(true)
+    await expect.poll(()=>page.evaluate(()=>navigator.onLine)).toBe(false)
+    await expect.poll(()=>failedReads).toBeGreaterThan(0)
+    await expect(page.locator('.task-id')).toHaveText(taskText)
+  } finally {offline=false;await context.setOffline(false)}
+  await expect(page.getByText('行程已生成并保存',{exact:true})).toBeVisible()
+  await expect(page.locator('.task-id')).toHaveText(taskText)
+  await expect(page.locator('.timeline')).toContainText('TEST ONLY fixture-a')
+  expect(posts).toBe(1)
+  expect((await currentTask(page)).status).toBe('succeeded')
+})
+
+test('offline edit submission keeps its snapshot and waits for explicit recovery when not admitted',async({page,context})=>{
+  await openSeed(page)
+  await page.getByRole('button',{name:'编辑行程',exact:true}).click()
+  await page.getByLabel('用户录入费用').first().fill('0')
+  await page.getByLabel('停留（分钟）',{exact:true}).first().fill('90')
+  const keys:string[]=[]
+  page.on('request',request=>{if(request.method()==='POST'&&/\/itineraries\/[^/]+\/adjust$/.test(request.url()))keys.push(request.headers()['idempotency-key'])})
+  try {
+    await context.setOffline(true)
+    await page.getByRole('button',{name:'保存并重算'}).click()
+    await expect(page.getByRole('button',{name:'恢复上次提交'})).toBeEnabled()
+    await expect(page.getByRole('region',{name:'本次编辑改动'})).toContainText('90 分钟')
+  } finally {await context.setOffline(false)}
+  await expect(page.getByText('尚未确认任务已受理。点击恢复上次提交后，将继续使用原条件和同一提交标识。',{exact:true})).toBeVisible()
+  await expect(page.getByRole('button',{name:'恢复连接',exact:true})).toHaveCount(0)
+  expect(keys).toHaveLength(1)
+  await page.getByRole('button',{name:'恢复上次提交'}).click()
+  await expect(page.getByText('行程已生成并保存',{exact:true})).toBeVisible()
+  expect(keys).toHaveLength(2)
+  expect(keys[1]).toBe(keys[0])
+  const task=await currentTask(page)
+  const trip=await (await page.request.get(`/api/v1/travel/itineraries/${task.itinerary_id}`)).json()
+  expect(trip.budget.known_subtotal).toBe(0)
+  expect(trip.days[0].stops[0].stay_minutes).toBe(90)
+  expect(trip.parent_id).toBeTruthy()
+  await expect(page.getByRole('status',{name:'未保存行程修改'})).toHaveCount(0)
 })

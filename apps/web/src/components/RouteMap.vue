@@ -21,8 +21,11 @@ function highlight(pan=false) {
   if(pan&&selected)map?.panTo([selected.poi.longitude,selected.poi.latitude])
 }
 function redraw() {
-  if (!map || !sdk) return
-  map.clearMap()
+  if (!sdk || disposed) return
+  // Reset SDK rendering state when day, overlays or editing layout changes.
+  // Reusing the prior view can leave WebKit's base layer blank after resizing.
+  map?.destroy()
+  map = new sdk.Map(container.value, { zoom: 5, viewMode: '2D' })
   markers.clear();lines.length=0
   const overlays: any[] = []
   for (const [index, stop] of stops.value.entries()) {
@@ -48,12 +51,11 @@ onMounted(async () => {
     (window as any)._AMapSecurityConfig = { serviceHost: `${window.location.origin}/api/v1/travel/_AMapService` }
     sdk = await AMapLoader.load({ key: import.meta.env.VITE_AMAP_JS_KEY, version: '2.0' })
     if (disposed) return
-    map = new sdk.Map(container.value, { zoom: 5, viewMode: '2D' })
     ready.value = true
     redraw()
   } catch { error.value = '地图加载失败，请检查浏览器地图 Key、域名授权和网络。' }
 })
-watch(() => [props.itinerary, props.selectedDay, props.poi,props.preview], redraw, { deep: true })
+watch(() => [props.itinerary, props.selectedDay, props.poi,props.preview], redraw, { deep: true, flush:'post' })
 watch(()=>props.selectedPoiId,()=>highlight(true))
 onBeforeUnmount(() => { disposed = true; map?.destroy();markers.clear();lines.length=0 })
 </script>

@@ -122,6 +122,16 @@ Web 使用 HttpOnly 会话 Cookie 和 CSRF 校验，密码与会话 Token 不进
 
 检查旅行 API、Agent、澄清、MCP、共享客户端及 Web 构建；自动启动专用缺 Key 服务，不使用正在运行的开发库。GitHub Actions 使用同一脚本。初次运行可能需要网络安装依赖，但业务 API 不使用真实凭证。
 
+三种浏览器的隔离验收：
+
+```powershell
+$env:PLAYWRIGHT_BROWSERS_PATH = "$PWD/.cache/playwright"
+npx playwright install --only-shell chromium firefox webkit
+.\.venv\Scripts\python.exe scripts/verify_browser.py
+```
+
+可用 `--browser chromium|firefox|webkit` 单独运行；Linux 首次安装增加 `--with-deps`。脚本为每个引擎和账号模式创建独立库。网络场景、平台限制和报告路径见 [跨浏览器验收](docs/architecture/BROWSER_ACCEPTANCE.md)。
+
 契约变更后运行并提交生成文件：
 
 ```powershell
@@ -136,7 +146,7 @@ npm run build
 
 本次只发布整理后的源码快照，不带入原 Git 历史、机器配置、缓存、密钥、运行数据库、个人行程和未核验的旧 POI 数据。原本地工程及历史保持不变。原接口和 Flutter 源码作为历史实现保留，依赖旧 POI 的功能不承诺在此快照可运行。
 
-后续顺序：HTTPS、备份、资源限流与部署验收 → 高德真实多日路线/编辑联调（取得授权后）→ App 接入 → 高级优化与 Memory。
+后续顺序：部署环境的 HTTPS、域名授权与备份验收 → 更多城市/交通模式的推荐质量评估 → App 接入 → 高级优化与 Memory。
 
 - [功能范围、验收边界与后续清单](docs/RELEASE_STATUS.md)
 - [来源、第三方依赖与许可边界](NOTICE.md)

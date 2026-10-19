@@ -90,6 +90,25 @@ class MapProxyTests(unittest.TestCase):
         self.assertEqual(self.client.post(PATH).status_code, 405)
         self.assertEqual(self.calls, [])
 
+    def test_jsonp_gets_script_mime_only_after_wrapper_and_json_validation(self):
+        params = {'key': KEY, 'callback': 'AMap.callbacks.jsonp_1'}
+        for content_type, body in (('application/json', b'AMap.callbacks.jsonp_1({"testOnly":true});'),
+                     ('application/octet-stream', b'\xef\xbb\xbf AMap.callbacks.jsonp_1 ( {"testOnly":true} ) ')):
+            self.upstream(lambda _, value=body, mime=content_type: httpx.Response(200, content=value, headers={'content-type': mime}))
+            result = self.get(params=params)
+            self.assertEqual(result.status_code, 200)
+            self.assertTrue(result.headers['content-type'].startswith('application/javascript'))
+            self.assertEqual(result.headers['x-content-type-options'], 'nosniff')
+            self.assertEqual(result.content, body)
+        for body in (b'AMap.callbacks.jsonp_1({});alert(1)', b'Other.callback({})',
+                     b'AMap.callbacks.jsonp_1(doSomething())', b'{"testOnly":true}', b'\xff'):
+            self.upstream(lambda _, value=body: httpx.Response(200, content=value, headers={'content-type': 'application/json'}))
+            self.assertEqual(self.get(params=params).status_code, 502)
+        self.upstream(lambda _: httpx.Response(200, json={'testOnly': True}))
+        result = self.get()
+        self.assertEqual(result.json(), {'testOnly': True})
+        self.assertTrue(result.headers['content-type'].startswith('application/json'))
+
     def test_keys_duplicate_parameters_injection_and_query_size_are_rejected(self):
         self.upstream()
         cases = [({'key': 'TEST_ONLY_OTHER'}, 403), ({}, 403),

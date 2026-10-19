@@ -53,6 +53,8 @@ POI 搜索、详情、路线与规划 → 原有 TravelTools → Provider/MCP �
 
 响应设置 `no-store` 与 `nosniff`。错误返回固定错误码和中文说明；HTTPX INFO 日志中的 JS 凭证会脱敏，响应若回显安全密钥则拒绝。运维不得另行记录上游完整查询参数或响应正文。SDK、底图和瓦片仍会访问高德官方域名，此代理覆盖 SDK 的 serviceHost 接口；它没有把所有地图资源搬到后端。
 
+高德初始化可能把 JSONP 标记为 JSON 或二进制 MIME。代理只在回调名匹配、包裹合法且内部内容可解析为 JSON 时转换为 `application/javascript`，让 WebKit 在保留 nosniff 的条件下执行。无回调的 JSON 保持原类型；不接受额外脚本、错误回调、非法编码或任意 JavaScript 表达式。新增回归与三引擎最终复验见 [BROWSER_ACCEPTANCE.md](BROWSER_ACCEPTANCE.md)，以下 128 项记录属于代理接入阶段的历史结果。
+
 ## 验证结果
 
 - 128 项无密钥自动检查全部通过：Python 91（新增代理 12）、TypeScript 17、Chromium 20。代理检查使用明确的 TEST ONLY MockTransport，覆盖访问拒绝、固定目标和凭证注入、会话/退出、来源、参数、重定向/错误/类型/大小、密钥回显、日志脱敏、限流/并发、取消释放和客户端关闭，不访问真实高德。
@@ -65,4 +67,4 @@ POI 搜索、详情、路线与规划 → 原有 TravelTools → Provider/MCP �
 
 复现自动检查使用根 README 的两条编排命令，或单独运行 `python tests/test_map_proxy.py -v`。使用自己的授权验证真实地图时，检查 Network 中同源初始化请求成功、页面可切日/编辑/刷新；账号模式退出后检查代理拒绝请求。不要导出含凭证的 HAR 或完整请求 URL。
 
-下一阶段补充 Firefox/WebKit、弱网及部署域名验收，再扩展推荐质量样本；新增 SDK 功能若需要其他接口，须先核实用途并显式扩展白名单，不开放通用 Web 服务代理。
+三引擎与有界延迟/断网验收已完成，下一阶段补充 Safari 真机、持续弱网及部署域名验收，再扩展推荐质量样本；新增 SDK 功能若需要其他接口，须先核实用途并显式扩展白名单，不开放通用 Web 服务代理。

@@ -14,9 +14,9 @@ import urllib.request
 ROOT=Path(__file__).resolve().parents[1]
 
 
-def verify(suite):
+def verify(suite,browser,grep=None):
     (ROOT/".tmp").mkdir(exist_ok=True)
-    env=dict(os.environ,PYTHONIOENCODING="utf-8",E2E_AUTH_TESTS="1" if suite=='auth' else '0')
+    env=dict(os.environ,PYTHONIOENCODING="utf-8",E2E_AUTH_TESTS="1" if suite=='auth' else '0',E2E_BROWSER=browser)
     for name in ('AMAP_KEY','AMAP_WEB_KEY','AMAP_JS_KEY','AMAP_JS_SECURITY_CODE','DASHSCOPE_API_KEY','OPENAI_API_KEY','TRAVEL_LLM_API_KEY','VITE_AMAP_JS_KEY','VITE_AMAP_SECURITY_CODE'):
         env[name]=''
     env.update(TRAVEL_SESSION_TTL='28800',TRAVEL_SESSION_IDLE_TTL='1800',VITE_API_BASE_URL='/api/v1/travel')
@@ -47,9 +47,11 @@ def verify(suite):
                             with urllib.request.urlopen(url,timeout=1): break
                         except (urllib.error.URLError,TimeoutError): time.sleep(.1)
                     else: raise RuntimeError("Acceptance service did not become ready")
-                subprocess.run([npm,"run","test:browser"],cwd=ROOT,env=env,check=True)
+                command=[npm,"run","test:browser","--","--project",browser]
+                if grep: command.extend(['--grep',grep])
+                subprocess.run(command,cwd=ROOT,env=env,check=True)
             except Exception:
-                destination=ROOT/"artifacts/browser-diagnostics"/suite
+                destination=ROOT/"artifacts/browser-diagnostics"/browser/suite
                 destination.mkdir(parents=True,exist_ok=True)
                 api_log.flush();web_log.flush()
                 shutil.copyfile(folder/"api.log",destination/"api.log");shutil.copyfile(folder/"web.log",destination/"web.log")
@@ -60,14 +62,17 @@ def verify(suite):
                     try: process.wait(timeout=10)
                     except subprocess.TimeoutExpired:
                         process.terminate();process.wait(timeout=5)
-    print("Browser acceptance passed using isolated TEST ONLY records.")
+    print(f"Browser acceptance passed: {browser}/{suite}, isolated TEST ONLY records.")
 
 
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--suite',choices=['all','local','auth'],default='all')
+    parser.add_argument('--browser',choices=['all','chromium','firefox','webkit'],default='all')
+    parser.add_argument('--grep',help='Run matching test names only; omit for full acceptance')
     args=parser.parse_args()
-    for suite in (['local','auth'] if args.suite=='all' else [args.suite]): verify(suite)
+    for browser in (['chromium','firefox','webkit'] if args.browser=='all' else [args.browser]):
+        for suite in (['local','auth'] if args.suite=='all' else [args.suite]): verify(suite,browser,args.grep)
 
 
 if __name__=="__main__": main()

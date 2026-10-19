@@ -1,6 +1,7 @@
 """Bounded, authenticated JS SDK gateway. Business queries use TravelTools."""
 import asyncio
 import hmac
+import json
 import logging
 import os
 import re
@@ -94,6 +95,17 @@ class MapProxy:
                     body = b''.join(chunks)
                     if self.code.encode() in body:
                         raise TravelFailure('map_response_rejected', '地图服务响应无效')
+                    # AMap serves SDK JSONP as JSON or binary. Keep nosniff:
+                    # only a validated callback containing JSON is JavaScript.
+                    if content_type in {'application/json', 'application/octet-stream'} and (callback := params.get('callback')):
+                        try:
+                            wrapper = re.fullmatch(r'\s*' + re.escape(callback) + r'\s*\((.*)\)\s*;?\s*',
+                                body.decode('utf-8-sig'), re.DOTALL)
+                            if not wrapper: raise ValueError('Invalid JSONP wrapper')
+                            json.loads(wrapper.group(1))
+                        except (UnicodeError, ValueError, RecursionError):
+                            raise TravelFailure('map_response_rejected', '地图回调响应无效') from None
+                        content_type = 'application/javascript'
                     return Response(body, media_type=content_type,
                         headers={'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff'})
         except (httpx.TimeoutException, TimeoutError):

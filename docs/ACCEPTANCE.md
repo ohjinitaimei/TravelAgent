@@ -1,6 +1,6 @@
 # Web 验收记录
 
-验收环境：2026-10-19 至 2026-10-20，Python 3.12、Node.js、Windows、Chromium Headless。本轮仅在本地运行，未上传至 GitHub 或运行云端检查；仓库保留可在 Ubuntu / Node.js 22 上执行的 CI 配置。
+验收环境：2026-10-19 至 2026-10-20，Python 3.12、Node.js、Windows、Chromium / Firefox / WebKit Headless。本轮仅在本地运行，未上传至 GitHub 或运行云端检查；仓库保留可在 Ubuntu / Node.js 22 上执行的 CI 配置。
 
 ## 可复现检查
 
@@ -9,19 +9,21 @@
 ```powershell
 .\.venv\Scripts\python.exe scripts/verify_repository.py
 $env:PLAYWRIGHT_BROWSERS_PATH = "$PWD/.cache/playwright"
-npx playwright install --only-shell chromium
+npx playwright install --only-shell chromium firefox webkit
 .\.venv\Scripts\python.exe scripts/verify_browser.py
 .\.venv\Scripts\python.exe scripts/update_publish_manifest.py --check
 ```
 
-Linux 浏览器首次安装使用 `npx playwright install --with-deps --only-shell chromium`，并设置 `export PLAYWRIGHT_BROWSERS_PATH="$PWD/.cache/playwright"`。单独执行 `npm run test:browser` 需要专用服务地址；推荐使用上述 Python 编排脚本，自动启动并关闭隔离 API 和 Vite。
+Linux 浏览器首次安装使用 `npx playwright install --with-deps --only-shell chromium firefox webkit`，并设置 `export PLAYWRIGHT_BROWSERS_PATH="$PWD/.cache/playwright"`。单独执行 `npm run test:browser` 需要专用服务地址；推荐使用上述 Python 编排脚本，按引擎和账号模式隔离数据库，自动启动并关闭 API 和 Vite。
 
 | 检查 | 数量 | 覆盖范围 |
 | --- | ---: | --- |
-| Python | 91 | 旅行 API 13、Agent 6、澄清 4、MCP 服务端 1、任务恢复 3、MCP 客户端 11、鉴权隔离 14、业务限流 8、备份恢复 6、分日算法 13、地图代理 12 |
+| Python | 92 | 旅行 API 13、Agent 6、澄清 4、MCP 服务端 1、任务恢复 3、MCP 客户端 11、鉴权隔离 14、业务限流 8、备份恢复 6、分日算法 13、地图代理 13 |
 | TypeScript 客户端 | 17 | HTTP 契约、轮询期限/取消、暂时断线、提交收据恢复、编辑差异与还原、工具握手、账号绑定与恢复、配额拒绝与 Retry-After |
-| Chromium | 20 | 旅行工作台 13 项、账号流程 7 项 |
+| Chromium / Firefox / WebKit | 72 次 | 每引擎旅行工作台 16 项、账号流程 8 项，三个引擎合计 72 次执行 |
 | Web / Schema | — | TypeScript 检查、Vite 构建、OpenAPI 生成文件一致性 |
+
+共 133 个逻辑用例、181 次执行（包含相同页面场景在不同引擎中的重复）。浏览器报告无失败、跳过或重试后通过；Windows WebKit 的 SameSite 元数据限制、真实地图复查和源码修改见 [BROWSER_ACCEPTANCE.md](architecture/BROWSER_ACCEPTANCE.md)。
 
 浏览器场景：
 
@@ -38,18 +40,21 @@ Linux 浏览器首次安装使用 `npx playwright install --with-deps --only-she
 11. 时间轴编号与地图地点列表双向选择 → 高亮、滚动和键盘焦点 → 切换日期清除选择；不额外查询 POI 详情。
 12. 修改费用为 0、停留和分日 → 差异对照与地图地点预览 → 切换页面及取消浏览器刷新保留修改 → Escape 继续编辑 → 确认放弃恢复已保存路线。
 13. 打开行程/提交新规划前提示未保存 → 取消后不发送规划 POST → 保存拒绝保留编辑 → 再次保存成功创建新版本并清除未保存提示。
+14. POST 与状态响应延迟 → 保持禁用与同一任务，重复触发表单不重复提交。
+15. 任务执行中真实离线 → 状态请求失败 → 联网后继续同一任务，没有第二次创建 POST。
+16. 离线编辑提交失败 → 保留原内容和标识 → 联网仅查收据并清除过期断网提示 → 用户显式恢复后创建新版本。
 
 新增的 MCP 客户端检查使用实际 stdio 子进程：生产工具服务的成功输出 Schema（测试进程显式注入 FixtureProvider）、现有规划算法、已有 ToolRegistry、工具白名单、调用次数/总时限、握手/调用超时、意外退出、文本或非法业务结果拒绝、错误脱敏、生产固定命令/凭证边界，以及任务取消和超时后的子进程退出。`POST /tool-service/check` 还对真实随仓库提供的服务执行不消耗 Provider 配额的握手；生产任务在缺 Key 时失败且不保存虚假行程。
 
 账号浏览器套件另启动 `--auth-fixtures` 的隔离服务，测试账号只存在于临时库中：登录错误、HttpOnly Cookie、刷新与退出；主动退出前保护未保存编辑，取消退出保留当前账号；两用户的行程读取/调整隔离；跨标签页换号关闭旧空间；会话失效后重新登录；未确认提交不跨账号恢复；Bearer 登录与浏览器 Cookie 分离。后端还验证同名提交标识按用户去重、任务/事件/SSE/草案/重试的越权拒绝、CSRF/来源校验、密码重置/禁用/过期撤销、登录频率和会话上限、密码/Token 散列存储，以及旧库安全迁移和冲突回滚。
 
-`scripts/verify_browser.py` 默认依次运行本地模式和账号模式，可用 `--suite local` 或 `--suite auth` 单独运行。脚本会清空测试子进程中的真实模型/地图凭证和浏览器地图配置。
+`scripts/verify_browser.py` 默认依次运行三个引擎的本地模式和账号模式，可用 `--browser chromium|firefox|webkit`、`--suite local|auth` 或 `--grep` 定向运行。账号第 8 项新增离线退出失败后保留身份、联网后显式退出。脚本会清空测试子进程中的真实模型/地图凭证和浏览器地图配置。
 
 ## 数据与功能边界
 
 测试服务必须显式传入 `--test-fixtures-only`，只绑定本机地址，数据库限制在仓库 `.tmp/`。FixtureProvider、固定模型回复和故障注入仅在 `tests/` 定义；生产服务不提供开启测试数据的配置。浏览器测试屏蔽外部 HTTPS，所有 POI 名称使用 TEST ONLY 标识。日志、截图和 trace 保存在被 Git 排除的 `artifacts/` 中，CI 仅在失败时上传测试诊断。
 
-上述自动检查验证页面、API 与后端算法之间的调用和状态一致性。2026-10-19 另通过授权高德的本地真实联调，覆盖 POI、步行/驾车、直接 Provider/MCP 异步规划、多日编辑版本和 Web 保存重开。地图接入阶段的 JS API 检查覆盖底图、编号、道路折线、跨天切换和刷新；地图编辑阶段另完成 23 项真实检查及截图核对，见 [WEB_EDITING.md](architecture/WEB_EDITING.md)。前端构建通过且不含后端 Key。授权联调不计入上表 128 项无密钥自动检查。实际范围、早期页面检查失败及后续复查记录见 [LIVE_AMAP.md](architecture/LIVE_AMAP.md)。未来交通与营业状态不在此次结论内；票价、库存、评论等无授权来源时保持缺失。
+上述自动检查验证页面、API 与后端算法之间的调用和状态一致性。2026-10-19 另通过授权高德的本地真实联调，覆盖 POI、步行/驾车、直接 Provider/MCP 异步规划、多日编辑版本和 Web 保存重开。地图接入阶段的 JS API 检查覆盖底图、编号、道路折线、跨天切换和刷新；地图编辑阶段另完成 23 项真实检查及截图核对，见 [WEB_EDITING.md](architecture/WEB_EDITING.md)。前端构建通过且不含后端 Key。授权联调不计入上表 181 次无密钥自动执行。实际范围、早期页面检查失败及后续复查记录见 [LIVE_AMAP.md](architecture/LIVE_AMAP.md)。未来交通与营业状态不在此次结论内；票价、库存、评论等无授权来源时保持缺失。
 
 安全密钥代理阶段新增 12 项自动检查，总数增至 128。另在真实高德 SDK 下分别通过本地模式 25 项与账号模式 28 项检查，初始化代理请求全部成功，登录 Cookie 可用于该路径，退出后返回 401；安全密钥不在浏览器配置/请求/代理响应或前端构建中。步骤与部署边界见 [AMAP_PROXY.md](architecture/AMAP_PROXY.md)。此前 23 项地图编辑记录保留为历史验收。
 
@@ -59,7 +64,7 @@ Linux 浏览器首次安装使用 `npx playwright install --with-deps --only-she
 
 ## API 恢复约定
 
-`Itinerary.optimization` 为兼容性新增字段，旧行程默认 `null`；自动多日规划提供原方案、已核验候选、采用结果及有向路线调用数。新增分日检查覆盖道路绕行、方向不对称、每日约束、负担保护、预算/停留保留、最多 48 个路段，以及旧记录和手动分日兼容。上海/杭州的直接 Provider 与 MCP 真实比较不计入上述 128 项，见 [DAY_GROUPING.md](architecture/DAY_GROUPING.md)。
+`Itinerary.optimization` 为兼容性新增字段，旧行程默认 `null`；自动多日规划提供原方案、已核验候选、采用结果及有向路线调用数。新增分日检查覆盖道路绕行、方向不对称、每日约束、负担保护、预算/停留保留、最多 48 个路段，以及旧记录和手动分日兼容。上海/杭州的直接 Provider 与 MCP 真实比较不计入上述自动检查，见 [DAY_GROUPING.md](architecture/DAY_GROUPING.md)。
 
 创建规划、草案、编辑或重试任务可携带 `Idempotency-Key`（8–128 位字母、数字、下划线、点、冒号或连字符）。同一标识与同一请求返回原任务；标识复用于其他请求返回 `409 idempotency_conflict`。未传标识的旧客户端保持原行为。
 

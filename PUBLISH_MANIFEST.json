@@ -10,8 +10,8 @@
     },
     {
       "path": ".github/workflows/ci.yml",
-      "bytes": 1900,
-      "sha256": "8f043dbb235291d8b7bc7b85e455c9c9331019526e4f08681c9cbe67a1af6cd9"
+      "bytes": 1943,
+      "sha256": "735f257e198d2f51d86cbe712412bb13e9762522eda89425f7de85fadb43fe7c"
     },
     {
       "path": ".gitignore",
@@ -30,8 +30,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 10253,
-      "sha256": "ff191370f3eadde4a4cf6b797c332919de5a748d6f547d4c7ea15c2edf9965c7"
+      "bytes": 10738,
+      "sha256": "b7357f39e7546cbd9869735e418dbb159f2206403f6166bc54ae7d57ce56c724"
     },
     {
       "path": "analysis_options.yaml",
@@ -155,8 +155,8 @@
     },
     {
       "path": "apps/web/src/App.vue",
-      "bytes": 38880,
-      "sha256": "9dd1e6d7a16d5eeb070f5aaad9a3d759554f74db1271296ae417a369269a0c62"
+      "bytes": 39305,
+      "sha256": "83ce96cc30ac76b38494a26a8c3a012dede7b92709429a378694e6df87ea01a5"
     },
     {
       "path": "apps/web/src/WorkspaceRoot.vue",
@@ -170,8 +170,8 @@
     },
     {
       "path": "apps/web/src/components/DiscardChangesDialog.vue",
-      "bytes": 1541,
-      "sha256": "0a4c1ebaec4fc63775de9fec49b2c1967d2cf90e3542cfe8f649232bdde43941"
+      "bytes": 1590,
+      "sha256": "fe22179d3bfbceb6087bf9f8a1afe125785524e93de61e65e7b15302c64b65a9"
     },
     {
       "path": "apps/web/src/components/EditComparison.vue",
@@ -190,8 +190,8 @@
     },
     {
       "path": "apps/web/src/components/RouteMap.vue",
-      "bytes": 5645,
-      "sha256": "8854c9b6a2d3ea911316e5ac7a3719e36f039835ff3d99cefd63925939ec4bcf"
+      "bytes": 5818,
+      "sha256": "88e05a21214e8c8275e67fe20dec6b82f3d95c7d129abd7f455765cecdf5ffc1"
     },
     {
       "path": "apps/web/src/components/ToolConnection.vue",
@@ -700,8 +700,8 @@
     },
     {
       "path": "backend/travel/map_proxy.py",
-      "bytes": 6160,
-      "sha256": "0f63d3e9e51c4c193c338cf2451889f04c5dd7d3e52fa95f9d14a380c4e06e7b"
+      "bytes": 7055,
+      "sha256": "21889d40e27e5150ec0ddc9dc1466a2c742ad1f52574c8f98e2687a86b803d6a"
     },
     {
       "path": "backend/travel/mcp_client.py",
@@ -760,18 +760,18 @@
     },
     {
       "path": "docs/ACCEPTANCE.md",
-      "bytes": 9039,
-      "sha256": "cce9acd46d95191135be75252a2b6383a09baf6c97b0cd5ffc5b9a1ef852ee29"
+      "bytes": 10000,
+      "sha256": "729811d6eaedfd95ca6c80ac939c2c599fdc6221e34cb7ea0edce50ad82eaece"
     },
     {
       "path": "docs/README.md",
-      "bytes": 1228,
-      "sha256": "6f9d086b6cd0fe909a1f76a4649ee4c3196ea3f6a8814e0857d0d1efccf039b9"
+      "bytes": 1304,
+      "sha256": "51d4cdf5aa88db7a0d3c376cfb2aa715b3bd3d2af8af8e11cbf624c62781ad54"
     },
     {
       "path": "docs/RELEASE_STATUS.md",
-      "bytes": 7177,
-      "sha256": "92552041dffd9504f65dcd1cea69b6ef1611fe6a144fe148550df04a679cfc0f"
+      "bytes": 7172,
+      "sha256": "52b03564aa56e50065d459243cc4e1f9f80f8ad4dfcb6ab6a8f079a375b1e6bd"
     },
     {
       "path": "docs/TECHNICAL_REPORT.md",
@@ -795,13 +795,18 @@
     },
     {
       "path": "docs/architecture/AMAP_PROXY.md",
-      "bytes": 6544,
-      "sha256": "bada356d260b4890c15fcf1bba5175a1f5ee2e9a38950c039591496969bf98ea"
+      "bytes": 7102,
+      "sha256": "16a984cc31b6d5a14f8abb520885af7fb8fb71eb37372e972a87d1e1b074d8f3"
     },
     {
       "path": "docs/architecture/AUTH_ISOLATION.md",
       "bytes": 7816,
       "sha256": "867615ffd3e3e32bb598c37dc57310eca5df487382bb69bd133927ecf8b9f42c"
+    },
+    {
+      "path": "docs/architecture/BROWSER_ACCEPTANCE.md",
+      "bytes": 9035,
+      "sha256": "a6367916d305f171e5731f15a9af176f0f22c01eec4bc29d3b7834257bda8efb"
     },
     {
       "path": "docs/architecture/DAY_GROUPING.md",
@@ -825,8 +830,8 @@
     },
     {
       "path": "docs/architecture/LIVE_AMAP.md",
-      "bytes": 5665,
-      "sha256": "e3a115737051c70127a8e07e1a1c5686b0d8efe9126beeedc4b2e81ad46c477a"
+      "bytes": 5982,
+      "sha256": "1c46892edc46a642354bee2123afb7d923772d95b86a1a464aed8896d981639d"
     },
     {
       "path": "docs/architecture/MCP_CLIENT.md",
@@ -1010,8 +1015,8 @@
     },
     {
       "path": "playwright.config.ts",
-      "bytes": 573,
-      "sha256": "97869be166ceea625950d0f6ecf1ae54e43013367ddd4316150ac6f6a186240e"
+      "bytes": 810,
+      "sha256": "ba616d9250fe4b2fbe745b8b8585e6e329bcfc209519d6671651d4bf4836802c"
     },
     {
       "path": "pubspec.lock",
@@ -1050,8 +1055,8 @@
     },
     {
       "path": "scripts/verify_browser.py",
-      "bytes": 3957,
-      "sha256": "f3645845d47eb35102c7837dfa12c6249f619533987057de48c72e9af61743b2"
+      "bytes": 4444,
+      "sha256": "4b49cd87f29e02a48b753d72737b5b702d3b2b2d08b2e520d9195479b374ed4c"
     },
     {
       "path": "scripts/verify_live_clarification.py",
@@ -1085,13 +1090,13 @@
     },
     {
       "path": "tests/browser/auth.spec.ts",
-      "bytes": 8560,
-      "sha256": "76e9e7c4ef170ad20930a7ab4da82078489cf5c48f406534faa497b11fd0864e"
+      "bytes": 10401,
+      "sha256": "472dcc4f0c8673dbfda762027c48fc022ea888ff0723c623a7ec0f7963f18531"
     },
     {
       "path": "tests/browser/workspace.spec.ts",
-      "bytes": 18614,
-      "sha256": "4de27444326dd8e8f72f439e8706d6309cab910afa71bfd6acc0c62b1ab9d4ee"
+      "bytes": 22945,
+      "sha256": "da5d5ef1b0c0ad63ab4bcd8e6e69b863335521d4342f237353203469beff7e9a"
     },
     {
       "path": "tests/browser_fixture_server.py",
@@ -1145,8 +1150,8 @@
     },
     {
       "path": "tests/test_map_proxy.py",
-      "bytes": 11457,
-      "sha256": "b14bdbab1c0ca95e023782406dab1797f2856dc7dc1c9db4a67df99dadb626ff"
+      "bytes": 12924,
+      "sha256": "5110355fc790af49d48fea0dc87830633b565e80168f593f365108c29812b87a"
     },
     {
       "path": "tests/test_mcp.py",

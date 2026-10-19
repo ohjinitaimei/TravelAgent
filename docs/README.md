@@ -14,7 +14,8 @@ POI data; they are not a claim that every historical feature is complete.
 5. [architecture/DRAFT_CLARIFICATION.md](architecture/DRAFT_CLARIFICATION.md)
 6. [architecture/WEB_EDITING.md](architecture/WEB_EDITING.md)
 7. [architecture/AMAP_PROXY.md](architecture/AMAP_PROXY.md)
-8. [legacy/MUSE_README.md](legacy/MUSE_README.md) (historical)
+8. [architecture/BROWSER_ACCEPTANCE.md](architecture/BROWSER_ACCEPTANCE.md)
+9. [legacy/MUSE_README.md](legacy/MUSE_README.md) (historical)
 
 ## Doc Groups
 

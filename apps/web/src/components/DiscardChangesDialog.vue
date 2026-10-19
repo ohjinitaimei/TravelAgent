@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
-const props=defineProps<{open:boolean;action:string}>()
+const props=defineProps<{open:boolean;action:string;returnFocus?:HTMLElement|null}>()
 const emit=defineEmits<{discard:[];keep:[]}>()
 const dialog=ref<HTMLDialogElement>()
 let previous:HTMLElement|null=null
 watch(()=>props.open,async value=>{
   await nextTick()
-  if(value&&dialog.value&&!dialog.value.open){previous=document.activeElement as HTMLElement;dialog.value.showModal()}
+  if(value&&dialog.value&&!dialog.value.open){previous=props.returnFocus??document.activeElement as HTMLElement;dialog.value.showModal()}
   else if(!value&&dialog.value?.open){dialog.value.close();previous?.isConnected&&previous.focus()}
 },{immediate:true})
 onBeforeUnmount(()=>dialog.value?.close())

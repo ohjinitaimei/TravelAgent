@@ -44,7 +44,7 @@ const optimize = ref(false), editStay = ref(60), addDay = ref(0)
 const editDurations = reactive<Record<string, number>>({}), moveDays = reactive<Record<string,number>>({})
 const addedPois = reactive<Record<string,Poi>>({})
 const editBaseline=ref<EditSnapshot|null>(null)
-const discardIntent=shallowRef<{action:string;run:()=>void|Promise<void>}|null>(null)
+const discardIntent=shallowRef<{action:string;run:()=>void|Promise<void>;returnFocus:HTMLElement|null}|null>(null)
 const selectedStopId=ref<string|null>(null), timeline=ref<HTMLElement>()
 const editConstraints = reactive({start_date:localDate, day_start:'09:00', day_end:'18:00', mode:'walking' as 'walking'|'driving', budget:null as number|null})
 const restoring = ref(false)
@@ -68,16 +68,16 @@ function clearEditor() {
   for(const key of Object.keys(addedPois)) delete addedPois[key]
   for(const key of Object.keys(moveDays)) delete moveDays[key]
 }
-function requestLeave(run:()=>void|Promise<void>,action:string) {
-  if(editDirty.value) {discardIntent.value={run,action};return}
+function requestLeave(run:()=>void|Promise<void>,action:string,trigger?:EventTarget|null) {
+  if(editDirty.value) {discardIntent.value={run,action,returnFocus:trigger instanceof HTMLElement?trigger:document.activeElement as HTMLElement|null};return}
   void run()
 }
 function discardAndContinue() {
   const intent=discardIntent.value;discardIntent.value=null;clearEditor()
   if(intent) void Promise.resolve(intent.run()).catch(report)
 }
-function exitEdit() {requestLeave(()=>{clearEditor();notice.value='已退出编辑，显示已保存版本。'},'放弃修改并退出编辑')}
-function logout() {requestLeave(()=>{clearEditor();emit('logout')},'放弃修改并退出登录')}
+function exitEdit(event?:MouseEvent) {requestLeave(()=>{clearEditor();notice.value='已退出编辑，显示已保存版本。'},'放弃修改并退出编辑',event?.currentTarget)}
+function logout(event?:MouseEvent) {requestLeave(()=>{clearEditor();emit('logout')},'放弃修改并退出登录',event?.currentTarget)}
 function beforeUnload(event:BeforeUnloadEvent) {if(editDirty.value){event.preventDefault();event.returnValue=''}}
 async function selectStop(id:string,fromMap=false) {
   if(!visiblePois.value.some(poi=>poi.id===id)) return
@@ -125,10 +125,10 @@ function keepPending(value:PendingSubmission|null) {
   if(value) session.pendingSubmission=value;else delete session.pendingSubmission
   persist()
 }
-async function submitOperation(operation:Operation) {
+async function submitOperation(operation:Operation,trigger?:EventTarget|null) {
   if(busy.value||active.value) return
   if(editing.value&&(operation.kind==='plan'||operation.kind==='retry')) {
-    requestLeave(()=>{clearEditor();return submitOperation(operation)},'放弃修改并提交新任务');return
+    requestLeave(()=>{clearEditor();return submitOperation(operation)},'放弃修改并提交新任务',trigger);return
   }
   const value=newSubmission(operation)
   keepPending(value);busy.value=true;error.value='';notice.value=''
@@ -141,18 +141,19 @@ async function restorePending(lookupOnly=false) {
   busy.value=true;error.value='';notice.value=''
   try {
     const created=await recoverSubmission(api,pending.value,lookupOnly)
+    connection.value='connected'
     if(!created) {notice.value='尚未确认任务已受理。点击恢复上次提交后，将继续使用原条件和同一提交标识。';return}
-    keepPending(null);connection.value='connected';await follow(created)
+    keepPending(null);await follow(created)
   } catch(e) {if(submissionWasRejected(e)) keepPending(null);connection.value=submissionWasRejected(e)?'connected':'offline';report(e)}
   finally {busy.value=false}
 }
-async function retryTask() {if(task.value?.retry_available) await submitOperation({kind:'retry',taskId:task.value.id})}
-async function generate() {
+async function retryTask(event?:MouseEvent) {if(task.value?.retry_available) await submitOperation({kind:'retry',taskId:task.value.id},event?.currentTarget)}
+async function generate(event?:SubmitEvent) {
   if (busy.value || active.value) return
   if(staleDraft.value) {error.value='草案已更新，请先填入最新草案，或选择保留当前表单。';return}
   error.value = ''
   const budget = typeof form.budget === 'number' && Number.isFinite(form.budget) ? form.budget : null
-  await submitOperation({kind:'plan',request:{...form,budget,user_prices:{}}})
+  await submitOperation({kind:'plan',request:{...form,budget,user_prices:{}}},event?.submitter)
 }
 async function parseDescription(text:string) {
   if(busy.value||active.value) return
@@ -240,9 +241,9 @@ async function saveEdit() {
   const budget=typeof editConstraints.budget==='number'&&Number.isFinite(editConstraints.budget)?editConstraints.budget:null
   await submitOperation({kind:'adjust',itineraryId:itinerary.value.id,request:{...editConstraints, budget, poi_ids_by_day:editIds.value, user_prices:prices, stay_minutes:editStay.value, stay_minutes_by_poi:durations, optimize_order:optimize.value}})
 }
-function openTrip(id:string) {
+function openTrip(id:string,event?:MouseEvent) {
   if(active.value||busy.value) return
-  requestLeave(async()=>{busy.value=true;try {const result=await api.itinerary(id);clearEditor();itinerary.value=result;selectedDay.value=0;tab.value='plan';selectedPoi.value=null;error.value='';task.value=null;events.value=[];delete session.taskId;persist()}catch(e){report(e)}finally{busy.value=false}},'放弃修改并打开行程')
+  requestLeave(async()=>{busy.value=true;try {const result=await api.itinerary(id);clearEditor();itinerary.value=result;selectedDay.value=0;tab.value='plan';selectedPoi.value=null;error.value='';task.value=null;events.value=[];delete session.taskId;persist()}catch(e){report(e)}finally{busy.value=false}},'放弃修改并打开行程',event?.currentTarget)
 }
 watch(form, ()=>{session.form={...form};persist()}, {deep:true})
 watch(itinerary, value=>{session.itineraryId=value?.id;persist()})
@@ -355,13 +356,13 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
         </div><RouteMap :itinerary="itinerary" :selected-day="selectedDay" :poi="selectedPoi" :selected-poi-id="selectedStopId" :preview="previewPois" @select="selectedStopId=$event"/>
       </section>
 
-      <section v-if="tab==='saved'" class="card saved-panel"><div class="section-title"><h2>已保存行程</h2><button class="text-button" @click="refreshSaved().catch(report)">刷新 ↻</button></div><div v-if="!saved.length" class="empty-state"><span>▤</span><h3>这里将收藏你的旅程</h3><p>成功生成的行程会自动保存；重新调整后保留原版本。</p></div><div class="saved-grid"><button v-for="trip in saved" :key="trip.id" class="saved-card" :disabled="active||busy" @click="openTrip(trip.id)"><span class="eyebrow">{{trip.parent_id?'ADJUSTED ITINERARY':'SAVED ITINERARY'}}</span><h3>{{trip.title}}</h3><p>{{trip.request.start_date}} · {{trip.days.length}} 天</p><div><span>{{trip.days.reduce((n,d)=>n+d.stops.length,0)}} 个地点</span><span>打开行程 ↗</span></div></button></div></section>
+      <section v-if="tab==='saved'" class="card saved-panel"><div class="section-title"><h2>已保存行程</h2><button class="text-button" @click="refreshSaved().catch(report)">刷新 ↻</button></div><div v-if="!saved.length" class="empty-state"><span>▤</span><h3>这里将收藏你的旅程</h3><p>成功生成的行程会自动保存；重新调整后保留原版本。</p></div><div class="saved-grid"><button v-for="trip in saved" :key="trip.id" class="saved-card" :disabled="active||busy" @click="openTrip(trip.id,$event)"><span class="eyebrow">{{trip.parent_id?'ADJUSTED ITINERARY':'SAVED ITINERARY'}}</span><h3>{{trip.title}}</h3><p>{{trip.request.start_date}} · {{trip.days.length}} 天</p><div><span>{{trip.days.reduce((n,d)=>n+d.stops.length,0)}} 个地点</span><span>打开行程 ↗</span></div></button></div></section>
 
       <section v-if="tab==='budget'" class="budget-layout"><div class="card"><div class="section-title"><h2>预算与约束</h2><span class="subtle">{{itinerary?.title || '尚未选择行程'}}</span></div><div v-if="!itinerary" class="empty-state"><span>◫</span><h3>先规划，再核对</h3><p>生成行程后查看已知费用、未知费用与约束结果。</p></div><template v-else><div class="budget-stats"><div><small>已知费用小计</small><strong>¥{{itinerary.budget.known_subtotal}}</strong><span>仅汇总用户录入的站点费用</span></div><div><small>总预算上限</small><strong>{{itinerary.budget.limit==null?'未设置':`¥${itinerary.budget.limit}`}}</strong><span>{{itinerary.budget.status==='exceeded'?'已知费用已超预算':'总额未知，无法确认预算满足'}}</span></div></div><h3>仍需补全的费用</h3><ul class="warning-list"><li v-for="item in itinerary.budget.unknown_items">{{item}}</li></ul><h3>行程约束与提醒</h3><ul class="warning-list"><li v-for="warning in itinerary.warnings">{{warning}}</li></ul><button class="secondary" @click="tab='plan';edit()" :disabled="active||busy">录入费用与调整行程</button></template></div><aside class="card capability-card"><div class="eyebrow">DATA COVERAGE</div><h2>数据覆盖范围</h2><ul class="warning-list"><li v-for="item in capability?.limitations">{{item}}</li></ul><p>空值表示来源未提供；不会自动补成免费、零交通时间或模拟评论。</p><ToolConnection/></aside></section>
 
       <div v-if="selectedPoi" class="modal-backdrop" @click.self="selectedPoi=null"><section class="poi-dialog" role="dialog" aria-modal="true" aria-label="地点详情"><button class="dialog-close" aria-label="关闭地点详情" @click="selectedPoi=null">×</button><div class="eyebrow">POI DETAILS · AMAP</div><h2>{{selectedPoi.name}}</h2><p>{{selectedPoi.address || '地址未知'}}</p><dl><dt>类别</dt><dd>{{selectedPoi.category || '未知'}}</dd><dt>评分</dt><dd>{{selectedPoi.rating ?? '未知'}}</dd><dt>人均消费（非门票）</dt><dd>{{selectedPoi.average_spend==null?'未知':`¥${selectedPoi.average_spend}`}}</dd><dt>营业时间</dt><dd>{{selectedPoi.opening_hours || '未知，需人工确认'}}</dd><dt>坐标</dt><dd>{{selectedPoi.longitude}}, {{selectedPoi.latitude}} · GCJ-02</dd><dt>来源获取时间</dt><dd>{{sourceTime(selectedPoi.source.retrieved_at)}}</dd></dl><p class="detail-note">尚无授权评论和票价数据。人均消费不能作为门票或最终预算。</p><button v-if="editing" class="primary" @click="add(selectedPoi);selectedPoi=null">加入第 {{addDay+1}} 天</button></section></div>
       <div v-if="loadingDetail" class="loading-toast" role="status">正在获取真实地点详情…</div>
-      <DiscardChangesDialog :open="Boolean(discardIntent)" :action="discardIntent?.action??'放弃修改'" @keep="discardIntent=null" @discard="discardAndContinue"/>
+      <DiscardChangesDialog :open="Boolean(discardIntent)" :action="discardIntent?.action??'放弃修改'" :return-focus="discardIntent?.returnFocus" @keep="discardIntent=null" @discard="discardAndContinue"/>
       <footer>TravelAgent <span>·</span> 地点有来源，规划有依据 <span class="footer-right">{{new Date().getFullYear()}} / YOUR NEXT JOURNEY</span></footer>
     </main>
   </div>

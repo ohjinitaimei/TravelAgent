@@ -11,7 +11,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     env:
       PYTHONIOENCODING: utf-8
       TRAVEL_PRODUCTION: '1'
@@ -44,8 +44,8 @@ jobs:
           python scripts/export_openapi.py
           npm run schema:generate
           git diff --exit-code -- packages/api-schema/openapi.json packages/api-schema/schema.d.ts
-      - name: Install Chromium headless browser
-        run: npx playwright install --with-deps --only-shell chromium
+      - name: Install browser engines
+        run: npx playwright install --with-deps --only-shell chromium firefox webkit
         env:
           PLAYWRIGHT_BROWSERS_PATH: .cache/playwright
       - name: Verify isolated browser interactions
@@ -59,3 +59,4 @@ jobs:
           path: |
             artifacts/browser-results
             artifacts/browser-diagnostics
+            artifacts/browser-reports

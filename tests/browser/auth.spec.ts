@@ -9,24 +9,31 @@ test.beforeEach(async({page,context})=>{
 async function login(page:Page,name='test-alpha') {
   await page.getByLabel('账号',{exact:true}).fill(name)
   await page.getByLabel('密码',{exact:true}).fill(password)
+  const response=page.waitForResponse(value=>value.url().endsWith('/api/v1/travel/auth/login')&&value.request().method()==='POST')
   await page.getByRole('button',{name:'登录',exact:true}).click()
   await expect(page.locator('.local-badge')).toHaveText(name)
+  return response
 }
 async function saved(page:Page) {
   await page.getByRole('button',{name:'已保存行程',exact:false}).first().click()
   await expect(page.locator('.saved-card').first()).toBeVisible()
 }
 
-test('login, refresh and logout use HttpOnly cookies without exposing tokens',async({page,context})=>{
-  await page.screenshot({path:'artifacts/auth-login-test-only.png',fullPage:true})
+test('login, refresh and logout use HttpOnly cookies without exposing tokens',async({page,context,browserName},testInfo)=>{
+  await page.screenshot({path:testInfo.outputPath('auth-login-test-only.png'),fullPage:true})
   await page.getByLabel('账号',{exact:true}).fill('test-alpha')
   await page.getByLabel('密码',{exact:true}).fill('TEST ONLY incorrect password')
   await page.getByRole('button',{name:'登录',exact:true}).click()
   await expect(page.getByRole('alert')).toContainText('账号或密码不正确')
-  await login(page)
+  const response=await login(page)
+  const setCookie=(await response.headersArray()).find(header=>header.name.toLowerCase()==='set-cookie')?.value??''
+  expect(setCookie).toMatch(/(?:^|;\s*)SameSite=Strict(?:;|$)/i)
   const cookie=(await context.cookies()).find(value=>value.name==='travelagent_session')!
   expect(cookie.httpOnly).toBeTruthy()
-  expect(cookie.sameSite).toBe('Strict')
+  if(browserName==='webkit'&&process.platform==='win32') {
+    // The pinned engine's own cookie tests mark Windows reporting unsupported.
+    testInfo.annotations.push({type:'platform-limitation',description:'Windows WebKit reports SameSite=None; verified server Set-Cookie=Strict. https://github.com/microsoft/playwright/blob/v1.64.1/tests/library/browsercontext-cookies.spec.ts#L110-L120'})
+  } else expect(cookie.sameSite).toBe('Strict')
   expect(await page.evaluate(()=>document.cookie)).not.toContain(cookie.value)
   expect(await page.evaluate(()=>JSON.stringify(localStorage))).not.toContain(cookie.value)
   await saved(page)
@@ -50,6 +57,7 @@ test('logout asks before discarding itinerary edits and canceled logout keeps th
   const dialog=page.getByRole('dialog',{name:'有未保存的行程修改'})
   await expect(dialog).toBeVisible()
   await dialog.getByRole('button',{name:'继续编辑',exact:true}).click()
+  await expect(page.getByRole('button',{name:'退出登录',exact:true})).toBeFocused()
   await expect(page.locator('.local-badge')).toHaveText('test-alpha')
   await expect(page.getByRole('region',{name:'本次编辑改动'})).toContainText('20 元')
   await page.getByRole('button',{name:'退出登录',exact:true}).click()
@@ -133,4 +141,21 @@ test('native bearer login stays independent from browser cookies',async({page,co
   expect((await page.request.post('/api/v1/travel/auth/logout',{headers})).ok()).toBeTruthy()
   expect((await page.request.get('/api/v1/travel/itineraries',{headers})).status()).toBe(401)
   await expect(page.getByRole('heading',{name:'登录旅行空间',exact:true})).toBeVisible()
+})
+
+test('offline logout failure preserves account identity until an explicit successful logout',async({page,context})=>{
+  await login(page)
+  try {
+    await context.setOffline(true)
+    await page.getByRole('button',{name:'退出登录',exact:true}).click()
+    await expect(page.getByRole('alert')).toContainText('无法连接服务')
+    await expect(page.locator('.local-badge')).toHaveText('test-alpha')
+    await expect(page.getByRole('button',{name:'退出登录',exact:true})).toBeEnabled()
+  } finally {await context.setOffline(false)}
+  const status=await (await page.request.get('/api/v1/travel/auth/status')).json()
+  expect(status.authenticated).toBe(true)
+  expect(status.user.username).toBe('test-alpha')
+  await page.getByRole('button',{name:'退出登录',exact:true}).click()
+  await expect(page.getByRole('heading',{name:'登录旅行空间',exact:true})).toBeVisible()
+  expect((await page.request.get('/api/v1/travel/itineraries')).status()).toBe(401)
 })
