@@ -15,7 +15,7 @@ ROOT=Path(__file__).resolve().parents[1]
 
 def main():
     (ROOT/".tmp").mkdir(exist_ok=True)
-    env=dict(os.environ,TRAVEL_PRODUCTION="1",TRAVEL_AGENT_ENABLED="0",LLM_INTENT_DISABLE_LLM="1",PYTHONIOENCODING="utf-8")
+    env=dict(os.environ,TRAVEL_PRODUCTION="1",TRAVEL_AGENT_ENABLED="0",TRAVEL_TOOL_TRANSPORT="direct",LLM_INTENT_DISABLE_LLM="1",PYTHONIOENCODING="utf-8")
     for name in ("AMAP_KEY","AMAP_WEB_KEY","DASHSCOPE_API_KEY","OPENAI_API_KEY","TRAVEL_LLM_API_KEY"):
         env[name]=""
     npm=shutil.which("npm.cmd" if os.name=="nt" else "npm")
@@ -23,7 +23,7 @@ def main():
         raise SystemExit("Node.js/npm is required")
     def run(*command):
         subprocess.run(command,cwd=ROOT,env=env,check=True)
-    for script in ("test_travel.py","test_agent_intake.py","test_draft_clarification.py","test_mcp.py","test_task_recovery.py"):
+    for script in ("test_travel.py","test_agent_intake.py","test_draft_clarification.py","test_mcp.py","test_task_recovery.py","test_mcp_client.py"):
         run(sys.executable,str(ROOT/"tests"/script),"-v")
     with tempfile.TemporaryDirectory(prefix="travelagent-check-",dir=ROOT/".tmp") as directory:
         env["TRAVEL_DB_PATH"]=str(Path(directory)/"verification.sqlite3")

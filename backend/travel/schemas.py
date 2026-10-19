@@ -219,10 +219,20 @@ class Capabilities(Model):
     agent: str = "deterministic_existing_algorithms"
     mcp_connected: bool = False
     mcp_available: bool = False
+    tool_transport: Literal["direct", "mcp"] = "direct"
     helloagents_available: bool = False
     draft_enabled: bool = False
     llm_configured: bool = False
     limitations: list[str]
+
+
+class ToolServiceStatus(Model):
+    transport: Literal["direct", "mcp"]
+    mcp_state: Literal["available", "unavailable"]
+    checked_at: str = Field(default_factory=now)
+    provider_configured: bool
+    tools: list[str] = Field(default_factory=list)
+    error: Error | None = None
 
 
 class DraftRequest(Model):

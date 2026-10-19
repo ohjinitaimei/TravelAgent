@@ -12,7 +12,7 @@ TravelAgent 将自然语言旅行需求整理为可核对草案，再由统一 F
 | 统一任务服务 | 有界工作进程、SQLite、SSE、轮询、取消、超时、原条件重试、提交去重和断线恢复 |
 | POI / 路线 | 真实高德 Provider 已接入；成功链路待使用者授权 Key 验证 |
 | 推荐 / 排序 / 调度 | 复用既有后端算法；生产入口不读取旧测试 POI |
-| MCP | 可选 stdio 工具服务已实现；Agent MCP 客户端连接尚未验收 |
+| MCP | 可选 stdio 客户端与服务端，规划/查询复用同一 Provider，支持调用限额、超时、取消及结构化结果校验 |
 | App | 保留原 Flutter 源码；apps/mobile 是后续 uni-app 预留说明，不是可运行 App |
 | 部署 | 当前适合 localhost 单用户、单实例；不承诺可直接公网部署 |
 
@@ -78,6 +78,16 @@ npm run dev
 - 不要把后端密钥放入 VITE 变量；VITE 变量会进入浏览器构建产物。
 - 地点评分、营业时间和消费字段可能缺失；预算未知项不视为免费，预约与未来日期营业状态尚未验证。
 
+### 可选：通过 MCP 调用数据工具
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r backend/requirements.mcp.txt -c backend/requirements.travel.lock.txt
+```
+
+在 `backend/.env` 设置 `TRAVEL_TOOL_TRANSPORT=mcp`，重启同一后端即可。默认 `direct` 保持直接 Provider 调用。MCP 模式使用后端启动的固定本机 stdio 服务；客户端、模型和 HTTP 请求不能指定服务命令。Web 的“预算与约束 → 数据工具连接”可检查握手，不调用地图或模型接口。
+
+连接通过与地图授权分别显示；缺 Key 时数据查询仍明确失败。MCP 调用失败不切换到其他传输或测试数据。参数、限额和已验证链路见 [MCP 客户端接入说明](docs/architecture/MCP_CLIENT.md)。
+
 ## 可复现检查
 
 完整检查需要两个可选适配依赖，使用隔离数据库，不调用真实高德或模型：
@@ -104,7 +114,7 @@ npm run build
 
 本次只发布整理后的源码快照，不带入原 Git 历史、机器配置、缓存、密钥、运行数据库、个人行程和未核验的旧 POI 数据。原本地工程及历史保持不变。原接口和 Flutter 源码作为历史实现保留，依赖旧 POI 的功能不承诺在此快照可运行。
 
-后续顺序：高德真实多日路线/编辑联调 → MCP 客户端实际连接 → 鉴权、数据隔离和部署 → App 接入 → 高级优化与 Memory。
+后续顺序：鉴权、数据隔离和部署 → 高德真实多日路线/编辑联调（取得授权后）→ App 接入 → 高级优化与 Memory。
 
 - [功能范围、验收边界与后续清单](docs/RELEASE_STATUS.md)
 - [来源、第三方依赖与许可边界](NOTICE.md)

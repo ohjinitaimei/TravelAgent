@@ -106,6 +106,107 @@
         }
       }
     },
+    "/api/v1/travel/tool-service/check": {
+      "post": {
+        "tags": [
+          "travel"
+        ],
+        "summary": "Check Tool Service",
+        "operationId": "check_tool_service_api_v1_travel_tool_service_check_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToolServiceStatus"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Gateway Timeout",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/travel/tasks": {
       "post": {
         "tags": [
@@ -2152,6 +2253,15 @@
             "title": "Mcp Available",
             "default": false
           },
+          "tool_transport": {
+            "type": "string",
+            "enum": [
+              "direct",
+              "mcp"
+            ],
+            "title": "Tool Transport",
+            "default": "direct"
+          },
           "helloagents_available": {
             "type": "boolean",
             "title": "Helloagents Available",
@@ -3464,6 +3574,59 @@
           "status"
         ],
         "title": "Task"
+      },
+      "ToolServiceStatus": {
+        "properties": {
+          "transport": {
+            "type": "string",
+            "enum": [
+              "direct",
+              "mcp"
+            ],
+            "title": "Transport"
+          },
+          "mcp_state": {
+            "type": "string",
+            "enum": [
+              "available",
+              "unavailable"
+            ],
+            "title": "Mcp State"
+          },
+          "checked_at": {
+            "type": "string",
+            "title": "Checked At"
+          },
+          "provider_configured": {
+            "type": "boolean",
+            "title": "Provider Configured"
+          },
+          "tools": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tools"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Error"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "transport",
+          "mcp_state",
+          "provider_configured"
+        ],
+        "title": "ToolServiceStatus"
       }
     }
   }

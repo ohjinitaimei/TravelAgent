@@ -9,9 +9,9 @@ from fastapi.responses import StreamingResponse
 from services.amap_client import AmapClient
 from travel.provider import TravelFailure
 from travel.schemas import (Capabilities, Draft, DraftClarificationRequest, DraftRequest, EditRequest, ErrorResponse, EventList, Itinerary,
-                            ItineraryList, PlanRequest, Poi, PoiList, RouteQuery, Segment, Task)
+                            ItineraryList, PlanRequest, Poi, PoiList, RouteQuery, Segment, Task, ToolServiceStatus)
 from travel.tasks import TERMINAL
-from travel.tools import TravelTools
+from travel.tool_runtime import open_tools, transport, check_service
 
 router = APIRouter(prefix="/api/v1/travel", tags=["travel"], responses={
     code: {"model": ErrorResponse} for code in (404, 409, 422, 429, 500, 502, 503, 504)
@@ -41,10 +41,15 @@ def trip_or_fail(request: Request, itinerary_id: str):
 def capabilities():
     import importlib.util
     from agent.travel_intake import status
-    return Capabilities(configured=AmapClient().enabled, mcp_available=importlib.util.find_spec("mcp") is not None, **status(), limitations=[
+    return Capabilities(configured=AmapClient().enabled, tool_transport=transport(), mcp_available=importlib.util.find_spec("mcp") is not None, **status(), limitations=[
         "本阶段为本地单用户单实例服务，无登录鉴权", "无真实评论、酒店报价、门票库存或预约能力",
         "预算仅汇总用户录入费用，未知费用不等于免费", "自然语言仅整理需求，须核对表单；无跨日全局优化",
     ])
+
+
+@router.post("/tool-service/check", response_model=ToolServiceStatus)
+def check_tool_service():
+    return check_service()
 
 
 @router.post("/tasks", response_model=Task, status_code=202)
@@ -169,14 +174,17 @@ async def adjust(itinerary_id: str, body: EditRequest, request: Request, idempot
 @router.get("/pois", response_model=PoiList)
 def search_pois(keyword: str = Query(min_length=1, max_length=240), city: str = Query(min_length=1, max_length=60),
                 limit: int = Query(default=20, ge=1, le=20)):
-    return PoiList(items=TravelTools().search(keyword, city, limit))
+    with open_tools() as tools:
+        return PoiList(items=tools.search(keyword, city, limit))
 
 
 @router.get("/pois/{poi_id}", response_model=Poi)
 def poi_detail(poi_id: str):
-    return TravelTools().detail(poi_id)
+    with open_tools() as tools:
+        return tools.detail(poi_id)
 
 
 @router.post("/routes", response_model=Segment)
 def route(body: RouteQuery):
-    return TravelTools().route_query(body)
+    with open_tools() as tools:
+        return tools.route_query(body)

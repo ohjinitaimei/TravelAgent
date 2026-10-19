@@ -60,6 +60,7 @@ if __name__ == "__main__":
     directory = args.db.resolve().parent
     directory.mkdir(exist_ok=True)
     os.environ["TRAVEL_DB_PATH"] = str(args.db.resolve())
+    os.environ["TRAVEL_TOOL_TRANSPORT"]="direct"
     os.environ["TRAVEL_TEST_MARKER"]=str(directory/"test-only-failure-marker")
     os.environ["TRAVEL_CORS_ORIGINS"] = "http://127.0.0.1:5174"
     store=Store(Path(os.environ["TRAVEL_DB_PATH"]))

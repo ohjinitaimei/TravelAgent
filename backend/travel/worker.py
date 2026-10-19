@@ -13,9 +13,11 @@ def run(payload: dict, output):
             from travel.schemas import DraftRequest
             result = create_draft(DraftRequest.model_validate(payload["request"]), emit)
         else:
-            result = plan(PlanRequest.model_validate(payload["request"]), emit,
-                          poi_ids_by_day=payload.get("poi_ids_by_day"),
-                          optimize_order=payload.get("optimize_order", True), parent_id=payload.get("parent_id"))
+            from travel.tool_runtime import open_tools
+            with open_tools(emit) as gateway:
+                result = plan(PlanRequest.model_validate(payload["request"]), emit, gateway=gateway,
+                              poi_ids_by_day=payload.get("poi_ids_by_day"),
+                              optimize_order=payload.get("optimize_order", True), parent_id=payload.get("parent_id"))
         output.put({"kind": "result", "data": result.model_dump(mode="json")})
     except TravelFailure as error:
         output.put({"kind": "error", "data": {"code": error.code, "message": error.message, "retryable": error.retryable}})

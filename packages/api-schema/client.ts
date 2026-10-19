@@ -53,6 +53,7 @@ export class TravelClient {
   private async get<T>(path: string, signal?: AbortSignal): Promise<T> { return await this.transport(path, { signal }) as T }
   private async post<T>(path: string, body?: unknown, options:SubmitOptions={}): Promise<T> { return await this.transport(path, { method: 'POST', body, headers:options.idempotencyKey?{'Idempotency-Key':options.idempotencyKey}:undefined }) as T }
   capabilities() { return this.get<Schema<'Capabilities'>>('/capabilities') }
+  checkToolService() { return this.post<Schema<'ToolServiceStatus'>>('/tool-service/check') }
   create(request: PlanRequest, options?:SubmitOptions) { return this.post<Task>('/tasks', request,options) }
   createDraft(request: Schema<'DraftRequest'>, options?:SubmitOptions) { return this.post<Task>('/drafts', request,options) }
   submission(key:string) {return this.get<Task>(`/submissions/${encodeURIComponent(key)}`)}

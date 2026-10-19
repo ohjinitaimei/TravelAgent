@@ -24,8 +24,8 @@ def legacy(poi: Poi, request: PlanRequest) -> POI:
 
 def plan(request: PlanRequest, emit: Callable[[str, str], None], *, provider: AmapProvider | None = None,
          poi_ids_by_day: list[list[str]] | None = None, optimize_order: bool = True,
-         parent_id: str | None = None) -> Itinerary:
-    provider = TravelTools(provider)
+         parent_id: str | None = None, gateway: TravelTools | None = None) -> Itinerary:
+    provider = gateway or TravelTools(provider)
     emit("search", "正在查询高德真实 POI")
     intent = ParsedIntent(city=request.city, original_query=request.query, start_time=request.day_start,
                           end_time=request.day_end, budget=request.budget, transport_mode=request.mode)

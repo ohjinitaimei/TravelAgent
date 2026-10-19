@@ -7,6 +7,15 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByRole('heading', { name: '这次，去哪里？' })).toBeVisible()
 })
 
+test('tool handshake does not claim map authorization is configured', async ({ page }) => {
+  await page.getByRole('button', { name: '预算与约束', exact: false }).first().click()
+  await page.getByRole('button', { name: '检查工具连接', exact: true }).click()
+  const result=page.getByRole('region', { name: '数据工具连接' })
+  await expect(result.getByText('工具协议检查通过', { exact: true })).toBeVisible()
+  await expect(result).toContainText('地图数据授权待配置')
+  await expect(result).toContainText('后端直接查询')
+})
+
 async function fillPlan(page: Page, query = 'TEST ONLY 地点') {
   const form = page.locator('.planner-form')
   await form.getByLabel('目的地', { exact: true }).fill('TEST ONLY 测试城市')

@@ -30,8 +30,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 6801,
-      "sha256": "8da61ca17a8197689ad5fdb996bb74013be989381c153c6fad8e2d5226b5c4dc"
+      "bytes": 7624,
+      "sha256": "ced68b7de279d0fb07057b786c35f90e75068838ebbaa9b310f5b708f602fa59"
     },
     {
       "path": "analysis_options.yaml",
@@ -155,8 +155,8 @@
     },
     {
       "path": "apps/web/src/App.vue",
-      "bytes": 33370,
-      "sha256": "e06a32eae34782bd7e5382a3225c901ab3c15e9042f536750134eb7004491272"
+      "bytes": 33448,
+      "sha256": "5a459bc069ae8aca34061f59b250e24ce1c251b869f3e4204f2a9fa59979ce6c"
     },
     {
       "path": "apps/web/src/api.ts",
@@ -172,6 +172,11 @@
       "path": "apps/web/src/components/RouteMap.vue",
       "bytes": 2877,
       "sha256": "40a8c8f27e276a3a1c4d41d93a3b1dd1d87ba883ff2b49d2f6f33bb88a83eec2"
+    },
+    {
+      "path": "apps/web/src/components/ToolConnection.vue",
+      "bytes": 1878,
+      "sha256": "4d349edcca28bceadb0c121ab4ba2f7572d32c152ac2409d08b938ec2dfb54c5"
     },
     {
       "path": "apps/web/src/draft.ts",
@@ -215,8 +220,8 @@
     },
     {
       "path": "backend/.env.example",
-      "bytes": 1078,
-      "sha256": "51c2cc0c464c5b23ac5dce4298bb6ab3abdfc998ca7143bc888cb740324da26a"
+      "bytes": 1366,
+      "sha256": "688cbe9187104a2849d33f015af4e57d687b81e6e7f92bdb8fefd2efb35c4f3a"
     },
     {
       "path": "backend/MAP_POI_INTEGRATION.md",
@@ -635,8 +640,8 @@
     },
     {
       "path": "backend/travel/api.py",
-      "bytes": 7987,
-      "sha256": "d1325be91a8b17a4bb5a81a72effd090872f472330a89f9d769211a2f33cc1f0"
+      "bytes": 8275,
+      "sha256": "aea1deaddfa78ef2e7dacfce2e6d789ec147e8c5964b677e085e739e6e556325"
     },
     {
       "path": "backend/travel/drafts.py",
@@ -644,14 +649,19 @@
       "sha256": "89592eaead7b38b103265b5268dec3dc047d0d39787a09c51394459abc445b0f"
     },
     {
+      "path": "backend/travel/mcp_client.py",
+      "bytes": 10554,
+      "sha256": "709fc716ddce16c5900e7fa112214354eed618799c17aa955cdfc5feebea7427"
+    },
+    {
       "path": "backend/travel/mcp_server.py",
-      "bytes": 1957,
-      "sha256": "dfbe781b1f4377853b767f7006125809ed45729d93daf8f7bd7dd974acfe1040"
+      "bytes": 2531,
+      "sha256": "e7f25dd897379f5790a3449d56f82681b41783683db83d4892c943d1cd673d2d"
     },
     {
       "path": "backend/travel/planner.py",
-      "bytes": 6171,
-      "sha256": "902f3e3991d5b1df3463ceae2c364cc72035af954a4f17b11bf44f6abd090be1"
+      "bytes": 6218,
+      "sha256": "b8eaa1050483b26055d63a8c7ebd900f8ea1d7704188891c3b042a7d7b480be3"
     },
     {
       "path": "backend/travel/provider.py",
@@ -665,8 +675,8 @@
     },
     {
       "path": "backend/travel/schemas.py",
-      "bytes": 10536,
-      "sha256": "aeb31367c4777059aaa341709d56a0343a1bc9ae202f54e3a3ada4a9dd34ca27"
+      "bytes": 10878,
+      "sha256": "f6c0710f5a200daaf9a74d43de6dd5a2cf656edbda550bdaddb6fe2efb0c946e"
     },
     {
       "path": "backend/travel/store.py",
@@ -679,19 +689,24 @@
       "sha256": "45123911497f7469102be2b93e75249b0eec11bd4b3c88e125b4304100c51843"
     },
     {
+      "path": "backend/travel/tool_runtime.py",
+      "bytes": 1583,
+      "sha256": "f3957430eba5d8cd257f46f3fe075639d3cc92e85f13b66de9460aad662089f1"
+    },
+    {
       "path": "backend/travel/tools.py",
       "bytes": 2956,
       "sha256": "09487a7e7a60f4943788eb29fde2411996bdde72ffe3b56149b2acbd73e8f341"
     },
     {
       "path": "backend/travel/worker.py",
-      "bytes": 1282,
-      "sha256": "cce0f928ec2f454a2a89873c3e63c39e233086e5f26f651a1622574ee64fbbc0"
+      "bytes": 1412,
+      "sha256": "7df93eeca552fd73500eec22be59c3c2818b043f9f111f722342a38f31afb70b"
     },
     {
       "path": "docs/ACCEPTANCE.md",
-      "bytes": 4034,
-      "sha256": "d8ea95a937c8391b676bb83c5a8cb68957a9ef5eb1463a975787b9535e94ff5d"
+      "bytes": 4829,
+      "sha256": "276b4b188fd4bece42012e7384dae3c47324e008b137712340c7995511775762"
     },
     {
       "path": "docs/README.md",
@@ -700,8 +715,8 @@
     },
     {
       "path": "docs/RELEASE_STATUS.md",
-      "bytes": 4406,
-      "sha256": "1a4d6b571e73d971011ee0a052a16c4d7934f68574effcc67577a2d91d98946c"
+      "bytes": 4750,
+      "sha256": "c056b97450ce303774fae13296774e56221cd99153cfab9678b5a5175c0182aa"
     },
     {
       "path": "docs/TECHNICAL_REPORT.md",
@@ -737,6 +752,11 @@
       "path": "docs/architecture/HELLOAGENTS_INTAKE.md",
       "bytes": 9264,
       "sha256": "9a40789798d4139747b490db73e60a95290c16d7dc44e70d446424a5e772c642"
+    },
+    {
+      "path": "docs/architecture/MCP_CLIENT.md",
+      "bytes": 6051,
+      "sha256": "21ccc77f57f8b07fdcba94676ecf284119979886b71e7386571d9485c9a201b1"
     },
     {
       "path": "docs/architecture/README.md",
@@ -890,18 +910,18 @@
     },
     {
       "path": "packages/api-schema/client.ts",
-      "bytes": 6983,
-      "sha256": "df9d0ef3d5fdf00f911c7ec86fc88ad27e7eeaa720c4f060b13d7ce11c5e2a59"
+      "bytes": 7077,
+      "sha256": "b1a1c4abaefe92d9ab839c562271107fc662180396913b5949b8f108147c2c07"
     },
     {
       "path": "packages/api-schema/openapi.json",
-      "bytes": 89255,
-      "sha256": "5b16377b0fa6b9145e373a3330f07a549e19a76b539a85900c0cc956b195130a"
+      "bytes": 93534,
+      "sha256": "03e877e9dd527f1989ea47a6e9d053d1e14f319714ee622c1f04585739a7e9df"
     },
     {
       "path": "packages/api-schema/schema.d.ts",
-      "bytes": 73627,
-      "sha256": "bd8e1b104a553464e9fdec7b4f370098c202cc4bd1dd248bdf7affe3bed81010"
+      "bytes": 77838,
+      "sha256": "3b8c6fe40bbdfdcb730ee477e937c263b1456938f41b8c1e67a36fe01382856b"
     },
     {
       "path": "playwright.config.ts",
@@ -965,8 +985,8 @@
     },
     {
       "path": "scripts/verify_repository.py",
-      "bytes": 2835,
-      "sha256": "2cdc2deb940b71afc22bcae628abf41eea6ca0dfdd1e87f5a360a4740e222eaa"
+      "bytes": 2887,
+      "sha256": "47c4c04a6a8d24ed1619fc500d8dade56d245bf2e37c644c49d46481e73a0e79"
     },
     {
       "path": "test/widget_test.dart",
@@ -975,23 +995,28 @@
     },
     {
       "path": "tests/browser/workspace.spec.ts",
-      "bytes": 8733,
-      "sha256": "13c66f009412b53fc5832fe2e4d334ddb7130b5306d422b2cf8a1bb289d3c855"
+      "bytes": 9298,
+      "sha256": "1c785086c58719f14e66ede60734a913a9d92ae9bca1ff5dedcee0c4e4ea45cd"
     },
     {
       "path": "tests/browser_fixture_server.py",
-      "bytes": 4028,
-      "sha256": "9febb03b931e41dd65dd25d5e468dbad7a86aee8b2a21ba822e5e6ae9d52606f"
+      "bytes": 4077,
+      "sha256": "cbc90fa1a57bc7be015e764ec4213f006beb257909492679e9b0a810dc1f5919"
     },
     {
       "path": "tests/client.integration.test.ts",
-      "bytes": 2383,
-      "sha256": "eada14015b1e0197de418ae3be924cf37213eebfcf6d1019c0675464d0fbf1fe"
+      "bytes": 2780,
+      "sha256": "e23b14193ca95b94b77abd34191c6c7b89e461485a2ea382218f7ca00de9bcc7"
     },
     {
       "path": "tests/client.lifecycle.test.ts",
       "bytes": 6932,
       "sha256": "9e0d62c4af8ed36dc7928c7e9bf7f4f1cc223b53625926ed6699f4741b2279a3"
+    },
+    {
+      "path": "tests/mcp_fixture_server.py",
+      "bytes": 3546,
+      "sha256": "fe1da3cd54ef9de82e7a3200a68a967426811074479df062244d26180022ab21"
     },
     {
       "path": "tests/test_agent_intake.py",
@@ -1007,6 +1032,11 @@
       "path": "tests/test_mcp.py",
       "bytes": 1766,
       "sha256": "60889f4c9921afd5976b88c3cc6cd0f67a6160d22df6c60d4ea3949f32766b26"
+    },
+    {
+      "path": "tests/test_mcp_client.py",
+      "bytes": 12064,
+      "sha256": "718d353976807a6d7a99c3da41b20bc109d06adb5e67d9d811f0401a7781d5bd"
     },
     {
       "path": "tests/test_task_recovery.py",
