@@ -10,14 +10,14 @@ TravelAgent 将自然语言旅行需求整理为可核对草案，再由统一 F
 | HelloAgents 需求提取 | 单 Agent 适配已实现，历史环境已完成真实模型验证 |
 | 草案澄清 | 同一 ID 多轮补充、字段确认、来源标记、修订冲突保护，不再次调用模型 |
 | 统一任务服务 | 有界工作进程、SQLite、SSE、轮询、取消、超时、原条件重试、提交去重和断线恢复 |
-| POI / 路线 | 真实高德 Provider 已接入；成功链路待使用者授权 Key 验证 |
+| POI / 路线 | 已通过授权高德 POI、步行/驾车路线、多日规划与编辑重算的本地真实联调；浏览器地图需独立 JS 授权 |
 | 推荐 / 排序 / 调度 | 复用既有后端算法；生产入口不读取旧测试 POI |
 | MCP | 可选 stdio 客户端与服务端，规划/查询复用同一 Provider，支持调用限额、超时、取消及结构化结果校验 |
 | App | 保留原 Flutter 源码；apps/mobile 是后续 uni-app 预留说明，不是可运行 App |
 | 账号与数据隔离 | 可选登录模式，按用户隔离任务、草案、行程和提交收据；保留本地空间模式 |
 | 部署 | 单 API 实例；用户/全局业务配额、工具/SSE 并发控制、SQLite 在线备份与恢复校验 |
 
-自动验收覆盖 API、共享客户端及 Chromium 页面交互。行程生成与编辑的成功检查使用 tests 中隔离的 TEST ONLY 数据；真实高德验收需另行配置授权。详见 [验收记录](docs/ACCEPTANCE.md) 和 [功能范围与后续计划](docs/RELEASE_STATUS.md)。
+自动验收覆盖 API、共享客户端及 Chromium 页面交互，使用 tests 中隔离的 TEST ONLY 数据。2026-10-19 另通过授权高德真实数据联调，覆盖直接 Provider、MCP 和 Web 保存行程展示；密钥与运行记录不进入 Git，克隆后须配置自己的授权。详见 [验收记录](docs/ACCEPTANCE.md)、[真实高德联调](docs/architecture/LIVE_AMAP.md) 和 [功能范围与后续计划](docs/RELEASE_STATUS.md)。
 
 ## 工程结构
 
