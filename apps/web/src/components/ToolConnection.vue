@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { api, type Schema } from '../api'
+import { useTravelApi, type Schema } from '../api'
+const api=useTravelApi()
 
 const status=ref<Schema<'ToolServiceStatus'>|null>(null)
 const checking=ref(false), error=ref('')

@@ -20,31 +20,54 @@ class Store:
           CREATE TABLE IF NOT EXISTS drafts (id TEXT PRIMARY KEY, data TEXT NOT NULL);
           CREATE TABLE IF NOT EXISTS task_requests (task_id TEXT PRIMARY KEY, data TEXT NOT NULL);
           CREATE TABLE IF NOT EXISTS submission_keys (key TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, task_id TEXT NOT NULL);
+          CREATE TABLE IF NOT EXISTS resource_owners (kind TEXT, resource_id TEXT, owner_id TEXT NOT NULL,
+            PRIMARY KEY(kind, resource_id));
+          CREATE INDEX IF NOT EXISTS owner_lookup ON resource_owners(owner_id,kind);
+          CREATE TABLE IF NOT EXISTS user_submissions (owner_id TEXT, key TEXT, fingerprint TEXT NOT NULL, task_id TEXT NOT NULL,
+            PRIMARY KEY(owner_id,key));
+          INSERT OR IGNORE INTO resource_owners SELECT 'task',id,'local' FROM tasks;
+          INSERT OR IGNORE INTO resource_owners SELECT 'draft',id,'local' FROM drafts;
+          INSERT OR IGNORE INTO resource_owners SELECT 'itinerary',id,'local' FROM itineraries;
+          INSERT OR IGNORE INTO user_submissions
+            SELECT o.owner_id,s.key,s.fingerprint,s.task_id FROM submission_keys s
+            JOIN resource_owners o ON o.kind='task' AND o.resource_id=s.task_id;
         """)
         self.db.commit()
 
     def put_task(self, task: Task):
         with self.lock, self.db:
             self.db.execute("INSERT OR REPLACE INTO tasks VALUES (?, ?)", (task.id, task.model_dump_json()))
+            self.db.execute("INSERT OR IGNORE INTO resource_owners VALUES ('task',?,'local')",(task.id,))
 
-    def submission(self, key: str, fingerprint: str | None = None) -> Task | None:
+    def owns(self,kind: str,resource_id: str,owner_id: str) -> bool:
+        with self.lock:
+            return self.db.execute("SELECT 1 FROM resource_owners WHERE kind=? AND resource_id=? AND owner_id=?",
+                                   (kind,resource_id,owner_id)).fetchone() is not None
+
+    def owner(self,kind: str,resource_id: str) -> str:
+        with self.lock:
+            row=self.db.execute("SELECT owner_id FROM resource_owners WHERE kind=? AND resource_id=?",(kind,resource_id)).fetchone()
+            return row[0] if row else 'local'
+
+    def submission(self, key: str, fingerprint: str | None = None, *, owner_id: str = 'local') -> Task | None:
         from travel.provider import TravelFailure
         with self.lock:
-            row = self.db.execute("SELECT fingerprint, task_id FROM submission_keys WHERE key=?", (key,)).fetchone()
+            row = self.db.execute("SELECT fingerprint, task_id FROM user_submissions WHERE owner_id=? AND key=?", (owner_id,key)).fetchone()
             if row and fingerprint is not None and row[0] != fingerprint:
                 raise TravelFailure("idempotency_conflict", "同一提交标识不能用于不同条件，请重新提交", status=409)
-            return self.task(row[1]) if row else None
+            return self.task(row[1],owner_id=owner_id) if row else None
 
-    def register_task(self, task: Task, payload: dict, key: str | None, fingerprint: str) -> tuple[Task, bool]:
+    def register_task(self, task: Task, payload: dict, key: str | None, fingerprint: str, *, owner_id: str = 'local') -> tuple[Task, bool]:
         import json
         with self.lock, self.db:
-            existing = self.submission(key, fingerprint) if key else None
+            existing = self.submission(key, fingerprint,owner_id=owner_id) if key else None
             if existing:
                 return existing, False
             self.db.execute("INSERT INTO tasks VALUES (?, ?)", (task.id, task.model_dump_json()))
+            self.db.execute("INSERT INTO resource_owners VALUES ('task',?,?)",(task.id,owner_id))
             self.db.execute("INSERT INTO task_requests VALUES (?, ?)", (task.id, json.dumps(payload, ensure_ascii=False)))
             if key:
-                self.db.execute("INSERT INTO submission_keys VALUES (?, ?, ?)", (key, fingerprint, task.id))
+                self.db.execute("INSERT INTO user_submissions VALUES (?, ?, ?, ?)", (owner_id,key,fingerprint,task.id))
             return task, True
 
     def task_request(self, task_id: str) -> dict | None:
@@ -53,8 +76,9 @@ class Store:
             row = self.db.execute("SELECT data FROM task_requests WHERE task_id=?", (task_id,)).fetchone()
         return json.loads(row[0]) if row else None
 
-    def task(self, task_id: str) -> Task | None:
+    def task(self, task_id: str, *, owner_id: str | None = None) -> Task | None:
         with self.lock:
+            if owner_id is not None and not self.owns('task',task_id,owner_id): return None
             row = self.db.execute("SELECT data FROM tasks WHERE id=?", (task_id,)).fetchone()
         return Task.model_validate_json(row[0]) if row else None
 
@@ -74,24 +98,28 @@ class Store:
             rows = self.db.execute("SELECT data FROM events WHERE task_id=? AND seq>? ORDER BY seq", (task_id, after)).fetchall()
         return [Event.model_validate_json(row[0]) for row in rows]
 
-    def itinerary(self, itinerary_id: str) -> Itinerary | None:
+    def itinerary(self, itinerary_id: str, *, owner_id: str | None = None) -> Itinerary | None:
         with self.lock:
+            if owner_id is not None and not self.owns('itinerary',itinerary_id,owner_id): return None
             row = self.db.execute("SELECT data FROM itineraries WHERE id=?", (itinerary_id,)).fetchone()
         return Itinerary.model_validate_json(row[0]) if row else None
 
-    def itineraries(self, limit: int = 50) -> list[Itinerary]:
+    def itineraries(self, limit: int = 50, *, owner_id: str = 'local') -> list[Itinerary]:
         with self.lock:
-            rows = self.db.execute("SELECT data FROM itineraries ORDER BY rowid DESC LIMIT ?", (limit,)).fetchall()
+            rows = self.db.execute("SELECT i.data FROM itineraries i JOIN resource_owners o ON o.kind='itinerary' AND o.resource_id=i.id WHERE o.owner_id=? ORDER BY i.rowid DESC LIMIT ?", (owner_id,limit)).fetchall()
         return [Itinerary.model_validate_json(row[0]) for row in rows]
 
     def succeed(self, task: Task, itinerary: Itinerary):
         task.status, task.itinerary_id, task.updated_at = "succeeded", itinerary.id, now()
         with self.lock, self.db:
             self.db.execute("INSERT INTO itineraries VALUES (?,?)", (itinerary.id, itinerary.model_dump_json()))
+            self.db.execute("INSERT INTO resource_owners VALUES ('itinerary',?,?)",(itinerary.id,self.owner('task',task.id)))
             self.db.execute("INSERT OR REPLACE INTO tasks VALUES (?,?)", (task.id, task.model_dump_json()))
+            self.db.execute("INSERT OR IGNORE INTO resource_owners VALUES ('task',?,'local')",(task.id,))
 
-    def draft(self, draft_id: str) -> Draft | None:
+    def draft(self, draft_id: str, *, owner_id: str | None = None) -> Draft | None:
         with self.lock:
+            if owner_id is not None and not self.owns('draft',draft_id,owner_id): return None
             row = self.db.execute("SELECT data FROM drafts WHERE id=?", (draft_id,)).fetchone()
         return Draft.model_validate_json(row[0]) if row else None
 
@@ -99,11 +127,15 @@ class Store:
         task.status, task.draft_id, task.updated_at = "succeeded", draft.id, now()
         with self.lock, self.db:
             self.db.execute("INSERT INTO drafts VALUES (?,?)", (draft.id, draft.model_dump_json()))
+            self.db.execute("INSERT INTO resource_owners VALUES ('draft',?,?)",(draft.id,self.owner('task',task.id)))
             self.db.execute("INSERT OR REPLACE INTO tasks VALUES (?,?)", (task.id, task.model_dump_json()))
+            self.db.execute("INSERT OR IGNORE INTO resource_owners VALUES ('task',?,'local')",(task.id,))
 
-    def update_draft(self, draft: Draft, expected_revision: int):
+    def update_draft(self, draft: Draft, expected_revision: int, *, owner_id: str | None = None):
         from travel.provider import TravelFailure
         with self.lock, self.db:
+            if owner_id is not None and not self.owns('draft',draft.id,owner_id):
+                raise TravelFailure('draft_not_found','需求草案不存在',status=404)
             row = self.db.execute("SELECT data FROM drafts WHERE id=?", (draft.id,)).fetchone()
             if not row:
                 raise TravelFailure("draft_not_found", "需求草案不存在", status=404)

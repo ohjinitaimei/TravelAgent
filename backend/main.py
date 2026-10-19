@@ -39,10 +39,12 @@ from services import route_service
 
 from travel.api import router as travel_router
 from travel.runtime import configure_errors, lifespan
+from travel.auth import configure_auth
 
 app = FastAPI(title="CityRoute Agent API", version="1.1", lifespan=lifespan)
 app.include_router(travel_router)
 configure_errors(app)
+configure_auth(app)
 
 
 @app.middleware("http")
@@ -61,7 +63,7 @@ async def production_data_boundary(request, call_next):
 app.add_middleware(
     CORSMiddleware,
     allow_origins=os.getenv("TRAVEL_CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(","),
-    allow_credentials=False,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -294,10 +294,88 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/travel/auth/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Auth Status */
+        get: operations["auth_status_api_v1_travel_auth_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/travel/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Login */
+        post: operations["login_api_v1_travel_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/travel/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Logout */
+        post: operations["logout_api_v1_travel_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AuthStatus */
+        AuthStatus: {
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "local" | "session";
+            /** Authenticated */
+            authenticated: boolean;
+            user?: components["schemas"]["AuthUser"] | null;
+            /** Csrf Token */
+            csrf_token?: string | null;
+            /** Expires At */
+            expires_at?: string | null;
+            /**
+             * Setup Required
+             * @default false
+             */
+            setup_required: boolean;
+        };
+        /** AuthUser */
+        AuthUser: {
+            /** Id */
+            id: string;
+            /** Username */
+            username: string;
+        };
         /** Budget */
         Budget: {
             /** Limit */
@@ -579,6 +657,50 @@ export interface components {
             /** Items */
             items: components["schemas"]["Itinerary"][];
         };
+        /** LoginRequest */
+        LoginRequest: {
+            /** Username */
+            username: string;
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+            /**
+             * Transport
+             * @default cookie
+             * @enum {string}
+             */
+            transport: "cookie" | "bearer";
+        };
+        /** LoginResponse */
+        LoginResponse: {
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "local" | "session";
+            /** Authenticated */
+            authenticated: boolean;
+            user?: components["schemas"]["AuthUser"] | null;
+            /** Csrf Token */
+            csrf_token?: string | null;
+            /** Expires At */
+            expires_at?: string | null;
+            /**
+             * Setup Required
+             * @default false
+             */
+            setup_required: boolean;
+            /** Access Token */
+            access_token?: string | null;
+            /**
+             * Token Type
+             * @default Bearer
+             * @constant
+             */
+            token_type: "Bearer";
+        };
         /** PlanRequest */
         PlanRequest: {
             /** City */
@@ -815,7 +937,12 @@ export interface operations {
     capabilities_api_v1_travel_capabilities_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token */
+                "x-csrf-token"?: string | null;
+                /** @description 可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交 */
+                "x-workspace-user"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -828,6 +955,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Capabilities"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -907,7 +1052,12 @@ export interface operations {
     check_tool_service_api_v1_travel_tool_service_check_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token */
+                "x-csrf-token"?: string | null;
+                /** @description 可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交 */
+                "x-workspace-user"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -920,6 +1070,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ToolServiceStatus"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -1001,6 +1169,10 @@ export interface operations {
             query?: never;
             header?: {
                 "idempotency-key"?: string | null;
+                /** @description Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token */
+                "x-csrf-token"?: string | null;
+                /** @description 可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交 */
+                "x-workspace-user"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -1018,6 +1190,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Task"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -1099,6 +1289,10 @@ export interface operations {
             query?: never;
             header?: {
                 "idempotency-key"?: string | null;
+                /** @description Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token */
+                "x-csrf-token"?: string | null;
+                /** @description 可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交 */
+                "x-workspace-user"?: string | null;
             };
             path?: never;
             cookie?: never;
@@ -1116,6 +1310,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Task"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -1195,7 +1407,12 @@ export interface operations {
     get_submission_api_v1_travel_submissions__submission_key__get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token */
+                "x-csrf-token"?: string | null;
+                /** @description 可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交 */
+                "x-workspace-user"?: string | null;
+            };
             path: {
                 submission_key: string;
             };
@@ -1210,6 +1427,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Task"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -1291,6 +1526,10 @@ export interface operations {
             query?: never;
             header?: {
                 "idempotency-key"?: string | null;
+                /** @description Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token */
+                "x-csrf-token"?: string | null;
+                /** @description 可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交 */
+                "x-workspace-user"?: string | null;
             };
             path: {
                 task_id: string;
@@ -1306,6 +1545,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Task"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -1385,7 +1642,12 @@ export interface operations {
     get_draft_api_v1_travel_drafts__draft_id__get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token */
+                "x-csrf-token"?: string | null;
+                /** @description 可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交 */
+                "x-workspace-user"?: string | null;
+            };
             path: {
                 draft_id: string;
             };
@@ -1400,6 +1662,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Draft"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -1479,7 +1759,12 @@ export interface operations {
     clarify_draft_api_v1_travel_drafts__draft_id__patch: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token */
+                "x-csrf-token"?: string | null;
+                /** @description 可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交 */
+                "x-workspace-user"?: string | null;
+            };
             path: {
                 draft_id: string;
             };
@@ -1498,6 +1783,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Draft"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -1577,7 +1880,12 @@ export interface operations {
     get_task_api_v1_travel_tasks__task_id__get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token */
+                "x-csrf-token"?: string | null;
+                /** @description 可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交 */
+                "x-workspace-user"?: string | null;
+            };
             path: {
                 task_id: string;
             };
@@ -1592,6 +1900,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Task"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -1671,7 +1997,12 @@ export interface operations {
     cancel_task_api_v1_travel_tasks__task_id__cancel_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token */
+                "x-csrf-token"?: string | null;
+                /** @description 可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交 */
+                "x-workspace-user"?: string | null;
+            };
             path: {
                 task_id: string;
             };
@@ -1686,6 +2017,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Task"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -1767,7 +2116,12 @@ export interface operations {
             query?: {
                 after?: number;
             };
-            header?: never;
+            header?: {
+                /** @description Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token */
+                "x-csrf-token"?: string | null;
+                /** @description 可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交 */
+                "x-workspace-user"?: string | null;
+            };
             path: {
                 task_id: string;
             };
@@ -1782,6 +2136,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EventList"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -1865,6 +2237,10 @@ export interface operations {
             };
             header?: {
                 "last-event-id"?: string | null;
+                /** @description Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token */
+                "x-csrf-token"?: string | null;
+                /** @description 可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交 */
+                "x-workspace-user"?: string | null;
             };
             path: {
                 task_id: string;
@@ -1879,6 +2255,24 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
             };
             /** @description Not Found */
             404: {
@@ -1959,7 +2353,12 @@ export interface operations {
             query?: {
                 limit?: number;
             };
-            header?: never;
+            header?: {
+                /** @description Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token */
+                "x-csrf-token"?: string | null;
+                /** @description 可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交 */
+                "x-workspace-user"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -1972,6 +2371,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ItineraryList"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -2051,7 +2468,12 @@ export interface operations {
     get_itinerary_api_v1_travel_itineraries__itinerary_id__get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token */
+                "x-csrf-token"?: string | null;
+                /** @description 可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交 */
+                "x-workspace-user"?: string | null;
+            };
             path: {
                 itinerary_id: string;
             };
@@ -2066,6 +2488,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Itinerary"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -2147,6 +2587,10 @@ export interface operations {
             query?: never;
             header?: {
                 "idempotency-key"?: string | null;
+                /** @description Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token */
+                "x-csrf-token"?: string | null;
+                /** @description 可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交 */
+                "x-workspace-user"?: string | null;
             };
             path: {
                 itinerary_id: string;
@@ -2166,6 +2610,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Task"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -2249,7 +2711,12 @@ export interface operations {
                 city: string;
                 limit?: number;
             };
-            header?: never;
+            header?: {
+                /** @description Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token */
+                "x-csrf-token"?: string | null;
+                /** @description 可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交 */
+                "x-workspace-user"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -2262,6 +2729,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PoiList"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -2341,7 +2826,12 @@ export interface operations {
     poi_detail_api_v1_travel_pois__poi_id__get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token */
+                "x-csrf-token"?: string | null;
+                /** @description 可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交 */
+                "x-workspace-user"?: string | null;
+            };
             path: {
                 poi_id: string;
             };
@@ -2356,6 +2846,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Poi"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -2435,7 +2943,12 @@ export interface operations {
     route_api_v1_travel_routes_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token */
+                "x-csrf-token"?: string | null;
+                /** @description 可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交 */
+                "x-workspace-user"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -2452,6 +2965,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Segment"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Not Found */
@@ -2519,6 +3050,240 @@ export interface operations {
             };
             /** @description Gateway Timeout */
             504: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    auth_status_api_v1_travel_auth_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthStatus"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    login_api_v1_travel_auth_login_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Cookie 登录须为 web；Bearer 登录可省略 */
+                "x-travel-client"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    logout_api_v1_travel_auth_logout_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token */
+                "x-csrf-token"?: string | null;
+                /** @description 可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交 */
+                "x-workspace-user"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthStatus"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

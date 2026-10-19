@@ -14,7 +14,8 @@ TravelAgent 将自然语言旅行需求整理为可核对草案，再由统一 F
 | 推荐 / 排序 / 调度 | 复用既有后端算法；生产入口不读取旧测试 POI |
 | MCP | 可选 stdio 客户端与服务端，规划/查询复用同一 Provider，支持调用限额、超时、取消及结构化结果校验 |
 | App | 保留原 Flutter 源码；apps/mobile 是后续 uni-app 预留说明，不是可运行 App |
-| 部署 | 当前适合 localhost 单用户、单实例；不承诺可直接公网部署 |
+| 账号与数据隔离 | 可选登录模式，按用户隔离任务、草案、行程和提交收据；保留本地空间模式 |
+| 部署 | 单 API 实例；公网部署仍需 HTTPS、备份、调用限流及运维验收 |
 
 自动验收覆盖 API、共享客户端及 Chromium 页面交互。行程生成与编辑的成功检查使用 tests 中隔离的 TEST ONLY 数据；真实高德验收需另行配置授权。详见 [验收记录](docs/ACCEPTANCE.md) 和 [功能范围与后续计划](docs/RELEASE_STATUS.md)。
 
@@ -88,6 +89,20 @@ npm run dev
 
 连接通过与地图授权分别显示；缺 Key 时数据查询仍明确失败。MCP 调用失败不切换到其他传输或测试数据。参数、限额和已验证链路见 [MCP 客户端接入说明](docs/architecture/MCP_CLIENT.md)。
 
+### 启用登录与个人空间
+
+默认 `TRAVEL_AUTH_MODE=local` 保持原有本地空间。要启用独立账号，先创建账号（密码通过隐藏提示输入，不提供默认账号）：
+
+```powershell
+Push-Location backend
+..\.venv\Scripts\python.exe -m travel.accounts create alice
+Pop-Location
+```
+
+在 `backend/.env` 设置 `TRAVEL_AUTH_MODE=session` 后重启后端，Web 会显示登录页面。localhost HTTP 使用 `TRAVEL_COOKIE_SECURE=0`；HTTPS 部署设为 `1` 并配置明确的 `TRAVEL_CORS_ORIGINS`。推荐 Web 与 API 使用同源代理。
+
+Web 使用 HttpOnly 会话 Cookie 和 CSRF 校验，密码与会话 Token 不进入 localStorage。账号模式下旧数据保留在本地空间，管理员可停服、备份后显式迁移，见 [账号初始化、隔离和迁移说明](docs/architecture/AUTH_ISOLATION.md)。
+
 ## 可复现检查
 
 完整检查需要两个可选适配依赖，使用隔离数据库，不调用真实高德或模型：
@@ -114,7 +129,7 @@ npm run build
 
 本次只发布整理后的源码快照，不带入原 Git 历史、机器配置、缓存、密钥、运行数据库、个人行程和未核验的旧 POI 数据。原本地工程及历史保持不变。原接口和 Flutter 源码作为历史实现保留，依赖旧 POI 的功能不承诺在此快照可运行。
 
-后续顺序：鉴权、数据隔离和部署 → 高德真实多日路线/编辑联调（取得授权后）→ App 接入 → 高级优化与 Memory。
+后续顺序：HTTPS、备份、资源限流与部署验收 → 高德真实多日路线/编辑联调（取得授权后）→ App 接入 → 高级优化与 Memory。
 
 - [功能范围、验收边界与后续清单](docs/RELEASE_STATUS.md)
 - [来源、第三方依赖与许可边界](NOTICE.md)

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime, timezone
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, model_validator
 
 
 def now() -> str:
@@ -22,6 +22,31 @@ class Error(Model):
 
 class ErrorResponse(Model):
     error: Error
+
+
+class AuthUser(Model):
+    id: str
+    username: str
+
+
+class LoginRequest(Model):
+    username: str = Field(min_length=3,max_length=40,pattern=r"^[A-Za-z0-9][A-Za-z0-9_.-]{2,39}$")
+    password: SecretStr = Field(min_length=1,max_length=128)
+    transport: Literal["cookie","bearer"] = "cookie"
+
+
+class AuthStatus(Model):
+    mode: Literal["local","session"]
+    authenticated: bool
+    user: AuthUser | None = None
+    csrf_token: str | None = None
+    expires_at: str | None = None
+    setup_required: bool = False
+
+
+class LoginResponse(AuthStatus):
+    access_token: str | None = None
+    token_type: Literal["Bearer"] = "Bearer"
 
 
 class Source(Model):

@@ -32,6 +32,7 @@ export function fetchTransport(base: string, timeoutMs = 15_000): Transport {
     try {
     const response = await fetch(`${base}${path}`, {
       method: init.method || 'GET', signal: controller.signal,
+      credentials: 'include',
       headers: { ...(init.body === undefined ? {} : { 'Content-Type': 'application/json' }), ...init.headers },
       body: init.body === undefined ? undefined : JSON.stringify(init.body),
     })
@@ -53,6 +54,9 @@ export class TravelClient {
   private async get<T>(path: string, signal?: AbortSignal): Promise<T> { return await this.transport(path, { signal }) as T }
   private async post<T>(path: string, body?: unknown, options:SubmitOptions={}): Promise<T> { return await this.transport(path, { method: 'POST', body, headers:options.idempotencyKey?{'Idempotency-Key':options.idempotencyKey}:undefined }) as T }
   capabilities() { return this.get<Schema<'Capabilities'>>('/capabilities') }
+  authStatus() { return this.get<Schema<'AuthStatus'>>('/auth/status') }
+  login(request:Schema<'LoginRequest'>) { return this.transport('/auth/login',{method:'POST',body:request,headers:request.transport==='bearer'?undefined:{'X-Travel-Client':'web'}}) as Promise<Schema<'LoginResponse'>> }
+  logout() { return this.post<Schema<'AuthStatus'>>('/auth/logout') }
   checkToolService() { return this.post<Schema<'ToolServiceStatus'>>('/tool-service/check') }
   create(request: PlanRequest, options?:SubmitOptions) { return this.post<Task>('/tasks', request,options) }
   createDraft(request: Schema<'DraftRequest'>, options?:SubmitOptions) { return this.post<Task>('/drafts', request,options) }

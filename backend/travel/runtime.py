@@ -10,13 +10,19 @@ from travel.provider import TravelFailure
 from travel.schemas import Error, ErrorResponse
 from travel.store import Store
 from travel.tasks import TaskManager
+from travel.auth import AuthService
 
 
 @asynccontextmanager
 async def lifespan(app):
     default_path = Path(__file__).resolve().parents[1] / "data" / "travel.sqlite3"
     store = Store(Path(os.getenv("TRAVEL_DB_PATH", str(default_path))))
-    app.state.travel = TaskManager(store, timeout=float(os.getenv("TRAVEL_TASK_TIMEOUT", "180")))
+    try:
+        app.state.auth=AuthService(store)
+        app.state.travel = TaskManager(store, timeout=float(os.getenv("TRAVEL_TASK_TIMEOUT", "180")))
+    except Exception:
+        store.close()
+        raise
     try:
         yield
     finally:
@@ -28,7 +34,9 @@ def configure_errors(app):
     @app.exception_handler(TravelFailure)
     async def provider_error(request: Request, error: TravelFailure):
         body = ErrorResponse(error=Error(code=error.code, message=error.message, retryable=error.retryable))
-        return JSONResponse(status_code=error.status, content=body.model_dump())
+        headers={"WWW-Authenticate":'Bearer realm="TravelAgent"'} if error.status==401 else {}
+        if error.code=='login_rate_limited': headers['Retry-After']='300'
+        return JSONResponse(status_code=error.status, content=body.model_dump(),headers=headers)
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(request: Request, error: RequestValidationError):

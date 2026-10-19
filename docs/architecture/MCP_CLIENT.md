@@ -58,11 +58,11 @@ Web 在“预算与约束”右侧提供“数据工具连接 → 检查工具�
 
 ## 本地验收与边界
 
-运行 `python scripts/verify_repository.py` 和 `python scripts/verify_browser.py`。当前 38 项 Python、10 项 TypeScript、8 项 Chromium 测试及 Web 构建已在 Windows 本地通过；未上传本轮源码、未触发云端 CI。
+运行 `python scripts/verify_repository.py` 和 `python scripts/verify_browser.py`。当前完整计数见 [验收记录](../ACCEPTANCE.md)，包含本页的 11 项 MCP 客户端检查。验收在 Windows 本地进行，未上传本轮源码、未触发云端 CI。
 
 成功数据只来自 `tests/mcp_fixture_server.py` 的显式测试进程；它复用生产 MCP 服务的工具注册，仅在测试进程内注入 FixtureProvider。生产没有切换至测试服务的配置。真实随仓库服务的握手与缺 Key 拒绝链路均已验证，真实高德成功查询在合法授权后进行。
 
-登录鉴权、按用户隔离任务/提交收据/草案/行程、跨平台进程生命周期和公网部署属于后续验收模块。当前调用路径保持本机单用户、单 API 实例的范围。
+登录与按用户隔离已在后续模块接入，见 [AUTH_ISOLATION.md](AUTH_ISOLATION.md)。当前调用路径支持单 API 实例的本地空间或账号空间；跨平台进程生命周期和公网部署另行验收。
 
 ## 文件改动
 

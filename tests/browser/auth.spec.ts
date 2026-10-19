@@ -1,0 +1,119 @@
+import { test, expect, type Page } from '@playwright/test'
+
+const password='TEST ONLY account password 2026'
+test.beforeEach(async({page,context})=>{
+  await context.route(/https:\/\//,route=>route.abort())
+  await page.goto('/')
+  await expect(page.getByRole('heading',{name:'登录旅行空间',exact:true})).toBeVisible()
+})
+async function login(page:Page,name='test-alpha') {
+  await page.getByLabel('账号',{exact:true}).fill(name)
+  await page.getByLabel('密码',{exact:true}).fill(password)
+  await page.getByRole('button',{name:'登录',exact:true}).click()
+  await expect(page.locator('.local-badge')).toHaveText(name)
+}
+async function saved(page:Page) {
+  await page.getByRole('button',{name:'已保存行程',exact:false}).first().click()
+  await expect(page.locator('.saved-card').first()).toBeVisible()
+}
+
+test('login, refresh and logout use HttpOnly cookies without exposing tokens',async({page,context})=>{
+  await page.screenshot({path:'artifacts/auth-login-test-only.png',fullPage:true})
+  await page.getByLabel('账号',{exact:true}).fill('test-alpha')
+  await page.getByLabel('密码',{exact:true}).fill('TEST ONLY incorrect password')
+  await page.getByRole('button',{name:'登录',exact:true}).click()
+  await expect(page.getByRole('alert')).toContainText('账号或密码不正确')
+  await login(page)
+  const cookie=(await context.cookies()).find(value=>value.name==='travelagent_session')!
+  expect(cookie.httpOnly).toBeTruthy()
+  expect(cookie.sameSite).toBe('Strict')
+  expect(await page.evaluate(()=>document.cookie)).not.toContain(cookie.value)
+  expect(await page.evaluate(()=>JSON.stringify(localStorage))).not.toContain(cookie.value)
+  await saved(page)
+  await expect(page.locator('.saved-card')).toHaveCount(1)
+  await expect(page.locator('.saved-panel')).toContainText('TEST ONLY alpha')
+  await expect(page.locator('.saved-panel')).not.toContainText('TEST ONLY beta')
+  await page.reload()
+  await expect(page.locator('.local-badge')).toHaveText('test-alpha')
+  await page.getByRole('button',{name:'退出登录',exact:true}).click()
+  await expect(page.getByRole('heading',{name:'登录旅行空间',exact:true})).toBeVisible()
+  expect((await page.request.get('/api/v1/travel/itineraries')).status()).toBe(401)
+  expect((await context.cookies()).some(value=>value.name==='travelagent_session')).toBeFalsy()
+})
+
+test('independent users cannot open or adjust each other saved itineraries',async({page,browser})=>{
+  await login(page)
+  const own=await (await page.request.get('/api/v1/travel/itineraries')).json()
+  const other=await browser.newContext({baseURL:process.env.E2E_BASE_URL})
+  try {
+    await other.route(/https:\/\//,route=>route.abort())
+    const beta=await other.newPage();await beta.goto('/');await login(beta,'test-beta');await saved(beta)
+    await expect(beta.locator('.saved-panel')).toContainText('TEST ONLY beta')
+    await expect(beta.locator('.saved-panel')).not.toContainText('TEST ONLY alpha')
+    expect((await beta.request.get(`/api/v1/travel/itineraries/${own.items[0].id}`)).status()).toBe(404)
+    const status=await (await beta.request.get('/api/v1/travel/auth/status')).json()
+    const denied=await beta.request.post(`/api/v1/travel/itineraries/${own.items[0].id}/adjust`,{headers:{'X-CSRF-Token':status.csrf_token},data:{poi_ids_by_day:[['fixture-a','fixture-b']]}})
+    expect(denied.status()).toBe(404)
+  } finally {await other.close()}
+})
+
+test('account changes in another tab close the previous workspace',async({page,context})=>{
+  await login(page)
+  await page.locator('.planner-form').getByLabel('目的地',{exact:true}).fill('TEST ONLY alpha private input')
+  const other=await context.newPage();await other.goto('/')
+  await expect(other.locator('.local-badge')).toHaveText('test-alpha')
+  await other.getByRole('button',{name:'退出登录',exact:true}).click()
+  await expect(page.getByRole('heading',{name:'登录旅行空间',exact:true})).toBeVisible()
+  await login(other,'test-beta')
+  await expect(page.getByRole('status')).toContainText('账号状态已在其他页面变化')
+  await expect(page.locator('.planner-form')).toHaveCount(0)
+  await expect(other.locator('.planner-form').getByLabel('目的地',{exact:true})).toHaveValue('')
+})
+
+test('revoked session returns to login and restores only the same user form',async({page})=>{
+  await login(page)
+  await page.locator('.planner-form').getByLabel('目的地',{exact:true}).fill('TEST ONLY alpha recovery')
+  const status=await (await page.request.get('/api/v1/travel/auth/status')).json()
+  expect((await page.request.post('/api/v1/travel/auth/logout',{headers:{'X-CSRF-Token':status.csrf_token}})).ok()).toBeTruthy()
+  await saved(page)
+  await page.getByRole('button',{name:'刷新',exact:false}).click()
+  await expect(page.getByRole('heading',{name:'登录旅行空间',exact:true})).toBeVisible()
+  await expect(page.getByRole('status')).toContainText('会话已失效')
+  await login(page)
+  await page.getByRole('button',{name:'行程工作台',exact:false}).first().click()
+  await expect(page.locator('.planner-form').getByLabel('目的地',{exact:true})).toHaveValue('TEST ONLY alpha recovery')
+})
+
+test('unconfirmed submission is not carried into a different account after logout',async({page})=>{
+  await login(page)
+  const form=page.locator('.planner-form')
+  await form.getByLabel('目的地',{exact:true}).fill('TEST ONLY alpha private plan')
+  await form.getByLabel('地点关键词',{exact:false}).fill('TEST ONLY slow')
+  await form.getByLabel('出发日期',{exact:true}).fill('2026-10-20')
+  await form.getByLabel('旅行天数').selectOption('1');await form.getByLabel('每天站数').selectOption('2')
+  await page.route('**/api/v1/travel/tasks',async route=>{await route.fetch();await route.abort()})
+  await page.getByRole('button',{name:'开始规划'}).click()
+  await expect(page.getByRole('button',{name:'恢复上次提交'})).toBeEnabled()
+  await page.getByRole('button',{name:'退出登录',exact:true}).click()
+  await expect(page.getByRole('heading',{name:'登录旅行空间',exact:true})).toBeVisible()
+  await page.unroute('**/api/v1/travel/tasks')
+  await login(page,'test-beta')
+  await expect(page.getByRole('button',{name:'恢复上次提交'})).toHaveCount(0)
+  await expect(page.locator('.planner-form').getByLabel('目的地',{exact:true})).toHaveValue('')
+  await saved(page)
+  await expect(page.locator('.saved-panel')).not.toContainText('TEST ONLY alpha private plan')
+})
+
+test('native bearer login stays independent from browser cookies',async({page,context})=>{
+  const response=await page.request.post('/api/v1/travel/auth/login',{data:{username:'test-beta',password,transport:'bearer'}})
+  expect(response.ok()).toBeTruthy()
+  const value=await response.json()
+  expect(value.csrf_token).toBeNull()
+  const headers={Authorization:`Bearer ${value.access_token}`}
+  const own=await (await page.request.get('/api/v1/travel/itineraries',{headers})).json()
+  expect(own.items.every((item:{title:string})=>item.title.includes('TEST ONLY beta'))).toBeTruthy()
+  expect((await context.cookies()).some(cookie=>cookie.name==='travelagent_session')).toBeFalsy()
+  expect((await page.request.post('/api/v1/travel/auth/logout',{headers})).ok()).toBeTruthy()
+  expect((await page.request.get('/api/v1/travel/itineraries',{headers})).status()).toBe(401)
+  await expect(page.getByRole('heading',{name:'登录旅行空间',exact:true})).toBeVisible()
+})

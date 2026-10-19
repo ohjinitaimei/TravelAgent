@@ -2,17 +2,20 @@ import type { PlanRequest } from './api'
 import type { PendingSubmission } from './submissions'
 
 const KEY = 'travelagent.workspace.v1'
+function key(ownerId:string) {return ownerId==='local'?KEY:`${KEY}.user.${encodeURIComponent(ownerId)}`}
 export type WorkspaceSession = { form?: PlanRequest; taskId?: string; itineraryId?: string; draftId?: string; pendingSubmission?:PendingSubmission; appliedDraft?:{id:string;revision:number} }
 
 /** Persist user inputs, pending submissions and server IDs, never provider datasets or credentials. */
-export function readSession(): WorkspaceSession {
-  try { const value = JSON.parse(localStorage.getItem(KEY) || '{}'); return value && typeof value === 'object' ? value : {} }
+export function readSession(ownerId='local'): WorkspaceSession {
+  try { const value = JSON.parse(localStorage.getItem(key(ownerId)) || '{}'); return value && typeof value === 'object' ? value : {} }
   catch { return {} }
 }
 
-export function writeSession(value: WorkspaceSession) {
-  try { localStorage.setItem(KEY, JSON.stringify(value)) } catch { /* Private mode/storage quota must not break the workspace. */ }
+export function writeSession(value: WorkspaceSession,ownerId='local') {
+  try { localStorage.setItem(key(ownerId), JSON.stringify(value)) } catch { /* Private mode/storage quota must not break the workspace. */ }
 }
+
+export function clearSession(ownerId:string) {try {localStorage.removeItem(key(ownerId))} catch {}}
 
 export function restoreForm(defaults: PlanRequest, stored: unknown): PlanRequest {
   if (!stored || typeof stored !== 'object') return defaults

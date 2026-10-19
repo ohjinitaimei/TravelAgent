@@ -12,6 +12,54 @@
         ],
         "summary": "Capabilities",
         "operationId": "capabilities_api_v1_travel_capabilities_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token",
+              "title": "X-Csrf-Token"
+            },
+            "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token"
+          },
+          {
+            "name": "x-workspace-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交",
+              "title": "X-Workspace-User"
+            },
+            "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -23,85 +71,105 @@
               }
             }
           },
-          "404": {
-            "description": "Not Found",
+          "401": {
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
           },
           "409": {
-            "description": "Conflict",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Conflict"
           },
           "422": {
-            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Unprocessable Entity"
           },
           "429": {
-            "description": "Too Many Requests",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Too Many Requests"
           },
           "500": {
-            "description": "Internal Server Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Internal Server Error"
           },
           "502": {
-            "description": "Bad Gateway",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Bad Gateway"
           },
           "503": {
-            "description": "Service Unavailable",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Service Unavailable"
           },
           "504": {
-            "description": "Gateway Timeout",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Gateway Timeout"
           }
         }
       }
@@ -113,6 +181,54 @@
         ],
         "summary": "Check Tool Service",
         "operationId": "check_tool_service_api_v1_travel_tool_service_check_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token",
+              "title": "X-Csrf-Token"
+            },
+            "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token"
+          },
+          {
+            "name": "x-workspace-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交",
+              "title": "X-Workspace-User"
+            },
+            "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -124,85 +240,105 @@
               }
             }
           },
-          "404": {
-            "description": "Not Found",
+          "401": {
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
           },
           "409": {
-            "description": "Conflict",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Conflict"
           },
           "422": {
-            "description": "Unprocessable Entity",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Unprocessable Entity"
           },
           "429": {
-            "description": "Too Many Requests",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Too Many Requests"
           },
           "500": {
-            "description": "Internal Server Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Internal Server Error"
           },
           "502": {
-            "description": "Bad Gateway",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Bad Gateway"
           },
           "503": {
-            "description": "Service Unavailable",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Service Unavailable"
           },
           "504": {
-            "description": "Gateway Timeout",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
-            }
+            },
+            "description": "Gateway Timeout"
           }
         }
       }
@@ -214,6 +350,14 @@
         ],
         "summary": "Create Task",
         "operationId": "create_task_api_v1_travel_tasks_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
         "parameters": [
           {
             "name": "idempotency-key",
@@ -233,6 +377,44 @@
               ],
               "title": "Idempotency-Key"
             }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token",
+              "title": "X-Csrf-Token"
+            },
+            "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token"
+          },
+          {
+            "name": "x-workspace-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交",
+              "title": "X-Workspace-User"
+            },
+            "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交"
           }
         ],
         "requestBody": {
@@ -255,6 +437,26 @@
                 }
               }
             }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
             "content": {
@@ -346,6 +548,14 @@
         ],
         "summary": "Create Draft",
         "operationId": "create_draft_api_v1_travel_drafts_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
         "parameters": [
           {
             "name": "idempotency-key",
@@ -365,6 +575,44 @@
               ],
               "title": "Idempotency-Key"
             }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token",
+              "title": "X-Csrf-Token"
+            },
+            "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token"
+          },
+          {
+            "name": "x-workspace-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交",
+              "title": "X-Workspace-User"
+            },
+            "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交"
           }
         ],
         "requestBody": {
@@ -387,6 +635,26 @@
                 }
               }
             }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
             "content": {
@@ -478,6 +746,14 @@
         ],
         "summary": "Get Submission",
         "operationId": "get_submission_api_v1_travel_submissions__submission_key__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
         "parameters": [
           {
             "name": "submission_key",
@@ -487,6 +763,44 @@
               "type": "string",
               "title": "Submission Key"
             }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token",
+              "title": "X-Csrf-Token"
+            },
+            "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token"
+          },
+          {
+            "name": "x-workspace-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交",
+              "title": "X-Workspace-User"
+            },
+            "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交"
           }
         ],
         "responses": {
@@ -499,6 +813,26 @@
                 }
               }
             }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
             "content": {
@@ -590,6 +924,14 @@
         ],
         "summary": "Retry Task",
         "operationId": "retry_task_api_v1_travel_tasks__task_id__retry_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
         "parameters": [
           {
             "name": "task_id",
@@ -618,6 +960,44 @@
               ],
               "title": "Idempotency-Key"
             }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token",
+              "title": "X-Csrf-Token"
+            },
+            "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token"
+          },
+          {
+            "name": "x-workspace-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交",
+              "title": "X-Workspace-User"
+            },
+            "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交"
           }
         ],
         "responses": {
@@ -630,6 +1010,26 @@
                 }
               }
             }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
             "content": {
@@ -721,6 +1121,14 @@
         ],
         "summary": "Get Draft",
         "operationId": "get_draft_api_v1_travel_drafts__draft_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
         "parameters": [
           {
             "name": "draft_id",
@@ -730,6 +1138,44 @@
               "type": "string",
               "title": "Draft Id"
             }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token",
+              "title": "X-Csrf-Token"
+            },
+            "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token"
+          },
+          {
+            "name": "x-workspace-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交",
+              "title": "X-Workspace-User"
+            },
+            "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交"
           }
         ],
         "responses": {
@@ -742,6 +1188,26 @@
                 }
               }
             }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
             "content": {
@@ -831,6 +1297,14 @@
         ],
         "summary": "Clarify Draft",
         "operationId": "clarify_draft_api_v1_travel_drafts__draft_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
         "parameters": [
           {
             "name": "draft_id",
@@ -840,6 +1314,44 @@
               "type": "string",
               "title": "Draft Id"
             }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token",
+              "title": "X-Csrf-Token"
+            },
+            "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token"
+          },
+          {
+            "name": "x-workspace-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交",
+              "title": "X-Workspace-User"
+            },
+            "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交"
           }
         ],
         "requestBody": {
@@ -862,6 +1374,26 @@
                 }
               }
             }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
             "content": {
@@ -953,6 +1485,14 @@
         ],
         "summary": "Get Task",
         "operationId": "get_task_api_v1_travel_tasks__task_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
         "parameters": [
           {
             "name": "task_id",
@@ -962,6 +1502,44 @@
               "type": "string",
               "title": "Task Id"
             }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token",
+              "title": "X-Csrf-Token"
+            },
+            "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token"
+          },
+          {
+            "name": "x-workspace-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交",
+              "title": "X-Workspace-User"
+            },
+            "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交"
           }
         ],
         "responses": {
@@ -974,6 +1552,26 @@
                 }
               }
             }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
             "content": {
@@ -1065,6 +1663,14 @@
         ],
         "summary": "Cancel Task",
         "operationId": "cancel_task_api_v1_travel_tasks__task_id__cancel_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
         "parameters": [
           {
             "name": "task_id",
@@ -1074,6 +1680,44 @@
               "type": "string",
               "title": "Task Id"
             }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token",
+              "title": "X-Csrf-Token"
+            },
+            "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token"
+          },
+          {
+            "name": "x-workspace-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交",
+              "title": "X-Workspace-User"
+            },
+            "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交"
           }
         ],
         "responses": {
@@ -1086,6 +1730,26 @@
                 }
               }
             }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
             "content": {
@@ -1177,6 +1841,14 @@
         ],
         "summary": "Events",
         "operationId": "events_api_v1_travel_tasks__task_id__events_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
         "parameters": [
           {
             "name": "task_id",
@@ -1197,6 +1869,44 @@
               "default": 0,
               "title": "After"
             }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token",
+              "title": "X-Csrf-Token"
+            },
+            "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token"
+          },
+          {
+            "name": "x-workspace-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交",
+              "title": "X-Workspace-User"
+            },
+            "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交"
           }
         ],
         "responses": {
@@ -1209,6 +1919,26 @@
                 }
               }
             }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
             "content": {
@@ -1300,6 +2030,14 @@
         ],
         "summary": "Stream",
         "operationId": "stream_api_v1_travel_tasks__task_id__events_stream_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
         "parameters": [
           {
             "name": "task_id",
@@ -1336,11 +2074,69 @@
               ],
               "title": "Last-Event-Id"
             }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token",
+              "title": "X-Csrf-Token"
+            },
+            "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token"
+          },
+          {
+            "name": "x-workspace-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交",
+              "title": "X-Workspace-User"
+            },
+            "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交"
           }
         ],
         "responses": {
           "200": {
             "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
             "content": {
@@ -1432,6 +2228,14 @@
         ],
         "summary": "List Itineraries",
         "operationId": "list_itineraries_api_v1_travel_itineraries_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
         "parameters": [
           {
             "name": "limit",
@@ -1444,6 +2248,44 @@
               "default": 50,
               "title": "Limit"
             }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token",
+              "title": "X-Csrf-Token"
+            },
+            "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token"
+          },
+          {
+            "name": "x-workspace-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交",
+              "title": "X-Workspace-User"
+            },
+            "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交"
           }
         ],
         "responses": {
@@ -1456,6 +2298,26 @@
                 }
               }
             }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
             "content": {
@@ -1547,6 +2409,14 @@
         ],
         "summary": "Get Itinerary",
         "operationId": "get_itinerary_api_v1_travel_itineraries__itinerary_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
         "parameters": [
           {
             "name": "itinerary_id",
@@ -1556,6 +2426,44 @@
               "type": "string",
               "title": "Itinerary Id"
             }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token",
+              "title": "X-Csrf-Token"
+            },
+            "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token"
+          },
+          {
+            "name": "x-workspace-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交",
+              "title": "X-Workspace-User"
+            },
+            "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交"
           }
         ],
         "responses": {
@@ -1568,6 +2476,26 @@
                 }
               }
             }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
             "content": {
@@ -1659,6 +2587,14 @@
         ],
         "summary": "Adjust",
         "operationId": "adjust_api_v1_travel_itineraries__itinerary_id__adjust_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
         "parameters": [
           {
             "name": "itinerary_id",
@@ -1687,6 +2623,44 @@
               ],
               "title": "Idempotency-Key"
             }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token",
+              "title": "X-Csrf-Token"
+            },
+            "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token"
+          },
+          {
+            "name": "x-workspace-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交",
+              "title": "X-Workspace-User"
+            },
+            "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交"
           }
         ],
         "requestBody": {
@@ -1709,6 +2683,26 @@
                 }
               }
             }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
             "content": {
@@ -1800,6 +2794,14 @@
         ],
         "summary": "Search Pois",
         "operationId": "search_pois_api_v1_travel_pois_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
         "parameters": [
           {
             "name": "keyword",
@@ -1834,6 +2836,44 @@
               "default": 20,
               "title": "Limit"
             }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token",
+              "title": "X-Csrf-Token"
+            },
+            "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token"
+          },
+          {
+            "name": "x-workspace-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交",
+              "title": "X-Workspace-User"
+            },
+            "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交"
           }
         ],
         "responses": {
@@ -1846,6 +2886,26 @@
                 }
               }
             }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
             "content": {
@@ -1937,6 +2997,14 @@
         ],
         "summary": "Poi Detail",
         "operationId": "poi_detail_api_v1_travel_pois__poi_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
         "parameters": [
           {
             "name": "poi_id",
@@ -1946,6 +3014,44 @@
               "type": "string",
               "title": "Poi Id"
             }
+          },
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token",
+              "title": "X-Csrf-Token"
+            },
+            "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token"
+          },
+          {
+            "name": "x-workspace-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交",
+              "title": "X-Workspace-User"
+            },
+            "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交"
           }
         ],
         "responses": {
@@ -1958,6 +3064,26 @@
                 }
               }
             }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
             "content": {
@@ -2049,15 +3175,63 @@
         ],
         "summary": "Route",
         "operationId": "route_api_v1_travel_routes_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token",
+              "title": "X-Csrf-Token"
+            },
+            "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token"
+          },
+          {
+            "name": "x-workspace-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交",
+              "title": "X-Workspace-User"
+            },
+            "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交"
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RouteQuery"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -2070,8 +3244,139 @@
               }
             }
           },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
           "404": {
-            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Gateway Timeout"
+          }
+        }
+      }
+    },
+    "/api/v1/travel/auth/status": {
+      "get": {
+        "tags": [
+          "authentication"
+        ],
+        "summary": "Auth Status",
+        "operationId": "auth_status_api_v1_travel_auth_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
             "content": {
               "application/json": {
                 "schema": {
@@ -2110,38 +3415,8 @@
               }
             }
           },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "502": {
-            "description": "Bad Gateway",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
           "503": {
             "description": "Service Unavailable",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "504": {
-            "description": "Gateway Timeout",
             "content": {
               "application/json": {
                 "schema": {
@@ -2152,10 +3427,330 @@
           }
         }
       }
+    },
+    "/api/v1/travel/auth/login": {
+      "post": {
+        "tags": [
+          "authentication"
+        ],
+        "summary": "Login",
+        "operationId": "login_api_v1_travel_auth_login_post",
+        "parameters": [
+          {
+            "name": "x-travel-client",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 12
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cookie 登录须为 web；Bearer 登录可省略",
+              "title": "X-Travel-Client"
+            },
+            "description": "Cookie 登录须为 web；Bearer 登录可省略"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/v1/travel/auth/logout": {
+      "post": {
+        "tags": [
+          "authentication"
+        ],
+        "summary": "Logout",
+        "operationId": "logout_api_v1_travel_auth_logout_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "x-csrf-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token",
+              "title": "X-Csrf-Token"
+            },
+            "description": "Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token"
+          },
+          {
+            "name": "x-workspace-user",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交",
+              "title": "X-Workspace-User"
+            },
+            "description": "可选：校验页面绑定的用户 ID，防止跨标签页切换账号后误提交"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AuthStatus": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "local",
+              "session"
+            ],
+            "title": "Mode"
+          },
+          "authenticated": {
+            "type": "boolean",
+            "title": "Authenticated"
+          },
+          "user": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AuthUser"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "csrf_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Csrf Token"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "setup_required": {
+            "type": "boolean",
+            "title": "Setup Required",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "mode",
+          "authenticated"
+        ],
+        "title": "AuthStatus"
+      },
+      "AuthUser": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "username"
+        ],
+        "title": "AuthUser"
+      },
       "Budget": {
         "properties": {
           "limit": {
@@ -3034,6 +4629,118 @@
         ],
         "title": "ItineraryList"
       },
+      "LoginRequest": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 3,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{2,39}$",
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "format": "password",
+            "title": "Password",
+            "writeOnly": true
+          },
+          "transport": {
+            "type": "string",
+            "enum": [
+              "cookie",
+              "bearer"
+            ],
+            "title": "Transport",
+            "default": "cookie"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "LoginRequest"
+      },
+      "LoginResponse": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "local",
+              "session"
+            ],
+            "title": "Mode"
+          },
+          "authenticated": {
+            "type": "boolean",
+            "title": "Authenticated"
+          },
+          "user": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AuthUser"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "csrf_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Csrf Token"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "setup_required": {
+            "type": "boolean",
+            "title": "Setup Required",
+            "default": false
+          },
+          "access_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "const": "Bearer",
+            "title": "Token Type",
+            "default": "Bearer"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "mode",
+          "authenticated"
+        ],
+        "title": "LoginResponse"
+      },
       "PlanRequest": {
         "properties": {
           "city": {
@@ -3627,6 +5334,17 @@
           "provider_configured"
         ],
         "title": "ToolServiceStatus"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      },
+      "APIKeyCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "travelagent_session"
       }
     }
   }

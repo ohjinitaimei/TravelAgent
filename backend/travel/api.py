@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 
-from fastapi import APIRouter, Header, Query, Request
+from fastapi import APIRouter, Depends, Header, Query, Request
 from typing import Annotated
 from fastapi.responses import StreamingResponse
 
@@ -12,9 +12,10 @@ from travel.schemas import (Capabilities, Draft, DraftClarificationRequest, Draf
                             ItineraryList, PlanRequest, Poi, PoiList, RouteQuery, Segment, Task, ToolServiceStatus)
 from travel.tasks import TERMINAL
 from travel.tool_runtime import open_tools, transport, check_service
+from travel.auth import require_user, owner_id
 
-router = APIRouter(prefix="/api/v1/travel", tags=["travel"], responses={
-    code: {"model": ErrorResponse} for code in (404, 409, 422, 429, 500, 502, 503, 504)
+router = APIRouter(prefix="/api/v1/travel", tags=["travel"], dependencies=[Depends(require_user)], responses={
+    code: {"model": ErrorResponse} for code in (401, 403, 404, 409, 422, 429, 500, 502, 503, 504)
 })
 SubmissionKey = Annotated[str | None, Header(min_length=8, max_length=128, pattern=r"^[A-Za-z0-9_.:-]+$")]
 
@@ -24,14 +25,14 @@ def manager(request: Request):
 
 
 def task_or_fail(request: Request, task_id: str):
-    task = manager(request).store.task(task_id)
+    task = manager(request).store.task(task_id,owner_id=owner_id(request))
     if not task:
         raise TravelFailure("task_not_found", "任务不存在", status=404)
     return task
 
 
 def trip_or_fail(request: Request, itinerary_id: str):
-    trip = manager(request).store.itinerary(itinerary_id)
+    trip = manager(request).store.itinerary(itinerary_id,owner_id=owner_id(request))
     if not trip:
         raise TravelFailure("itinerary_not_found", "行程不存在", status=404)
     return trip
@@ -42,7 +43,7 @@ def capabilities():
     import importlib.util
     from agent.travel_intake import status
     return Capabilities(configured=AmapClient().enabled, tool_transport=transport(), mcp_available=importlib.util.find_spec("mcp") is not None, **status(), limitations=[
-        "本阶段为本地单用户单实例服务，无登录鉴权", "无真实评论、酒店报价、门票库存或预约能力",
+        "单 API 实例；账号模式按用户隔离，本地模式共享本地空间", "无真实评论、酒店报价、门票库存或预约能力",
         "预算仅汇总用户录入费用，未知费用不等于免费", "自然语言仅整理需求，须核对表单；无跨日全局优化",
     ])
 
@@ -54,17 +55,17 @@ def check_tool_service():
 
 @router.post("/tasks", response_model=Task, status_code=202)
 async def create_task(body: PlanRequest, request: Request, idempotency_key: SubmissionKey = None):
-    return manager(request).create({"request": body.model_dump(mode="json")}, idempotency_key)
+    return manager(request).create({"request": body.model_dump(mode="json")}, idempotency_key,owner_id=owner_id(request))
 
 
 @router.post("/drafts", response_model=Task, status_code=202)
 async def create_draft(body: DraftRequest, request: Request, idempotency_key: SubmissionKey = None):
-    return manager(request).create({"kind":"draft","request":body.model_dump(mode="json")}, idempotency_key)
+    return manager(request).create({"kind":"draft","request":body.model_dump(mode="json")}, idempotency_key,owner_id=owner_id(request))
 
 
 @router.get("/submissions/{submission_key}", response_model=Task)
 def get_submission(submission_key: str, request: Request):
-    task = manager(request).store.submission(submission_key)
+    task = manager(request).store.submission(submission_key,owner_id=owner_id(request))
     if not task:
         raise TravelFailure("submission_not_found", "尚未找到该提交，可使用相同标识恢复提交", status=404)
     return task
@@ -72,12 +73,12 @@ def get_submission(submission_key: str, request: Request):
 
 @router.post("/tasks/{task_id}/retry", response_model=Task, status_code=202)
 async def retry_task(task_id: str, request: Request, idempotency_key: SubmissionKey = None):
-    return manager(request).retry(task_id, idempotency_key)
+    return manager(request).retry(task_id, idempotency_key,owner_id=owner_id(request))
 
 
 @router.get("/drafts/{draft_id}", response_model=Draft)
 def get_draft(draft_id: str, request: Request):
-    draft = manager(request).store.draft(draft_id)
+    draft = manager(request).store.draft(draft_id,owner_id=owner_id(request))
     if not draft:
         raise TravelFailure("draft_not_found", "需求草案不存在", status=404)
     return draft
@@ -87,7 +88,7 @@ def get_draft(draft_id: str, request: Request):
 def clarify_draft(draft_id: str, body: DraftClarificationRequest, request: Request):
     from travel.drafts import clarify
     draft = clarify(get_draft(draft_id, request), body)
-    manager(request).store.update_draft(draft, body.expected_revision)
+    manager(request).store.update_draft(draft, body.expected_revision,owner_id=owner_id(request))
     return draft
 
 
@@ -121,6 +122,9 @@ async def stream(task_id: str, request: Request, after: int = Query(default=0, g
     async def generate():
         cursor, heartbeat = after, 0
         while not await request.is_disconnected():
+            if request.app.state.auth.identify(request) is None:
+                yield 'event: auth_required\ndata: {"error":{"code":"authentication_required"}}\n\n'
+                return
             for event in manager(request).store.events(task_id, cursor):
                 cursor = event.id
                 yield f"id: {cursor}\nevent: progress\ndata: {event.model_dump_json()}\n\n"
@@ -142,7 +146,7 @@ async def stream(task_id: str, request: Request, after: int = Query(default=0, g
 
 @router.get("/itineraries", response_model=ItineraryList)
 def list_itineraries(request: Request, limit: int = Query(default=50, ge=1, le=100)):
-    return ItineraryList(items=manager(request).store.itineraries(limit))
+    return ItineraryList(items=manager(request).store.itineraries(limit,owner_id=owner_id(request)))
 
 
 @router.get("/itineraries/{itinerary_id}", response_model=Itinerary)
@@ -168,7 +172,7 @@ async def adjust(itinerary_id: str, body: EditRequest, request: Request, idempot
     except ValidationError:
         raise TravelFailure("invalid_constraints", "每日结束时间须晚于开始时间，其他约束须在允许范围内", status=422) from None
     return manager(request).create({"request": validated.model_dump(mode="json"),
-        "poi_ids_by_day": body.poi_ids_by_day, "optimize_order": body.optimize_order, "parent_id": trip.id}, idempotency_key)
+        "poi_ids_by_day": body.poi_ids_by_day, "optimize_order": body.optimize_order, "parent_id": trip.id}, idempotency_key,owner_id=owner_id(request))
 
 
 @router.get("/pois", response_model=PoiList)

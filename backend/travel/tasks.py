@@ -27,15 +27,15 @@ class TaskManager:
             if task.status not in TERMINAL:
                 self.finish(task.id, "failed", Error(code="service_restarted", message="服务已重启，未完成任务请重新提交", retryable=True))
 
-    def create(self, payload: dict, idempotency_key: str | None = None, retry_of: str | None = None) -> Task:
+    def create(self, payload: dict, idempotency_key: str | None = None, retry_of: str | None = None, *, owner_id: str = 'local') -> Task:
         fingerprint = hashlib.sha256(json.dumps({"payload":payload,"retry_of":retry_of},sort_keys=True,ensure_ascii=False).encode()).hexdigest()
-        existing = self.store.submission(idempotency_key, fingerprint) if idempotency_key else None
+        existing = self.store.submission(idempotency_key, fingerprint,owner_id=owner_id) if idempotency_key else None
         if existing:
             return existing
         if len(self.runners) >= self.capacity:
             raise TravelFailure("queue_full", "规划队列已满，请稍后重试", True, 429)
         task = Task(id=uuid4().hex, status="queued", kind=payload.get("kind", "plan"), retry_of=retry_of)
-        task, created = self.store.register_task(task, payload, idempotency_key, fingerprint)
+        task, created = self.store.register_task(task, payload, idempotency_key, fingerprint,owner_id=owner_id)
         if not created:
             return task
         self.store.event(task.id, "queued", "任务已进入需求解析队列" if task.kind == "draft" else "任务已进入真实规划队列")
@@ -44,8 +44,8 @@ class TaskManager:
         runner.add_done_callback(lambda _: self.runners.pop(task.id, None))
         return task
 
-    def retry(self, task_id: str, idempotency_key: str | None = None) -> Task:
-        task = self.store.task(task_id)
+    def retry(self, task_id: str, idempotency_key: str | None = None, *, owner_id: str = 'local') -> Task:
+        task = self.store.task(task_id,owner_id=owner_id)
         if task is None:
             raise TravelFailure("task_not_found", "任务不存在", status=404)
         if task.status not in {"failed", "timed_out", "cancelled"} or not task.retry_available:
@@ -53,7 +53,7 @@ class TaskManager:
         payload = self.store.task_request(task_id)
         if payload is None:
             raise TravelFailure("retry_unavailable", "历史任务未保存请求条件，请重新填写表单", status=409)
-        return self.create(payload, idempotency_key, retry_of=task_id)
+        return self.create(payload, idempotency_key, retry_of=task_id,owner_id=owner_id)
 
     def finish(self, task_id: str, status: str, error: Error | None = None):
         task = self.store.task(task_id)

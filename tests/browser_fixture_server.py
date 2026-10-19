@@ -46,6 +46,7 @@ if __name__ == "__main__":
     parser.add_argument("--port",type=int,default=8001)
     parser.add_argument("--db",type=Path,default=ROOT/".tmp/browser-test.sqlite3")
     parser.add_argument("--stop-file",type=Path)
+    parser.add_argument("--auth-fixtures",action="store_true")
     args=parser.parse_args()
     if not args.test_fixtures_only or not args.db.resolve().is_relative_to((ROOT/".tmp").resolve()):
         raise SystemExit("Requires explicit --test-fixtures-only; never a production server")
@@ -60,13 +61,25 @@ if __name__ == "__main__":
     directory = args.db.resolve().parent
     directory.mkdir(exist_ok=True)
     os.environ["TRAVEL_DB_PATH"] = str(args.db.resolve())
+    os.environ["TRAVEL_AUTH_MODE"]="session" if args.auth_fixtures else "local"
+    os.environ["TRAVEL_COOKIE_SECURE"]="0"
     os.environ["TRAVEL_TOOL_TRANSPORT"]="direct"
     os.environ["TRAVEL_TEST_MARKER"]=str(directory/"test-only-failure-marker")
-    os.environ["TRAVEL_CORS_ORIGINS"] = "http://127.0.0.1:5174"
+    os.environ["TRAVEL_CORS_ORIGINS"] = os.getenv('E2E_BASE_URL',"http://127.0.0.1:5174")
     store=Store(Path(os.environ["TRAVEL_DB_PATH"]))
     request=PlanRequest(city="TEST ONLY 测试城市",query="TEST ONLY 地点",start_date="2026-10-10",days=2,stops_per_day=2,budget=100)
     trip=plan(request,lambda *_:None,provider=FixtureProvider(),poi_ids_by_day=[["fixture-a","fixture-b"],["fixture-c","fixture-d"]],optimize_order=False)
     store.succeed(Task(id="test-only-"+trip.id,status="running"),trip)
+    if args.auth_fixtures:
+        from travel.auth import AuthService
+        auth=AuthService(store)
+        for name in ('alpha','beta'):
+            user=auth.create_user('test-'+name,'TEST ONLY account password 2026')
+            request=PlanRequest(city='TEST ONLY '+name,query='TEST ONLY 地点',start_date='2026-10-20',days=1,stops_per_day=2)
+            trip=plan(request,lambda *_:None,provider=FixtureProvider())
+            task=Task(id='test-user-'+trip.id,status='running')
+            store.register_task(task,{'request':request.model_dump(mode='json')},None,'test-only',owner_id=user.id)
+            store.succeed(task,trip)
     store.close()
     os.environ["TRAVEL_AGENT_ENABLED"]="1"
     os.environ["LLM_INTENT_DISABLE_LLM"]="0"

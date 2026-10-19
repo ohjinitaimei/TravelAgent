@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
-import { api, apiBase, type Draft, type Itinerary, type PlanRequest, type Poi, type Schema, type Task, type TravelEvent } from './api'
+import { useTravelApi, apiBase, type Draft, type Itinerary, type PlanRequest, type Poi, type Schema, type Task, type TravelEvent } from './api'
 import RouteMap from './components/RouteMap.vue'
 import { readSession, restoreForm, writeSession } from './session'
 import { userPrices } from './editor'
@@ -11,10 +11,15 @@ import { TravelApiError } from '../../../packages/api-schema/client'
 import { newSubmission, restoreSubmission, sendSubmission, recoverSubmission, type Operation, type PendingSubmission } from './submissions'
 
 type Tab = 'plan' | 'explore' | 'saved' | 'budget'
+const props=defineProps<{user:Schema<'AuthUser'>;authEnabled:boolean}>()
+defineEmits<{logout:[]}>()
+const api=useTravelApi()
+let disposed=false
 const tabs = ['plan', 'explore', 'saved', 'budget'] as const
 const initialTab = location.hash.slice(1)
 const tab = ref<Tab>(tabs.includes(initialTab as Tab) ? initialTab as Tab : 'plan')
-const session = readSession()
+const session = readSession(props.user.id)
+function persist() {if(!disposed) writeSession(session,props.user.id)}
 const today = new Date()
 const localDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`
 const form = reactive<PlanRequest>(restoreForm({ city: '', query: '', start_date: localDate, days: 2, stops_per_day: 3, day_start: '09:00', day_end: '18:00', stay_minutes: 60, mode: 'walking', budget: null, user_prices: {} }, session.form))
@@ -53,9 +58,9 @@ async function follow(created: Task) {
   stream?.close(); controller?.abort()
   if(task.value?.id!==created.id) events.value=[]
   task.value = created; notice.value = ''; error.value = ''; busy.value = true
-  session.taskId = created.id; writeSession(session)
+  session.taskId = created.id; persist()
   const localController = new AbortController(); controller = localController
-  const localStream = new EventSource(`${apiBase}/tasks/${created.id}/events/stream?after=${events.value.at(-1)?.id??0}`); stream = localStream
+  const localStream = new EventSource(`${apiBase}/tasks/${created.id}/events/stream?after=${events.value.at(-1)?.id??0}`, {withCredentials:true}); stream = localStream
   localStream.addEventListener('progress', event => { if(controller===localController) try { mergeEvents([JSON.parse((event as MessageEvent).data)]) } catch {} })
   localStream.addEventListener('terminal', () => localStream.close())
   localStream.onerror = () => localStream.close() // Polling continues independently.
@@ -63,7 +68,7 @@ async function follow(created: Task) {
     const final = await api.wait(created.id, (value, items)=>{ task.value=value; mergeEvents(items) }, {signal:localController.signal,onConnection:(state,attempt)=>{connection.value=state;reconnectAttempt.value=attempt}})
     task.value = final
     if (final.status === 'succeeded' && final.kind==='draft' && final.draft_id) {
-      draft.value=await api.draft(final.draft_id);session.draftId=draft.value.id;writeSession(session)
+      draft.value=await api.draft(final.draft_id);session.draftId=draft.value.id;persist()
       draftConflict.value=false
       notice.value='需求草案已生成，请核对后填入表单'
     } else if (final.status === 'succeeded' && final.itinerary_id) {
@@ -82,7 +87,7 @@ async function resume() {
 function keepPending(value:PendingSubmission|null) {
   pending.value=value
   if(value) session.pendingSubmission=value;else delete session.pendingSubmission
-  writeSession(session)
+  persist()
 }
 async function submitOperation(operation:Operation) {
   if(busy.value||active.value) return
@@ -133,10 +138,10 @@ async function reloadDraft() {
 function applyDraft(value:Draft) {
   if(busy.value||active.value) return
   Object.assign(form,draftForm(value));tab.value='plan'
-  appliedDraft.value={id:value.id,revision:value.revision??1};session.appliedDraft=appliedDraft.value;writeSession(session)
+  appliedDraft.value={id:value.id,revision:value.revision??1};session.appliedDraft=appliedDraft.value;persist()
   notice.value='草案已填入表单。未提及的城市、关键词或日期需补全，其他空字段使用表单默认值；请核对后点击开始规划。'
 }
-function retainForm() {appliedDraft.value=null;delete session.appliedDraft;writeSession(session);notice.value='已保留当前表单的手动设置。'}
+function retainForm() {appliedDraft.value=null;delete session.appliedDraft;persist();notice.value='已保留当前表单的手动设置。'}
 async function cancel() { if (!task.value) return; try { task.value = await api.cancel(task.value.id);controller?.abort();stream?.close();busy.value=false;notice.value='任务已取消，可按原条件重试。' } catch(e) { report(e) } }
 async function search() {
   searching.value=true; error.value=''; results.value=[]
@@ -192,9 +197,9 @@ async function saveEdit() {
   const budget=typeof editConstraints.budget==='number'&&Number.isFinite(editConstraints.budget)?editConstraints.budget:null
   await submitOperation({kind:'adjust',itineraryId:itinerary.value.id,request:{...editConstraints, budget, poi_ids_by_day:editIds.value, user_prices:prices, stay_minutes:editStay.value, stay_minutes_by_poi:durations, optimize_order:optimize.value}})
 }
-async function openTrip(id:string) { if(active.value||busy.value) return; try { itinerary.value=await api.itinerary(id); selectedDay.value=0; tab.value='plan'; editing.value=false; selectedPoi.value=null; error.value=''; task.value=null; events.value=[]; delete session.taskId; writeSession(session) } catch(e) { report(e) } }
-watch(form, ()=>{session.form={...form};writeSession(session)}, {deep:true})
-watch(itinerary, value=>{session.itineraryId=value?.id;writeSession(session)})
+async function openTrip(id:string) { if(active.value||busy.value) return; try { itinerary.value=await api.itinerary(id); selectedDay.value=0; tab.value='plan'; editing.value=false; selectedPoi.value=null; error.value=''; task.value=null; events.value=[]; delete session.taskId; persist() } catch(e) { report(e) } }
+watch(form, ()=>{session.form={...form};persist()}, {deep:true})
+watch(itinerary, value=>{session.itineraryId=value?.id;persist()})
 watch(tab, value=>history.replaceState(null,'',`#${value}`))
 function hashChanged() {const value=location.hash.slice(1);if(tabs.includes(value as Tab)) tab.value=value as Tab}
 async function synchronize() {
@@ -203,10 +208,10 @@ async function synchronize() {
   try {
     await Promise.allSettled([api.capabilities().then(value=>{capability.value=value}).catch(report),refreshSaved().catch(report)])
     if(typeof session.itineraryId==='string') {
-      try { itinerary.value=await api.itinerary(session.itineraryId) } catch(e) {if(e instanceof TravelApiError&&e.code==='itinerary_not_found') {delete session.itineraryId;writeSession(session)} else report(e)}
+      try { itinerary.value=await api.itinerary(session.itineraryId) } catch(e) {if(e instanceof TravelApiError&&e.code==='itinerary_not_found') {delete session.itineraryId;persist()} else report(e)}
     }
     if(typeof session.draftId==='string') {
-      try {const value=await api.draft(session.draftId);if(!draft.value||draft.value.id!==value.id||draft.value.revision!==value.revision) draft.value=value} catch(e) {if(e instanceof TravelApiError&&e.code==='draft_not_found') {delete session.draftId;writeSession(session)} else report(e)}
+      try {const value=await api.draft(session.draftId);if(!draft.value||draft.value.id!==value.id||draft.value.revision!==value.revision) draft.value=value} catch(e) {if(e instanceof TravelApiError&&e.code==='draft_not_found') {delete session.draftId;persist()} else report(e)}
     }
     restoring.value=false
     if(pending.value) await restorePending(true)
@@ -222,7 +227,7 @@ onMounted(async()=>{
   window.addEventListener('hashchange',hashChanged);window.addEventListener('online',online);window.addEventListener('offline',offline)
   await synchronize()
 })
-onBeforeUnmount(()=>{stream?.close(); controller?.abort();window.removeEventListener('hashchange',hashChanged);window.removeEventListener('online',online);window.removeEventListener('offline',offline)})
+onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.removeEventListener('hashchange',hashChanged);window.removeEventListener('online',online);window.removeEventListener('offline',offline)})
 </script>
 
 <template>
@@ -234,7 +239,7 @@ onBeforeUnmount(()=>{stream?.close(); controller?.abort();window.removeEventList
       <div class="sidebar-bottom"><span class="dot" :class="{offline:!capability?.configured}"/>{{capability?.configured ? '真实数据服务已配置' : '真实数据服务待配置'}}<small>每一个地点，都有来源</small></div>
     </aside>
     <main>
-      <header class="topbar"><span>TRAVEL WORKSPACE <span class="separator">/</span> {{nav.find(n=>n.id===tab)?.label}}</span><span class="local-badge">本地旅行空间</span></header>
+      <header class="topbar"><span>TRAVEL WORKSPACE <span class="separator">/</span> {{nav.find(n=>n.id===tab)?.label}}</span><span class="local-badge">{{authEnabled?user.username:'本地旅行空间'}}</span><button v-if="authEnabled" class="text-button" title="已受理的任务会保留在自己的空间" @click="$emit('logout')">退出登录</button></header>
       <div class="page-heading"><div><div class="eyebrow">PLAN WITH INTENTION</div><h1>{{title}}</h1><p>把地点、路线与时间放在一起，规划属于你的旅程。</p></div><span class="heading-tag">Web 工作台 <span>01</span></span></div>
       <div v-if="error" role="alert" class="alert error"><span>{{error}}</span><button aria-label="关闭错误提示" @click="error=''">×</button></div>
       <div v-if="notice" role="status" class="alert success">{{notice}}</div>
