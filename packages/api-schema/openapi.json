@@ -4711,6 +4711,71 @@
         ],
         "title": "EventList"
       },
+      "GroupingOptimization": {
+        "properties": {
+          "strategy": {
+            "type": "string",
+            "const": "bounded_geographic_exchange",
+            "title": "Strategy",
+            "default": "bounded_geographic_exchange"
+          },
+          "applied": {
+            "type": "boolean",
+            "title": "Applied"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "improved",
+              "feasible_candidate",
+              "baseline_preferred",
+              "no_geographic_change"
+            ],
+            "title": "Reason"
+          },
+          "baseline": {
+            "$ref": "#/components/schemas/PlanningMetrics"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/PlanningMetrics"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "title": "Candidates"
+          },
+          "result": {
+            "$ref": "#/components/schemas/PlanningMetrics"
+          },
+          "baseline_poi_ids_by_day": {
+            "items": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Baseline Poi Ids By Day"
+          },
+          "route_queries": {
+            "type": "integer",
+            "maximum": 48.0,
+            "minimum": 0.0,
+            "title": "Route Queries"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "applied",
+          "reason",
+          "baseline",
+          "result",
+          "baseline_poi_ids_by_day",
+          "route_queries"
+        ],
+        "title": "GroupingOptimization"
+      },
       "Itinerary": {
         "properties": {
           "id": {
@@ -4760,6 +4825,16 @@
             "type": "string",
             "title": "Algorithm",
             "default": "ranker_engine + route_planner nearest-neighbor + route_planner scheduler"
+          },
+          "optimization": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GroupingOptimization"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -5006,6 +5081,47 @@
           "start_date"
         ],
         "title": "PlanRequest"
+      },
+      "PlanningMetrics": {
+        "properties": {
+          "distance_km": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Distance Km"
+          },
+          "travel_minutes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Travel Minutes"
+          },
+          "busiest_day_minutes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Busiest Day Minutes",
+            "description": "最忙一天的游览与站间交通总分钟数，不包含住宿往返"
+          },
+          "per_day_travel_minutes": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Per Day Travel Minutes"
+          },
+          "feasible": {
+            "type": "boolean",
+            "title": "Feasible"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "distance_km",
+          "travel_minutes",
+          "busiest_day_minutes",
+          "per_day_travel_minutes",
+          "feasible"
+        ],
+        "title": "PlanningMetrics"
       },
       "Poi": {
         "properties": {

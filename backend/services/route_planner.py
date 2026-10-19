@@ -1026,6 +1026,78 @@ def _optimize_order_by_distance(pois: list[POI], *, distance_fn=None) -> list[PO
     return result
 
 
+def propose_day_group_candidates(groups: list[list[POI]], *, max_route_pairs: int = 48) -> list[list[list[POI]]]:
+    """Propose balanced geographic exchanges; never estimate traffic or costs.
+
+    Reuses coordinate distance to select up to three candidate partitions. The
+    caller must verify them with authorized routes and the existing scheduler.
+    The union of ALL original/candidate matrices is bounded before any API call.
+    """
+    from itertools import combinations, product
+
+    original = [list(day) for day in groups]
+    if len(groups) < 2 or all(len(day) <= 1 for day in groups):
+        return []
+    ranked = [poi for day in original for poi in day]
+    rank = {poi.id: index for index, poi in enumerate(ranked)}
+    distances = {(a.id, b.id): _haversine_distance(a.lat, a.lng, b.lat, b.lng)
+                 for a, b in combinations(ranked, 2)}
+
+    def pairs(days):
+        return {(a.id, b.id) for day in days for a in day for b in day if a.id != b.id}
+
+    def score(days):
+        return sum(distances[(a.id, b.id) if rank[a.id] < rank[b.id] else (b.id, a.id)]
+                   for day in days for a, b in combinations(day, 2))
+
+    baseline_pairs = pairs(original)
+    current, current_score = original, score(original)
+    # At most 12 selected stops in the shared travel API; strictly improving
+    # exchanges and fixed rank tie-breaking make this bounded and deterministic.
+    for _ in range(len(ranked)):
+        best, best_score = current, current_score
+        for left, right in combinations(range(len(current)), 2):
+            for i, j in product(range(len(current[left])), range(len(current[right]))):
+                candidate = [list(day) for day in current]
+                candidate[left][i], candidate[right][j] = candidate[right][j], candidate[left][i]
+                candidate = [sorted(day, key=lambda poi: rank[poi.id]) for day in candidate]
+                if len(baseline_pairs | pairs(candidate)) > max_route_pairs:
+                    continue
+                value = score(candidate)
+                if value < best_score - 1e-9:
+                    best, best_score = candidate, value
+        if best is current:
+            break
+        current, current_score = best, best_score
+    # A river or a road detour can make the best geometric partition worse than
+    # a nearby alternative. Keep a small pool without increasing the total cap.
+    if current is original:
+        return []
+    pool = [current]
+    for left, right in combinations(range(len(original)), 2):
+        for i, j in product(range(len(original[left])), range(len(original[right]))):
+            candidate = [list(day) for day in original]
+            candidate[left][i], candidate[right][j] = candidate[right][j], candidate[left][i]
+            candidate = [sorted(day, key=lambda poi: rank[poi.id]) for day in candidate]
+            pool.append(candidate)
+
+    def identity(days):
+        return tuple(sorted(tuple(sorted(p.id for p in day)) for day in days))
+
+    pool = [current] + sorted(pool[1:], key=lambda days: (score(days), identity(days)))
+    seen, covered, candidates = {identity(original)}, baseline_pairs, []
+    for candidate in pool:
+        key = identity(candidate)
+        if key in seen or len(covered | pairs(candidate)) > max_route_pairs:
+            continue
+        seen.add(key)
+        covered |= pairs(candidate)
+        candidates.append(candidate)
+        if len(candidates) == 3:
+            break
+    return candidates
+
+
 def _stage_match_score(poi: POI, stage_kind: str) -> float:
     category = str(getattr(poi, "category", "") or "")
     area_text = " ".join(

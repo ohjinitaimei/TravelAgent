@@ -630,6 +630,30 @@ export interface components {
             /** Items */
             items: components["schemas"]["Event"][];
         };
+        /** GroupingOptimization */
+        GroupingOptimization: {
+            /**
+             * Strategy
+             * @default bounded_geographic_exchange
+             * @constant
+             */
+            strategy: "bounded_geographic_exchange";
+            /** Applied */
+            applied: boolean;
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "improved" | "feasible_candidate" | "baseline_preferred" | "no_geographic_change";
+            baseline: components["schemas"]["PlanningMetrics"];
+            /** Candidates */
+            candidates?: components["schemas"]["PlanningMetrics"][];
+            result: components["schemas"]["PlanningMetrics"];
+            /** Baseline Poi Ids By Day */
+            baseline_poi_ids_by_day: string[][];
+            /** Route Queries */
+            route_queries: number;
+        };
         /** Itinerary */
         Itinerary: {
             /** Id */
@@ -651,6 +675,7 @@ export interface components {
              * @default ranker_engine + route_planner nearest-neighbor + route_planner scheduler
              */
             algorithm: string;
+            optimization?: components["schemas"]["GroupingOptimization"] | null;
         };
         /** ItineraryList */
         ItineraryList: {
@@ -763,6 +788,22 @@ export interface components {
             stay_minutes_by_poi?: {
                 [key: string]: number;
             };
+        };
+        /** PlanningMetrics */
+        PlanningMetrics: {
+            /** Distance Km */
+            distance_km: number;
+            /** Travel Minutes */
+            travel_minutes: number;
+            /**
+             * Busiest Day Minutes
+             * @description 最忙一天的游览与站间交通总分钟数，不包含住宿往返
+             */
+            busiest_day_minutes: number;
+            /** Per Day Travel Minutes */
+            per_day_travel_minutes: number[];
+            /** Feasible */
+            feasible: boolean;
         };
         /** Poi */
         Poi: {

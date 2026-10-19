@@ -164,6 +164,34 @@ test('cancellation is terminal and supports explicit retry', async ({ page }) =>
   await expect(page.getByRole('button', { name: '取消任务', exact: true })).toHaveCount(0)
 })
 
+test('geographic day comparison persists and manual edits keep the chosen days',async({page})=>{
+  await fillPlan(page,'TEST ONLY geographic')
+  await page.locator('.planner-form').getByLabel('旅行天数').selectOption('2')
+  await page.getByRole('button',{name:'开始规划'}).click()
+  const comparison=page.getByRole('region',{name:'分日与交通对比'})
+  await expect(comparison).toContainText('已调整分日')
+  await expect(comparison.getByRole('row').filter({hasText:'站间交通距离'})).toContainText('40.00 km')
+  await expect(comparison.getByRole('row').filter({hasText:'站间交通距离'})).toContainText('2.00 km')
+  const first=await currentTask(page)
+  const source=await (await page.request.get(`/api/v1/travel/itineraries/${first.itinerary_id}`)).json()
+  const groups=source.days.map((day:any)=>day.stops.map((stop:any)=>stop.poi.id))
+  await page.reload()
+  await expect(comparison).toContainText('已调整分日')
+  await page.getByRole('button',{name:'编辑行程',exact:true}).click()
+  await page.getByRole('button',{name:'保存并重算'}).click()
+  await expect.poll(async()=>{
+    const value=await currentTask(page)
+    return value.status==='succeeded'&&value.id!==first.id?value.itinerary_id:null
+  }).not.toBeNull()
+  await expect(page.getByText('行程已生成并保存',{exact:true})).toBeVisible()
+  const edited=await currentTask(page)
+  expect(edited.itinerary_id).not.toBe(first.itinerary_id)
+  const result=await (await page.request.get(`/api/v1/travel/itineraries/${edited.itinerary_id}`)).json()
+  expect(result.days.map((day:any)=>day.stops.map((stop:any)=>stop.poi.id))).toEqual(groups)
+  expect(result.optimization).toBeNull()
+  await expect(comparison).toHaveCount(0)
+})
+
 test('saved multi-day itinerary editing creates a new version and preserves original', async ({ page }) => {
   await page.getByRole('button', { name: '已保存行程', exact: false }).first().click()
   await page.locator('.saved-card').first().click()

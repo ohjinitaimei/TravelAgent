@@ -30,6 +30,9 @@ def browser_worker(payload, output):
             return
         return draft_fixture_worker(payload,output)
     query=payload["request"]["query"]
+    if query=="TEST ONLY geographic":
+        from test_day_grouping import geographic_fixture_worker
+        return geographic_fixture_worker(payload,output)
     if query=="TEST ONLY retry":
         marker=Path(os.environ["TRAVEL_TEST_MARKER"])
         if not marker.exists():

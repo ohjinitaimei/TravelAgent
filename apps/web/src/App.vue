@@ -6,6 +6,7 @@ import { readSession, restoreForm, writeSession } from './session'
 import { userPrices } from './editor'
 import RequestAssistant from './components/RequestAssistant.vue'
 import ToolConnection from './components/ToolConnection.vue'
+import OptimizationComparison from './components/OptimizationComparison.vue'
 import { draftForm } from './draft'
 import { TravelApiError } from '../../../packages/api-schema/client'
 import { newSubmission, restoreSubmission, sendSubmission, recoverSubmission, submissionWasRejected, type Operation, type PendingSubmission } from './submissions'
@@ -92,14 +93,14 @@ function keepPending(value:PendingSubmission|null) {
 async function submitOperation(operation:Operation) {
   if(busy.value||active.value) return
   const value=newSubmission(operation)
-  keepPending(value);busy.value=true;error.value=''
+  keepPending(value);busy.value=true;error.value='';notice.value=''
   try {const created=await sendSubmission(api,value);keepPending(null);await follow(created)}
   catch(e) {if(submissionWasRejected(e)) keepPending(null);connection.value=submissionWasRejected(e)?'connected':'offline';report(e)}
   finally {busy.value=false}
 }
 async function restorePending(lookupOnly=false) {
   if(!pending.value||busy.value) return
-  busy.value=true;error.value=''
+  busy.value=true;error.value='';notice.value=''
   try {
     const created=await recoverSubmission(api,pending.value,lookupOnly)
     if(!created) {notice.value='尚未确认任务已受理。点击恢复上次提交后，将继续使用原条件和同一提交标识。';return}
@@ -277,6 +278,7 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
             <p v-if="itinerary&&task&&(task.kind==='draft'||task.status!=='succeeded')" class="saved-version-note">当前地图与时间轴显示已保存行程；本次任务的结果将在保存后更新。</p>
             <div v-if="itinerary" class="day-tabs"><button v-for="(d,i) in itinerary.days" :class="{selected:selectedDay===i}" @click="selectedDay=i">DAY {{i+1}}<small>{{d.date}}</small></button></div>
             <div v-if="day" class="day-summary"><span>{{day.stops.length}} 站</span><span>停留 {{day.stops.reduce((sum,s)=>sum+s.stay_minutes,0)}} 分钟</span><span>交通 {{day.stops.reduce((sum,s)=>sum+(s.travel_to_next?.duration_min??0),0)}} 分钟</span><span>{{day.stops.reduce((sum,s)=>sum+(s.travel_to_next?.distance_km??0),0).toFixed(2)}} km</span><small v-if="editing">当前地图与汇总为已保存版本，重算后更新</small></div>
+            <OptimizationComparison v-if="itinerary?.optimization" :summary="itinerary.optimization"/>
             <div class="route-columns">
               <div class="timeline">
                 <div v-if="!itinerary" class="empty-state"><span>↗</span><h3>你的旅程，等待出发</h3><p>选择目的地并开始规划，地点和每日行程会在这里展开。</p></div>

@@ -197,6 +197,25 @@ class Budget(Model):
     status: Literal["unknown", "exceeded"]
 
 
+class PlanningMetrics(Model):
+    distance_km: float = Field(ge=0)
+    travel_minutes: int = Field(ge=0)
+    busiest_day_minutes: int = Field(ge=0, description="最忙一天的游览与站间交通总分钟数，不包含住宿往返")
+    per_day_travel_minutes: list[int]
+    feasible: bool
+
+
+class GroupingOptimization(Model):
+    strategy: Literal["bounded_geographic_exchange"] = "bounded_geographic_exchange"
+    applied: bool
+    reason: Literal["improved", "feasible_candidate", "baseline_preferred", "no_geographic_change"]
+    baseline: PlanningMetrics
+    candidates: list[PlanningMetrics] = Field(default_factory=list, max_length=3)
+    result: PlanningMetrics
+    baseline_poi_ids_by_day: list[list[str]]
+    route_queries: int = Field(ge=0, le=48)
+
+
 class Itinerary(Model):
     id: str
     parent_id: str | None = None
@@ -207,6 +226,7 @@ class Itinerary(Model):
     budget: Budget
     warnings: list[str]
     algorithm: str = "ranker_engine + route_planner nearest-neighbor + route_planner scheduler"
+    optimization: GroupingOptimization | None = None
 
 
 class ItineraryList(Model):
