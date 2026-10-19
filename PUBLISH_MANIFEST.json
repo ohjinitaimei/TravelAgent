@@ -30,8 +30,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 9959,
-      "sha256": "f6f0167bbb013b15721fab5185028434df44c7095d1e6f39e983dc1fedc91e55"
+      "bytes": 10253,
+      "sha256": "ff191370f3eadde4a4cf6b797c332919de5a748d6f547d4c7ea15c2edf9965c7"
     },
     {
       "path": "analysis_options.yaml",
@@ -140,8 +140,8 @@
     },
     {
       "path": "apps/web/.env.example",
-      "bytes": 190,
-      "sha256": "ce5e42af494bfc2296bf2597b243917b19a70f56c2c5c19f393ae5b257149607"
+      "bytes": 234,
+      "sha256": "894a8a5c77b76671c18a0ee9eda6ef41a785bffe117628e144ecb97760ea36ee"
     },
     {
       "path": "apps/web/index.html",
@@ -190,8 +190,8 @@
     },
     {
       "path": "apps/web/src/components/RouteMap.vue",
-      "bytes": 5692,
-      "sha256": "5cb4287927a35938e00bc9eb305d3c25b0a008bab82d19d20fde4d2666a801d6"
+      "bytes": 5645,
+      "sha256": "8854c9b6a2d3ea911316e5ac7a3719e36f039835ff3d99cefd63925939ec4bcf"
     },
     {
       "path": "apps/web/src/components/ToolConnection.vue",
@@ -250,8 +250,8 @@
     },
     {
       "path": "backend/.env.example",
-      "bytes": 2102,
-      "sha256": "8b719bd0740736691f386e861555c674cf79a8ebe3a33a4f52443a6b1492095d"
+      "bytes": 2211,
+      "sha256": "7a2684134ddc6fce13870473447291a82998912f790c72b1ea46202192a9d749"
     },
     {
       "path": "backend/MAP_POI_INTEGRATION.md",
@@ -485,8 +485,8 @@
     },
     {
       "path": "backend/main.py",
-      "bytes": 16643,
-      "sha256": "615cecada5c3c946efe155eee7adfa3cae398bbc932ce167018acd91773045fd"
+      "bytes": 16736,
+      "sha256": "185e79b90285f30ac2ac0c251b61a1f5396ce52e9146d9b84d7fb2eb30a420b8"
     },
     {
       "path": "backend/policy/README.md",
@@ -699,6 +699,11 @@
       "sha256": "7582bb897a8c19cdfd85e1dfb802e3b69062a823d0c1343bddd319a1b289be79"
     },
     {
+      "path": "backend/travel/map_proxy.py",
+      "bytes": 6160,
+      "sha256": "0f63d3e9e51c4c193c338cf2451889f04c5dd7d3e52fa95f9d14a380c4e06e7b"
+    },
+    {
       "path": "backend/travel/mcp_client.py",
       "bytes": 10554,
       "sha256": "709fc716ddce16c5900e7fa112214354eed618799c17aa955cdfc5feebea7427"
@@ -720,8 +725,8 @@
     },
     {
       "path": "backend/travel/runtime.py",
-      "bytes": 2454,
-      "sha256": "11c38fd18e3e1145e27f9b013b0ce23e612f9f0a4fd5b16db32307619b6e02fd"
+      "bytes": 2575,
+      "sha256": "5953716760a7520c62ae8b8dbf8993a261b42e6f41b9a96caf313720a2074614"
     },
     {
       "path": "backend/travel/schemas.py",
@@ -755,18 +760,18 @@
     },
     {
       "path": "docs/ACCEPTANCE.md",
-      "bytes": 8553,
-      "sha256": "2f17b682b14b87de1b2d91d4c302dccf694433d6676f3a26dddb62391194312c"
+      "bytes": 9039,
+      "sha256": "cce9acd46d95191135be75252a2b6383a09baf6c97b0cd5ffc5b9a1ef852ee29"
     },
     {
       "path": "docs/README.md",
-      "bytes": 1168,
-      "sha256": "024047643d5710f2100509646ec4cf944d86f9e2cff2a0cef15d5940b64f2383"
+      "bytes": 1228,
+      "sha256": "6f9d086b6cd0fe909a1f76a4649ee4c3196ea3f6a8814e0857d0d1efccf039b9"
     },
     {
       "path": "docs/RELEASE_STATUS.md",
-      "bytes": 6769,
-      "sha256": "6af561b22876e022a15544a354944b400bbfab42e67c7c665549a7ff1794394f"
+      "bytes": 7177,
+      "sha256": "92552041dffd9504f65dcd1cea69b6ef1611fe6a144fe148550df04a679cfc0f"
     },
     {
       "path": "docs/TECHNICAL_REPORT.md",
@@ -787,6 +792,11 @@
       "path": "docs/architecture/AGENT_HARNESS_SPEC.md",
       "bytes": 4699,
       "sha256": "b9074f66dc4b1a71c4e055083851f89ef6bfef9da6302540f2b36ce4255aba5c"
+    },
+    {
+      "path": "docs/architecture/AMAP_PROXY.md",
+      "bytes": 6544,
+      "sha256": "bada356d260b4890c15fcf1bba5175a1f5ee2e9a38950c039591496969bf98ea"
     },
     {
       "path": "docs/architecture/AUTH_ISOLATION.md",
@@ -815,8 +825,8 @@
     },
     {
       "path": "docs/architecture/LIVE_AMAP.md",
-      "bytes": 5365,
-      "sha256": "091aebf8e04aa3083b19031c907667976d134f6e3e1df7fd03f1724254578256"
+      "bytes": 5665,
+      "sha256": "e3a115737051c70127a8e07e1a1c5686b0d8efe9126beeedc4b2e81ad46c477a"
     },
     {
       "path": "docs/architecture/MCP_CLIENT.md",
@@ -825,8 +835,8 @@
     },
     {
       "path": "docs/architecture/OPERATIONS.md",
-      "bytes": 7398,
-      "sha256": "019ac18b0565aa58a9e25c5283e5d6c9db658dc0f37ee5f6800a98881fba8508"
+      "bytes": 7667,
+      "sha256": "271bdf5dfac31e90dc63a4d04c273b6b5823045df67bcd77a666cfa691f85338"
     },
     {
       "path": "docs/architecture/README.md",
@@ -845,8 +855,8 @@
     },
     {
       "path": "docs/architecture/TRAVEL_DELIVERY.md",
-      "bytes": 19079,
-      "sha256": "3a9b0b77369d4643f52e97a25adc007097a43ee01b2e7809e2e1544bc4443ad6"
+      "bytes": 19226,
+      "sha256": "64e599978883878fac426bc24f5221a4bcad6fbcd6871954346fcb255bb7250e"
     },
     {
       "path": "docs/architecture/WEB_CONTINUATION.md",
@@ -1040,8 +1050,8 @@
     },
     {
       "path": "scripts/verify_browser.py",
-      "bytes": 3919,
-      "sha256": "b0c467e3e313665fb60498cc1c3ded799749be1a1ccb0ca177cafdaf596fb4ce"
+      "bytes": 3957,
+      "sha256": "f3645845d47eb35102c7837dfa12c6249f619533987057de48c72e9af61743b2"
     },
     {
       "path": "scripts/verify_live_clarification.py",
@@ -1060,8 +1070,8 @@
     },
     {
       "path": "scripts/verify_repository.py",
-      "bytes": 3238,
-      "sha256": "985e6e2cbd099f8d79d462c9eca9c7dd06e7b0beed09490f45c48e2615cea75d"
+      "bytes": 3296,
+      "sha256": "d3e89e541a75ca454be8f82db290927a251137f8382ae81812d921f04110835d"
     },
     {
       "path": "test/widget_test.dart",
@@ -1132,6 +1142,11 @@
       "path": "tests/test_draft_clarification.py",
       "bytes": 7128,
       "sha256": "a2254f09bfb373d09689d660487ebc923e6328c343d461155709c244cf8d4c9d"
+    },
+    {
+      "path": "tests/test_map_proxy.py",
+      "bytes": 11457,
+      "sha256": "b14bdbab1c0ca95e023782406dab1797f2856dc7dc1c9db4a67df99dadb626ff"
     },
     {
       "path": "tests/test_mcp.py",

@@ -108,7 +108,7 @@ npm ci --cache .cache/npm
 
 现在可不配置高德 Key 继续开发和运行工作台，搜索/规划返回明确的数据不可用错误。授权后在 `backend/.env` 填写自己的高德 **Web 服务** Key `AMAP_WEB_KEY` 或进程环境 `AMAP_KEY`，然后重启后端。该凭证只留在后端。无需 LLM Key 即可执行本阶段结构化规划。
 
-浏览器地图需另一个 **JS API** Key 与安全配置，复制 `apps/web/.env.example` 为 `.env.local` 并填写 `VITE_AMAP_JS_KEY`、`VITE_AMAP_SECURITY_CODE`；启用相应域名白名单。不要把后端 Web 服务 Key 填入 VITE 变量。缺少 JS Key 时显示地图配置空态，POI、时间轴和任务 API 不受影响。详情与搜索字段仍受账号权限和配额限制。
+浏览器地图需另一个 **JS API** Key 与安全配置，复制 `apps/web/.env.example` 为 `.env.local` 并填写公开的 `VITE_AMAP_JS_KEY`；后端填写相同的 `AMAP_JS_KEY` 和 `AMAP_JS_SECURITY_CODE`，启用相应域名白名单。已改为同源安全密钥代理，迁移步骤见 [AMAP_PROXY.md](AMAP_PROXY.md)。不要把后端 Web 服务 Key 或安全密钥填入 VITE 变量。缺少 JS Key 时显示地图配置空态，POI、时间轴和任务 API 不受影响。详情与搜索字段仍受账号权限和配额限制。
 
 分别开两个终端：
 

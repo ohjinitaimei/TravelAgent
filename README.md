@@ -79,7 +79,8 @@ npm run dev
 ### 可选：真实地图与路线
 
 - 后端高德 Web 服务 Key：填入 `backend/.env` 的 `AMAP_WEB_KEY`，按账号设置合法权限和配额，重启后端。
-- 浏览器地图使用独立的 JS API Key：复制 `apps/web/.env.example` 为 `.env.local`，配置 `VITE_AMAP_JS_KEY` 与 `VITE_AMAP_SECURITY_CODE` 及域名白名单。
+- 浏览器地图使用独立的 JS API Key：复制 `apps/web/.env.example` 为 `.env.local`，仅配置 `VITE_AMAP_JS_KEY`；后端 `.env` 配置相同的 `AMAP_JS_KEY` 和对应的 `AMAP_JS_SECURITY_CODE`，重启两端。
+- 地图通过同源 `/api/v1/travel/_AMapService/` 代理使用服务端安全密钥；已有前端 `VITE_AMAP_SECURITY_CODE` 须移除。来源、域名白名单和部署步骤见 [JS 安全密钥代理](docs/architecture/AMAP_PROXY.md)。
 - 不要把后端密钥放入 VITE 变量；VITE 变量会进入浏览器构建产物。
 - 地点评分、营业时间和消费字段可能缺失；预算未知项不视为免费，预约与未来日期营业状态尚未验证。
 

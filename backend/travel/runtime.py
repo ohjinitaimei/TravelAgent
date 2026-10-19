@@ -11,6 +11,7 @@ from travel.schemas import Error, ErrorResponse
 from travel.store import Store
 from travel.tasks import TaskManager
 from travel.auth import AuthService
+from travel.map_proxy import MapProxy
 
 
 @asynccontextmanager
@@ -20,12 +21,14 @@ async def lifespan(app):
     try:
         app.state.auth=AuthService(store)
         app.state.travel = TaskManager(store, timeout=float(os.getenv("TRAVEL_TASK_TIMEOUT", "180")))
+        app.state.map_proxy = MapProxy()
     except Exception:
         store.close()
         raise
     try:
         yield
     finally:
+        await app.state.map_proxy.close()
         await app.state.travel.close()
         store.close()
 

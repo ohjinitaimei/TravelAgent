@@ -17,7 +17,7 @@ ROOT=Path(__file__).resolve().parents[1]
 def verify(suite):
     (ROOT/".tmp").mkdir(exist_ok=True)
     env=dict(os.environ,PYTHONIOENCODING="utf-8",E2E_AUTH_TESTS="1" if suite=='auth' else '0')
-    for name in ('AMAP_KEY','AMAP_WEB_KEY','DASHSCOPE_API_KEY','OPENAI_API_KEY','TRAVEL_LLM_API_KEY','VITE_AMAP_JS_KEY','VITE_AMAP_SECURITY_CODE'):
+    for name in ('AMAP_KEY','AMAP_WEB_KEY','AMAP_JS_KEY','AMAP_JS_SECURITY_CODE','DASHSCOPE_API_KEY','OPENAI_API_KEY','TRAVEL_LLM_API_KEY','VITE_AMAP_JS_KEY','VITE_AMAP_SECURITY_CODE'):
         env[name]=''
     env.update(TRAVEL_SESSION_TTL='28800',TRAVEL_SESSION_IDLE_TTL='1800',VITE_API_BASE_URL='/api/v1/travel')
     env.setdefault("PLAYWRIGHT_BROWSERS_PATH",str(ROOT/".cache/playwright"))

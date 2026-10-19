@@ -1,6 +1,6 @@
 # Web 验收记录
 
-验收环境：2026-10-19，Python 3.12、Node.js、Windows、Chromium Headless。本轮仅在本地运行，未上传至 GitHub 或运行云端检查；仓库保留可在 Ubuntu / Node.js 22 上执行的 CI 配置。
+验收环境：2026-10-19 至 2026-10-20，Python 3.12、Node.js、Windows、Chromium Headless。本轮仅在本地运行，未上传至 GitHub 或运行云端检查；仓库保留可在 Ubuntu / Node.js 22 上执行的 CI 配置。
 
 ## 可复现检查
 
@@ -18,7 +18,7 @@ Linux 浏览器首次安装使用 `npx playwright install --with-deps --only-she
 
 | 检查 | 数量 | 覆盖范围 |
 | --- | ---: | --- |
-| Python | 79 | 旅行 API 13、Agent 6、澄清 4、MCP 服务端 1、任务恢复 3、MCP 客户端 11、鉴权隔离 14、业务限流 8、备份恢复 6、分日算法 13 |
+| Python | 91 | 旅行 API 13、Agent 6、澄清 4、MCP 服务端 1、任务恢复 3、MCP 客户端 11、鉴权隔离 14、业务限流 8、备份恢复 6、分日算法 13、地图代理 12 |
 | TypeScript 客户端 | 17 | HTTP 契约、轮询期限/取消、暂时断线、提交收据恢复、编辑差异与还原、工具握手、账号绑定与恢复、配额拒绝与 Retry-After |
 | Chromium | 20 | 旅行工作台 13 项、账号流程 7 项 |
 | Web / Schema | — | TypeScript 检查、Vite 构建、OpenAPI 生成文件一致性 |
@@ -49,7 +49,9 @@ Linux 浏览器首次安装使用 `npx playwright install --with-deps --only-she
 
 测试服务必须显式传入 `--test-fixtures-only`，只绑定本机地址，数据库限制在仓库 `.tmp/`。FixtureProvider、固定模型回复和故障注入仅在 `tests/` 定义；生产服务不提供开启测试数据的配置。浏览器测试屏蔽外部 HTTPS，所有 POI 名称使用 TEST ONLY 标识。日志、截图和 trace 保存在被 Git 排除的 `artifacts/` 中，CI 仅在失败时上传测试诊断。
 
-上述自动检查验证页面、API 与后端算法之间的调用和状态一致性。2026-10-19 另通过授权高德的本地真实联调，覆盖 POI、步行/驾车、直接 Provider/MCP 异步规划、多日编辑版本和 Web 保存重开。地图接入阶段的 JS API 检查覆盖底图、编号、道路折线、跨天切换和刷新；本轮另完成 23 项真实地图/编辑检查及截图核对，见 [WEB_EDITING.md](architecture/WEB_EDITING.md)。前端构建通过且不含后端 Key。授权联调不计入上表 116 项无密钥自动检查。实际范围、早期页面检查失败及后续复查记录见 [LIVE_AMAP.md](architecture/LIVE_AMAP.md)。未来交通与营业状态不在此次结论内；票价、库存、评论等无授权来源时保持缺失。
+上述自动检查验证页面、API 与后端算法之间的调用和状态一致性。2026-10-19 另通过授权高德的本地真实联调，覆盖 POI、步行/驾车、直接 Provider/MCP 异步规划、多日编辑版本和 Web 保存重开。地图接入阶段的 JS API 检查覆盖底图、编号、道路折线、跨天切换和刷新；地图编辑阶段另完成 23 项真实检查及截图核对，见 [WEB_EDITING.md](architecture/WEB_EDITING.md)。前端构建通过且不含后端 Key。授权联调不计入上表 128 项无密钥自动检查。实际范围、早期页面检查失败及后续复查记录见 [LIVE_AMAP.md](architecture/LIVE_AMAP.md)。未来交通与营业状态不在此次结论内；票价、库存、评论等无授权来源时保持缺失。
+
+安全密钥代理阶段新增 12 项自动检查，总数增至 128。另在真实高德 SDK 下分别通过本地模式 25 项与账号模式 28 项检查，初始化代理请求全部成功，登录 Cookie 可用于该路径，退出后返回 401；安全密钥不在浏览器配置/请求/代理响应或前端构建中。步骤与部署边界见 [AMAP_PROXY.md](architecture/AMAP_PROXY.md)。此前 23 项地图编辑记录保留为历史验收。
 
 本轮新增的后端检查覆盖用户/全局固定窗口持久化、原子扣减、队列与活动任务限额、去重不扣配额、真实 HTTP 429/Retry-After、查询/取消/退出仍可用、工具并发释放和 SSE 槽位回收。备份演练在源 WAL 连接仍运行时取得已提交快照，在新路径恢复后通过真实 API 登录两用户，核对行程/草案/收据归属、会话撤销、未完成任务终结、损坏/不兼容库拒绝和不覆盖已有文件。未恢复或修改个人业务数据库。
 
@@ -57,7 +59,7 @@ Linux 浏览器首次安装使用 `npx playwright install --with-deps --only-she
 
 ## API 恢复约定
 
-`Itinerary.optimization` 为兼容性新增字段，旧行程默认 `null`；自动多日规划提供原方案、已核验候选、采用结果及有向路线调用数。新增分日检查覆盖道路绕行、方向不对称、每日约束、负担保护、预算/停留保留、最多 48 个路段，以及旧记录和手动分日兼容。上海/杭州的直接 Provider 与 MCP 真实比较不计入上述 116 项，见 [DAY_GROUPING.md](architecture/DAY_GROUPING.md)。
+`Itinerary.optimization` 为兼容性新增字段，旧行程默认 `null`；自动多日规划提供原方案、已核验候选、采用结果及有向路线调用数。新增分日检查覆盖道路绕行、方向不对称、每日约束、负担保护、预算/停留保留、最多 48 个路段，以及旧记录和手动分日兼容。上海/杭州的直接 Provider 与 MCP 真实比较不计入上述 128 项，见 [DAY_GROUPING.md](architecture/DAY_GROUPING.md)。
 
 创建规划、草案、编辑或重试任务可携带 `Idempotency-Key`（8–128 位字母、数字、下划线、点、冒号或连字符）。同一标识与同一请求返回原任务；标识复用于其他请求返回 `409 idempotency_conflict`。未传标识的旧客户端保持原行为。
 

@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | 新规划、需求草案、调整版本、原条件重试 | `TRAVEL_LIMIT_TASKS` / `TRAVEL_LIMIT_TASKS_GLOBAL` | 每用户 20 次 / 全局 60 次，每 300 秒 |
 | 同一用户排队及执行中的任务 | `TRAVEL_LIMIT_ACTIVE_TASKS` | 3 个 |
-| REST POI 搜索、详情、路线、工具连接检查 | `TRAVEL_LIMIT_TOOLS` / `TRAVEL_LIMIT_TOOLS_GLOBAL` | 每用户 60 次 / 全局 180 次，每 60 秒 |
+| REST POI 搜索、详情、路线、工具连接检查、JS 地图代理 | `TRAVEL_LIMIT_TOOLS` / `TRAVEL_LIMIT_TOOLS_GLOBAL` | 每用户 60 次 / 全局 180 次，每 60 秒 |
 | 工具连接检查（同时占用上面的 REST 配额） | `TRAVEL_LIMIT_TOOL_CHECKS` | 每用户每 60 秒 3 次 |
 | REST 工具请求并发 | `TRAVEL_TOOL_CONCURRENCY` | 全局 4 个，繁忙时立即拒绝，不排队 |
 | SSE 长连接 | `TRAVEL_LIMIT_STREAMS` / `TRAVEL_LIMIT_STREAMS_GLOBAL` | 每用户 3 条 / 全局 30 条 |
@@ -22,6 +22,8 @@
 查询任务、收据、历史行程、事件轮询、取消任务及退出登录不受上述业务次数限制。SSE 结束、取消或断线会释放槽位；SSE 限额拒绝后 Web 仍使用轮询。该控制不代替入口网关的连接数、防滥用和请求体限制。
 
 任务管理器另保留全局队列容量 10、工作进程并发 2、总超时和取消终止。REST 的 4 个槽位不包含这 2 个工作进程；因此最多同时存在 4 个 REST 工具会话和 2 个任务工具会话。工作进程内继续使用原 MCP 调用次数和时间预算。任务准入次数限制不能直接等同于高德/模型的精确调用配额，正式授权后还须按供应商额度调整配置。
+
+JS 地图代理也占用上述工具槽与次数，不额外开放无限调用通道。前端刷新地图可能产生多个 SDK 初始化请求；其安全密钥放在后端，固定路径、来源和部署配置见 [AMAP_PROXY.md](AMAP_PROXY.md)。
 
 ## 在线备份
 

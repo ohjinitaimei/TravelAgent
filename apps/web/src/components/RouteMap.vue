@@ -45,9 +45,7 @@ function redraw() {
 onMounted(async () => {
   if (!configured) return
   try {
-    if (import.meta.env.VITE_AMAP_SECURITY_CODE) {
-      (window as any)._AMapSecurityConfig = { securityJsCode: import.meta.env.VITE_AMAP_SECURITY_CODE }
-    }
+    (window as any)._AMapSecurityConfig = { serviceHost: `${window.location.origin}/api/v1/travel/_AMapService` }
     sdk = await AMapLoader.load({ key: import.meta.env.VITE_AMAP_JS_KEY, version: '2.0' })
     if (disposed) return
     map = new sdk.Map(container.value, { zoom: 5, viewMode: '2D' })
