@@ -57,12 +57,14 @@ class Store:
                 raise TravelFailure("idempotency_conflict", "同一提交标识不能用于不同条件，请重新提交", status=409)
             return self.task(row[1],owner_id=owner_id) if row else None
 
-    def register_task(self, task: Task, payload: dict, key: str | None, fingerprint: str, *, owner_id: str = 'local') -> tuple[Task, bool]:
+    def register_task(self, task: Task, payload: dict, key: str | None, fingerprint: str, *, owner_id: str = 'local', admit=None) -> tuple[Task, bool]:
         import json
         with self.lock, self.db:
             existing = self.submission(key, fingerprint,owner_id=owner_id) if key else None
             if existing:
                 return existing, False
+            if admit is not None:
+                admit(owner_id)
             self.db.execute("INSERT INTO tasks VALUES (?, ?)", (task.id, task.model_dump_json()))
             self.db.execute("INSERT INTO resource_owners VALUES ('task',?,?)",(task.id,owner_id))
             self.db.execute("INSERT INTO task_requests VALUES (?, ?)", (task.id, json.dumps(payload, ensure_ascii=False)))

@@ -122,6 +122,15 @@
             "description": "Unprocessable Entity"
           },
           "429": {
+            "headers": {
+              "Retry-After": {
+                "description": "建议等待的秒数；查询和取消任务不受业务配额限制",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -291,6 +300,15 @@
             "description": "Unprocessable Entity"
           },
           "429": {
+            "headers": {
+              "Retry-After": {
+                "description": "建议等待的秒数；查询和取消任务不受业务配额限制",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -489,6 +507,15 @@
             "description": "Unprocessable Entity"
           },
           "429": {
+            "headers": {
+              "Retry-After": {
+                "description": "建议等待的秒数；查询和取消任务不受业务配额限制",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -687,6 +714,15 @@
             "description": "Unprocessable Entity"
           },
           "429": {
+            "headers": {
+              "Retry-After": {
+                "description": "建议等待的秒数；查询和取消任务不受业务配额限制",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -865,6 +901,15 @@
             "description": "Unprocessable Entity"
           },
           "429": {
+            "headers": {
+              "Retry-After": {
+                "description": "建议等待的秒数；查询和取消任务不受业务配额限制",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1062,6 +1107,15 @@
             "description": "Unprocessable Entity"
           },
           "429": {
+            "headers": {
+              "Retry-After": {
+                "description": "建议等待的秒数；查询和取消任务不受业务配额限制",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1240,6 +1294,15 @@
             "description": "Unprocessable Entity"
           },
           "429": {
+            "headers": {
+              "Retry-After": {
+                "description": "建议等待的秒数；查询和取消任务不受业务配额限制",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1426,6 +1489,15 @@
             "description": "Unprocessable Entity"
           },
           "429": {
+            "headers": {
+              "Retry-After": {
+                "description": "建议等待的秒数；查询和取消任务不受业务配额限制",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1604,6 +1676,15 @@
             "description": "Unprocessable Entity"
           },
           "429": {
+            "headers": {
+              "Retry-After": {
+                "description": "建议等待的秒数；查询和取消任务不受业务配额限制",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1782,6 +1863,15 @@
             "description": "Unprocessable Entity"
           },
           "429": {
+            "headers": {
+              "Retry-After": {
+                "description": "建议等待的秒数；查询和取消任务不受业务配额限制",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -1971,6 +2061,15 @@
             "description": "Unprocessable Entity"
           },
           "429": {
+            "headers": {
+              "Retry-After": {
+                "description": "建议等待的秒数；查询和取消任务不受业务配额限制",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2169,6 +2268,15 @@
             "description": "Unprocessable Entity"
           },
           "429": {
+            "headers": {
+              "Retry-After": {
+                "description": "建议等待的秒数；查询和取消任务不受业务配额限制",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2350,6 +2458,15 @@
             "description": "Unprocessable Entity"
           },
           "429": {
+            "headers": {
+              "Retry-After": {
+                "description": "建议等待的秒数；查询和取消任务不受业务配额限制",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2528,6 +2645,15 @@
             "description": "Unprocessable Entity"
           },
           "429": {
+            "headers": {
+              "Retry-After": {
+                "description": "建议等待的秒数；查询和取消任务不受业务配额限制",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2735,6 +2861,15 @@
             "description": "Unprocessable Entity"
           },
           "429": {
+            "headers": {
+              "Retry-After": {
+                "description": "建议等待的秒数；查询和取消任务不受业务配额限制",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -2938,6 +3073,15 @@
             "description": "Unprocessable Entity"
           },
           "429": {
+            "headers": {
+              "Retry-After": {
+                "description": "建议等待的秒数；查询和取消任务不受业务配额限制",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -3116,6 +3260,15 @@
             "description": "Unprocessable Entity"
           },
           "429": {
+            "headers": {
+              "Retry-After": {
+                "description": "建议等待的秒数；查询和取消任务不受业务配额限制",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -3295,6 +3448,15 @@
             "description": "Unprocessable Entity"
           },
           "429": {
+            "headers": {
+              "Retry-After": {
+                "description": "建议等待的秒数；查询和取消任务不受业务配额限制",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {

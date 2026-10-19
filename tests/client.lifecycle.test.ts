@@ -6,8 +6,34 @@ import { restoreForm } from '../apps/web/src/session'
 import { userPrices } from '../apps/web/src/editor'
 import { clarificationRequest, draftForm } from '../apps/web/src/draft'
 import type { Draft } from '../packages/api-schema/client'
-import { newSubmission, restoreSubmission, sendSubmission, recoverSubmission } from '../apps/web/src/submissions'
+import { newSubmission, restoreSubmission, sendSubmission, recoverSubmission, submissionWasRejected } from '../apps/web/src/submissions'
 import { reactive } from 'vue'
+
+test('admission rejections expose Retry-After and release pending submissions without replaying POST',async()=>{
+  let posts=0
+  const server=createServer((request,response)=>{
+    if(request.method==='POST') posts++
+    response.writeHead(429,{'Content-Type':'application/json','Retry-After':'23'})
+    response.end(JSON.stringify({error:{code:'task_rate_limited',message:'TEST ONLY quota',retryable:true}}))
+  })
+  await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve))
+  const address=server.address()
+  assert.ok(address&&typeof address!=='string')
+  try {
+    const api=new TravelClient(fetchTransport(`http://127.0.0.1:${address.port}`))
+    const pending=newSubmission({kind:'retry',taskId:'test-only-task'})
+    await assert.rejects(()=>sendSubmission(api,pending),(error:unknown)=>{
+      assert.ok(error instanceof TravelApiError)
+      assert.equal(error.retryAfterSeconds,23)
+      assert.equal(submissionWasRejected(error),true)
+      return true
+    })
+    assert.equal(posts,1)
+    assert.equal(submissionWasRejected(new TravelApiError('network_error','TEST ONLY',true)),false)
+    assert.equal(submissionWasRejected(new TravelApiError('queue_full','TEST ONLY',true)),true)
+    assert.equal(submissionWasRejected(new TravelApiError('task_concurrency_limited','TEST ONLY',true)),true)
+  } finally {server.closeAllConnections();await new Promise<void>(resolve=>server.close(()=>resolve()))}
+})
 
 test('polling cancels an in-flight request and enforces its deadline', async () => {
   const server = createServer((_request,_response)=>{})

@@ -12,6 +12,7 @@ from travel.provider import TravelFailure
 from travel.schemas import Draft, Error, Itinerary, Task, now
 from travel.store import Store
 from travel.worker import run
+from travel.limits import BusinessLimits, rejected
 
 TERMINAL = {"succeeded", "failed", "cancelled", "timed_out"}
 
@@ -20,6 +21,7 @@ class TaskManager:
     """Single API process, bounded spawned workers; SQLite persists all results."""
     def __init__(self, store: Store, timeout: float = 180, concurrency: int = 2, capacity: int = 10):
         self.store, self.timeout, self.capacity = store, timeout, capacity
+        self.limits = BusinessLimits(store)
         self.slots = asyncio.Semaphore(concurrency)
         self.runners: dict[str, asyncio.Task] = {}
         self.processes = {}
@@ -33,9 +35,9 @@ class TaskManager:
         if existing:
             return existing
         if len(self.runners) >= self.capacity:
-            raise TravelFailure("queue_full", "规划队列已满，请稍后重试", True, 429)
+            raise rejected('queue_full', '规划队列已满', 2)
         task = Task(id=uuid4().hex, status="queued", kind=payload.get("kind", "plan"), retry_of=retry_of)
-        task, created = self.store.register_task(task, payload, idempotency_key, fingerprint,owner_id=owner_id)
+        task, created = self.store.register_task(task, payload, idempotency_key, fingerprint,owner_id=owner_id, admit=self.limits.admit_task)
         if not created:
             return task
         self.store.event(task.id, "queued", "任务已进入需求解析队列" if task.kind == "draft" else "任务已进入真实规划队列")

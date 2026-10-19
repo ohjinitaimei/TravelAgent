@@ -36,6 +36,7 @@ def configure_errors(app):
         body = ErrorResponse(error=Error(code=error.code, message=error.message, retryable=error.retryable))
         headers={"WWW-Authenticate":'Bearer realm="TravelAgent"'} if error.status==401 else {}
         if error.code=='login_rate_limited': headers['Retry-After']='300'
+        if getattr(error, 'retry_after', None): headers['Retry-After']=str(error.retry_after)
         return JSONResponse(status_code=error.status, content=body.model_dump(),headers=headers)
 
     @app.exception_handler(RequestValidationError)

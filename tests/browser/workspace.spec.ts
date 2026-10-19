@@ -78,6 +78,30 @@ test('lost submission response recovers the accepted task without duplicate POST
   await expect(page.locator('.timeline')).toContainText('TEST ONLY fixture-a')
 })
 
+test('a quota rejection releases the form and does not masquerade as a lost submission', async ({ page }) => {
+  await fillPlan(page)
+  let posts=0
+  await page.route('**/api/v1/travel/tasks', async route => {
+    if(route.request().method()!=='POST') return route.continue()
+    posts++
+    if(posts>1) return route.continue()
+    // Explicit TEST ONLY fault injection; real backend quota is covered by HTTP tests.
+    await route.fulfill({status:429,contentType:'application/json',headers:{'Retry-After':'2'},
+      body:JSON.stringify({error:{code:'task_rate_limited',message:'TEST ONLY 请求次数达到服务限额，请在 2 秒后重试',retryable:true}})})
+  })
+  await page.getByRole('button', {name:'开始规划'}).click()
+  await expect(page.getByRole('alert')).toContainText('请在 2 秒后重试')
+  await expect(page.getByRole('button', {name:'开始规划'})).toBeEnabled()
+  await expect(page.getByRole('button', {name:'恢复上次提交'})).toHaveCount(0)
+  await expect(page.getByRole('button', {name:'恢复连接',exact:true})).toHaveCount(0)
+  expect(posts).toBe(1)
+  await page.reload()
+  await expect(page.getByRole('button', {name:'恢复上次提交'})).toHaveCount(0)
+  await page.getByRole('button', {name:'开始规划'}).click()
+  await expect(page.getByText('行程已生成并保存',{exact:true})).toBeVisible()
+  expect(posts).toBe(2)
+})
+
 test('concurrent draft update preserves unsaved answers until explicit reload', async ({ page }) => {
   await page.getByLabel('旅行需求', { exact: true }).fill('TEST ONLY 想逛博物馆，需要预约')
   await page.getByRole('button', { name: '整理为草案' }).click()

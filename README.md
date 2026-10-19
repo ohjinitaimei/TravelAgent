@@ -15,7 +15,7 @@ TravelAgent 将自然语言旅行需求整理为可核对草案，再由统一 F
 | MCP | 可选 stdio 客户端与服务端，规划/查询复用同一 Provider，支持调用限额、超时、取消及结构化结果校验 |
 | App | 保留原 Flutter 源码；apps/mobile 是后续 uni-app 预留说明，不是可运行 App |
 | 账号与数据隔离 | 可选登录模式，按用户隔离任务、草案、行程和提交收据；保留本地空间模式 |
-| 部署 | 单 API 实例；公网部署仍需 HTTPS、备份、调用限流及运维验收 |
+| 部署 | 单 API 实例；用户/全局业务配额、工具/SSE 并发控制、SQLite 在线备份与恢复校验 |
 
 自动验收覆盖 API、共享客户端及 Chromium 页面交互。行程生成与编辑的成功检查使用 tests 中隔离的 TEST ONLY 数据；真实高德验收需另行配置授权。详见 [验收记录](docs/ACCEPTANCE.md) 和 [功能范围与后续计划](docs/RELEASE_STATUS.md)。
 
@@ -102,6 +102,8 @@ Pop-Location
 在 `backend/.env` 设置 `TRAVEL_AUTH_MODE=session` 后重启后端，Web 会显示登录页面。localhost HTTP 使用 `TRAVEL_COOKIE_SECURE=0`；HTTPS 部署设为 `1` 并配置明确的 `TRAVEL_CORS_ORIGINS`。推荐 Web 与 API 使用同源代理。
 
 Web 使用 HttpOnly 会话 Cookie 和 CSRF 校验，密码与会话 Token 不进入 localStorage。账号模式下旧数据保留在本地空间，管理员可停服、备份后显式迁移，见 [账号初始化、隔离和迁移说明](docs/architecture/AUTH_ISOLATION.md)。
+
+业务配额默认按用户隔离，任务/事件查询和取消不受配额限制。运维工具支持在线备份、校验和恢复到新数据库，保留业务归属并撤销历史会话。配置、命令与恢复演练见 [资源限流与数据库恢复](docs/architecture/OPERATIONS.md)。公网部署还需配置 HTTPS 和入口网关，并完成所在环境的运维验收。
 
 ## 可复现检查
 

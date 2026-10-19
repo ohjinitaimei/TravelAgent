@@ -3,6 +3,11 @@ import { TravelClient, TravelApiError, type PlanRequest, type Schema } from '../
 export type Operation = {kind:'plan';request:PlanRequest}|{kind:'draft';request:Schema<'DraftRequest'>}|{kind:'adjust';itineraryId:string;request:Schema<'EditRequest'>}|{kind:'retry';taskId:string}
 export type PendingSubmission = {key:string;operation:Operation}
 
+/** Server admission rejections are certain; network failures still need a receipt lookup. */
+export function submissionWasRejected(error:unknown) {
+  return error instanceof TravelApiError && (!error.retryable || ['task_rate_limited','task_concurrency_limited','queue_full'].includes(error.code))
+}
+
 export function newSubmission(operation:Operation,key=crypto.randomUUID()):PendingSubmission {
   return {key,operation:JSON.parse(JSON.stringify(operation)) as Operation}
 }

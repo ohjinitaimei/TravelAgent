@@ -5,6 +5,7 @@ import asyncio
 from fastapi import APIRouter, Depends, Header, Query, Request
 from typing import Annotated
 from fastapi.responses import StreamingResponse
+from starlette.background import BackgroundTask
 
 from services.amap_client import AmapClient
 from travel.provider import TravelFailure
@@ -15,7 +16,7 @@ from travel.tool_runtime import open_tools, transport, check_service
 from travel.auth import require_user, owner_id
 
 router = APIRouter(prefix="/api/v1/travel", tags=["travel"], dependencies=[Depends(require_user)], responses={
-    code: {"model": ErrorResponse} for code in (401, 403, 404, 409, 422, 429, 500, 502, 503, 504)
+    code: {"model": ErrorResponse, **({"headers": {"Retry-After": {"description": "建议等待的秒数；查询和取消任务不受业务配额限制", "schema": {"type": "integer", "minimum": 1}}}} if code == 429 else {})} for code in (401, 403, 404, 409, 422, 429, 500, 502, 503, 504)
 })
 SubmissionKey = Annotated[str | None, Header(min_length=8, max_length=128, pattern=r"^[A-Za-z0-9_.:-]+$")]
 
@@ -49,8 +50,9 @@ def capabilities():
 
 
 @router.post("/tool-service/check", response_model=ToolServiceStatus)
-def check_tool_service():
-    return check_service()
+def check_tool_service(request: Request):
+    with manager(request).limits.tool(owner_id(request), check=True):
+        return check_service()
 
 
 @router.post("/tasks", response_model=Task, status_code=202)
@@ -119,7 +121,9 @@ async def stream(task_id: str, request: Request, after: int = Query(default=0, g
         except ValueError:
             raise TravelFailure("invalid_event_cursor", "无效事件游标", status=422) from None
 
-    async def generate():
+    release = manager(request).limits.acquire_stream(owner_id(request))
+
+    async def events_stream():
         cursor, heartbeat = after, 0
         while not await request.is_disconnected():
             if request.app.state.auth.identify(request) is None:
@@ -139,7 +143,14 @@ async def stream(task_id: str, request: Request, after: int = Query(default=0, g
                 yield ": heartbeat\n\n"
             await asyncio.sleep(0.5)
 
-    return StreamingResponse(generate(), media_type="text/event-stream", headers={
+    async def generate():
+        try:
+            async for chunk in events_stream():
+                yield chunk
+        finally:
+            release()
+
+    return StreamingResponse(generate(), background=BackgroundTask(release), media_type="text/event-stream", headers={
         "Cache-Control": "no-cache", "X-Accel-Buffering": "no",
     })
 
@@ -176,19 +187,19 @@ async def adjust(itinerary_id: str, body: EditRequest, request: Request, idempot
 
 
 @router.get("/pois", response_model=PoiList)
-def search_pois(keyword: str = Query(min_length=1, max_length=240), city: str = Query(min_length=1, max_length=60),
+def search_pois(request: Request, keyword: str = Query(min_length=1, max_length=240), city: str = Query(min_length=1, max_length=60),
                 limit: int = Query(default=20, ge=1, le=20)):
-    with open_tools() as tools:
+    with manager(request).limits.tool(owner_id(request)), open_tools() as tools:
         return PoiList(items=tools.search(keyword, city, limit))
 
 
 @router.get("/pois/{poi_id}", response_model=Poi)
-def poi_detail(poi_id: str):
-    with open_tools() as tools:
+def poi_detail(poi_id: str, request: Request):
+    with manager(request).limits.tool(owner_id(request)), open_tools() as tools:
         return tools.detail(poi_id)
 
 
 @router.post("/routes", response_model=Segment)
-def route(body: RouteQuery):
-    with open_tools() as tools:
+def route(body: RouteQuery, request: Request):
+    with manager(request).limits.tool(owner_id(request)), open_tools() as tools:
         return tools.route_query(body)

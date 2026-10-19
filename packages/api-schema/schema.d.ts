@@ -1005,6 +1005,8 @@ export interface operations {
             /** @description Too Many Requests */
             429: {
                 headers: {
+                    /** @description 建议等待的秒数；查询和取消任务不受业务配额限制 */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1120,6 +1122,8 @@ export interface operations {
             /** @description Too Many Requests */
             429: {
                 headers: {
+                    /** @description 建议等待的秒数；查询和取消任务不受业务配额限制 */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1240,6 +1244,8 @@ export interface operations {
             /** @description Too Many Requests */
             429: {
                 headers: {
+                    /** @description 建议等待的秒数；查询和取消任务不受业务配额限制 */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1360,6 +1366,8 @@ export interface operations {
             /** @description Too Many Requests */
             429: {
                 headers: {
+                    /** @description 建议等待的秒数；查询和取消任务不受业务配额限制 */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1477,6 +1485,8 @@ export interface operations {
             /** @description Too Many Requests */
             429: {
                 headers: {
+                    /** @description 建议等待的秒数；查询和取消任务不受业务配额限制 */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1595,6 +1605,8 @@ export interface operations {
             /** @description Too Many Requests */
             429: {
                 headers: {
+                    /** @description 建议等待的秒数；查询和取消任务不受业务配额限制 */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1712,6 +1724,8 @@ export interface operations {
             /** @description Too Many Requests */
             429: {
                 headers: {
+                    /** @description 建议等待的秒数；查询和取消任务不受业务配额限制 */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1833,6 +1847,8 @@ export interface operations {
             /** @description Too Many Requests */
             429: {
                 headers: {
+                    /** @description 建议等待的秒数；查询和取消任务不受业务配额限制 */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1950,6 +1966,8 @@ export interface operations {
             /** @description Too Many Requests */
             429: {
                 headers: {
+                    /** @description 建议等待的秒数；查询和取消任务不受业务配额限制 */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2067,6 +2085,8 @@ export interface operations {
             /** @description Too Many Requests */
             429: {
                 headers: {
+                    /** @description 建议等待的秒数；查询和取消任务不受业务配额限制 */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2186,6 +2206,8 @@ export interface operations {
             /** @description Too Many Requests */
             429: {
                 headers: {
+                    /** @description 建议等待的秒数；查询和取消任务不受业务配额限制 */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2304,6 +2326,8 @@ export interface operations {
             /** @description Too Many Requests */
             429: {
                 headers: {
+                    /** @description 建议等待的秒数；查询和取消任务不受业务配额限制 */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2421,6 +2445,8 @@ export interface operations {
             /** @description Too Many Requests */
             429: {
                 headers: {
+                    /** @description 建议等待的秒数；查询和取消任务不受业务配额限制 */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2538,6 +2564,8 @@ export interface operations {
             /** @description Too Many Requests */
             429: {
                 headers: {
+                    /** @description 建议等待的秒数；查询和取消任务不受业务配额限制 */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2660,6 +2688,8 @@ export interface operations {
             /** @description Too Many Requests */
             429: {
                 headers: {
+                    /** @description 建议等待的秒数；查询和取消任务不受业务配额限制 */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2779,6 +2809,8 @@ export interface operations {
             /** @description Too Many Requests */
             429: {
                 headers: {
+                    /** @description 建议等待的秒数；查询和取消任务不受业务配额限制 */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -2896,6 +2928,8 @@ export interface operations {
             /** @description Too Many Requests */
             429: {
                 headers: {
+                    /** @description 建议等待的秒数；查询和取消任务不受业务配额限制 */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content: {
@@ -3015,6 +3049,8 @@ export interface operations {
             /** @description Too Many Requests */
             429: {
                 headers: {
+                    /** @description 建议等待的秒数；查询和取消任务不受业务配额限制 */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content: {

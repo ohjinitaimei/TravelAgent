@@ -8,7 +8,7 @@ import RequestAssistant from './components/RequestAssistant.vue'
 import ToolConnection from './components/ToolConnection.vue'
 import { draftForm } from './draft'
 import { TravelApiError } from '../../../packages/api-schema/client'
-import { newSubmission, restoreSubmission, sendSubmission, recoverSubmission, type Operation, type PendingSubmission } from './submissions'
+import { newSubmission, restoreSubmission, sendSubmission, recoverSubmission, submissionWasRejected, type Operation, type PendingSubmission } from './submissions'
 
 type Tab = 'plan' | 'explore' | 'saved' | 'budget'
 const props=defineProps<{user:Schema<'AuthUser'>;authEnabled:boolean}>()
@@ -94,7 +94,7 @@ async function submitOperation(operation:Operation) {
   const value=newSubmission(operation)
   keepPending(value);busy.value=true;error.value=''
   try {const created=await sendSubmission(api,value);keepPending(null);await follow(created)}
-  catch(e) {if(e instanceof TravelApiError&&!e.retryable) keepPending(null);connection.value='offline';report(e)}
+  catch(e) {if(submissionWasRejected(e)) keepPending(null);connection.value=submissionWasRejected(e)?'connected':'offline';report(e)}
   finally {busy.value=false}
 }
 async function restorePending(lookupOnly=false) {
@@ -104,7 +104,7 @@ async function restorePending(lookupOnly=false) {
     const created=await recoverSubmission(api,pending.value,lookupOnly)
     if(!created) {notice.value='尚未确认任务已受理。点击恢复上次提交后，将继续使用原条件和同一提交标识。';return}
     keepPending(null);connection.value='connected';await follow(created)
-  } catch(e) {if(e instanceof TravelApiError&&!e.retryable) keepPending(null);connection.value='offline';report(e)}
+  } catch(e) {if(submissionWasRejected(e)) keepPending(null);connection.value=submissionWasRejected(e)?'connected':'offline';report(e)}
   finally {busy.value=false}
 }
 async function retryTask() {if(task.value?.retry_available) await submitOperation({kind:'retry',taskId:task.value.id})}

@@ -19,7 +19,7 @@ function delay(ms:number, signal:AbortSignal) {
 }
 
 export class TravelApiError extends Error {
-  constructor(public code: string, message: string, public retryable = false) { super(message) }
+  constructor(public code: string, message: string, public retryable = false, public retryAfterSeconds?:number) { super(message) }
 }
 
 export function fetchTransport(base: string, timeoutMs = 15_000): Transport {
@@ -38,7 +38,8 @@ export function fetchTransport(base: string, timeoutMs = 15_000): Transport {
     })
     const data = await response.json().catch(() => { throw new TravelApiError('invalid_response', '服务返回了无效响应', true) })
     if (!response.ok) {
-      throw new TravelApiError(data.error?.code || 'http_error', data.error?.message || `请求失败 (${response.status})`, data.error?.retryable ?? (response.status>=500||response.status===429))
+      const retryAfter=Number(response.headers.get('Retry-After'))
+      throw new TravelApiError(data.error?.code || 'http_error', data.error?.message || `请求失败 (${response.status})`, data.error?.retryable ?? (response.status>=500||response.status===429), Number.isFinite(retryAfter)&&retryAfter>0?retryAfter:undefined)
     }
     return data
     } catch(error) {

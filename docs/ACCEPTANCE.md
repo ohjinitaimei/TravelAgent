@@ -18,9 +18,9 @@ Linux 浏览器首次安装使用 `npx playwright install --with-deps --only-she
 
 | 检查 | 数量 | 覆盖范围 |
 | --- | ---: | --- |
-| Python | 52 | 旅行 API 13、Agent 6、澄清 4、MCP 服务端 1、任务恢复 3、MCP 客户端 11、鉴权隔离 14 |
-| TypeScript 客户端 | 12 | HTTP 契约、轮询期限/取消、暂时断线、提交收据恢复、表单与编辑状态、工具握手、账号绑定与恢复 |
-| Chromium | 14 | 旅行工作台 8 项、账号流程 6 项 |
+| Python | 66 | 旅行 API 13、Agent 6、澄清 4、MCP 服务端 1、任务恢复 3、MCP 客户端 11、鉴权隔离 14、业务限流 8、备份恢复 6 |
+| TypeScript 客户端 | 13 | HTTP 契约、轮询期限/取消、暂时断线、提交收据恢复、表单与编辑状态、工具握手、账号绑定与恢复、配额拒绝与 Retry-After |
+| Chromium | 15 | 旅行工作台 9 项、账号流程 6 项 |
 | Web / Schema | — | TypeScript 检查、Vite 构建、OpenAPI 生成文件一致性 |
 
 浏览器场景：
@@ -33,6 +33,7 @@ Linux 浏览器首次安装使用 `npx playwright install --with-deps --only-she
 6. 取消进行中的任务 → 状态终结 → 提供显式原条件重试。
 7. 打开已保存多日行程 → 录入站点费用 → 编辑重算创建新版本 → 原行程可读，缺失费用仍为未知。
 8. 预算页面主动检查数据工具 → 后端完成真实 MCP 握手 → 界面单列地图授权未配置，不将连接通过当作业务成功。
+9. 业务限额拒绝 → 展示等待秒数 → 清理未确认提交并保留表单 → 刷新不会重放请求 → 用户可再次提交；此页面场景使用显式 429 故障注入，真实配额拒绝由后端 HTTP 测试覆盖。
 
 新增的 MCP 客户端检查使用实际 stdio 子进程：生产工具服务的成功输出 Schema（测试进程显式注入 FixtureProvider）、现有规划算法、已有 ToolRegistry、工具白名单、调用次数/总时限、握手/调用超时、意外退出、文本或非法业务结果拒绝、错误脱敏、生产固定命令/凭证边界，以及任务取消和超时后的子进程退出。`POST /tool-service/check` 还对真实随仓库提供的服务执行不消耗 Provider 配额的握手；生产任务在缺 Key 时失败且不保存虚假行程。
 
@@ -46,7 +47,9 @@ Linux 浏览器首次安装使用 `npx playwright install --with-deps --only-she
 
 这些结果验证页面、API 与后端算法之间的调用和状态一致性。高德 POI、真实交通时间、地图 SDK 及授权限制需要取得合法 Key 后另行验收；票价、库存、评论等无授权来源时保持缺失。未使用测试数据替代生产接口结果。
 
-当前验收范围为本机单 API 进程的 Web 工作台，覆盖本地模式及多账号数据隔离。公网 HTTPS、业务限流、运维备份、多实例队列和移动端真机在 [后续计划](RELEASE_STATUS.md) 单列。启用与迁移方法见 [AUTH_ISOLATION.md](architecture/AUTH_ISOLATION.md)。
+本轮新增的后端检查覆盖用户/全局固定窗口持久化、原子扣减、队列与活动任务限额、去重不扣配额、真实 HTTP 429/Retry-After、查询/取消/退出仍可用、工具并发释放和 SSE 槽位回收。备份演练在源 WAL 连接仍运行时取得已提交快照，在新路径恢复后通过真实 API 登录两用户，核对行程/草案/收据归属、会话撤销、未完成任务终结、损坏/不兼容库拒绝和不覆盖已有文件。未恢复或修改个人业务数据库。
+
+当前验收范围为本机单 API 进程的 Web 工作台，覆盖本地模式、多账号隔离、业务限流和本地备份恢复。公网 HTTPS、异地备份部署、多实例队列和移动端真机在 [后续计划](RELEASE_STATUS.md) 单列。启用与迁移方法见 [AUTH_ISOLATION.md](architecture/AUTH_ISOLATION.md)，限流配置和恢复方法见 [OPERATIONS.md](architecture/OPERATIONS.md)。
 
 ## API 恢复约定
 
