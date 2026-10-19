@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue'
 import { useTravelApi, apiBase, type Draft, type Itinerary, type PlanRequest, type Poi, type Schema, type Task, type TravelEvent } from './api'
 import RouteMap from './components/RouteMap.vue'
 import { readSession, restoreForm, writeSession } from './session'
-import { userPrices } from './editor'
+import { userPrices, editSnapshot, editChanges, type EditSnapshot } from './editor'
+import EditComparison from './components/EditComparison.vue'
+import DiscardChangesDialog from './components/DiscardChangesDialog.vue'
 import RequestAssistant from './components/RequestAssistant.vue'
 import ToolConnection from './components/ToolConnection.vue'
 import OptimizationComparison from './components/OptimizationComparison.vue'
@@ -13,7 +15,7 @@ import { newSubmission, restoreSubmission, sendSubmission, recoverSubmission, su
 
 type Tab = 'plan' | 'explore' | 'saved' | 'budget'
 const props=defineProps<{user:Schema<'AuthUser'>;authEnabled:boolean}>()
-defineEmits<{logout:[]}>()
+const emit=defineEmits<{logout:[]}>()
 const api=useTravelApi()
 let disposed=false
 const tabs = ['plan', 'explore', 'saved', 'budget'] as const
@@ -41,18 +43,50 @@ const editing = ref(false), editIds = ref<string[][]>([]), editPrices = reactive
 const optimize = ref(false), editStay = ref(60), addDay = ref(0)
 const editDurations = reactive<Record<string, number>>({}), moveDays = reactive<Record<string,number>>({})
 const addedPois = reactive<Record<string,Poi>>({})
+const editBaseline=ref<EditSnapshot|null>(null)
+const discardIntent=shallowRef<{action:string;run:()=>void|Promise<void>}|null>(null)
+const selectedStopId=ref<string|null>(null), timeline=ref<HTMLElement>()
 const editConstraints = reactive({start_date:localDate, day_start:'09:00', day_end:'18:00', mode:'walking' as 'walking'|'driving', budget:null as number|null})
 const restoring = ref(false)
 let stream: EventSource | null = null, controller: AbortController | null = null
 const taskActive=computed(()=>['queued','running'].includes(task.value?.status||''))
 const active = computed(() => restoring.value || taskActive.value || Boolean(pending.value))
 const day = computed(() => itinerary.value?.days[selectedDay.value])
+function captureEdit() {return editSnapshot({groups:editIds.value,prices:editPrices,durations:editDurations,constraints:editConstraints,defaultStay:editStay.value,optimize:optimize.value})}
+const changes=computed(()=>editing.value&&editBaseline.value?editChanges(editBaseline.value,captureEdit(),editName):[])
+const editDirty=computed(()=>changes.value.length>0)
+const previewPois=computed(()=>editing.value?editIds.value[selectedDay.value]?.map(id=>itinerary.value?.days.flatMap(d=>d.stops).find(s=>s.poi.id===id)?.poi??addedPois[id]).filter((poi):poi is Poi=>Boolean(poi)):undefined)
+const visiblePois=computed(()=>previewPois.value??day.value?.stops.map(s=>s.poi)??[])
 const statusLabels: Record<string,string> = { queued:'排队中', running:'规划中', succeeded:'已完成', failed:'失败', cancelled:'已取消', timed_out:'已超时' }
 const nav = [{id:'plan',icon:'⌘',label:'行程工作台'}, {id:'explore',icon:'⌖',label:'探索地点'}, {id:'saved',icon:'▤',label:'已保存行程'}, {id:'budget',icon:'◫',label:'预算与约束'}] as const
 const title = computed(() => ({plan:'让下一段旅程，从容出发', explore:'寻找旅程中的下一站', saved:'留住每一次出发的计划', budget:'看清预算，也看清未知'}[tab.value]))
 function report(e: unknown) { error.value = e instanceof Error ? e.message : '请求失败，请稍后重试' }
 function eventTime(value?:string) { return value ? new Date(value).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '时间未提供' }
 function sourceTime(value?:string) { return value ? new Date(value).toLocaleString('zh-CN') : '时间未提供' }
+function clearEditor() {
+  editing.value=false;editBaseline.value=null
+  for(const key of Object.keys(addedPois)) delete addedPois[key]
+  for(const key of Object.keys(moveDays)) delete moveDays[key]
+}
+function requestLeave(run:()=>void|Promise<void>,action:string) {
+  if(editDirty.value) {discardIntent.value={run,action};return}
+  void run()
+}
+function discardAndContinue() {
+  const intent=discardIntent.value;discardIntent.value=null;clearEditor()
+  if(intent) void Promise.resolve(intent.run()).catch(report)
+}
+function exitEdit() {requestLeave(()=>{clearEditor();notice.value='已退出编辑，显示已保存版本。'},'放弃修改并退出编辑')}
+function logout() {requestLeave(()=>{clearEditor();emit('logout')},'放弃修改并退出登录')}
+function beforeUnload(event:BeforeUnloadEvent) {if(editDirty.value){event.preventDefault();event.returnValue=''}}
+async function selectStop(id:string,fromMap=false) {
+  if(!visiblePois.value.some(poi=>poi.id===id)) return
+  selectedStopId.value=id
+  if(fromMap){await nextTick();const row=Array.from(timeline.value?.querySelectorAll<HTMLElement>('[data-stop-id]')??[]).find(el=>el.dataset.stopId===id);row?.scrollIntoView({block:'nearest'});row?.querySelector<HTMLButtonElement>('.stop-number,.edit-select')?.focus({preventScroll:true})}
+}
+watch([selectedDay,()=>itinerary.value?.id],()=>{selectedStopId.value=null})
+watch(visiblePois,pois=>{if(selectedStopId.value&&!pois.some(poi=>poi.id===selectedStopId.value))selectedStopId.value=null})
+watch(editDirty,value=>{if(value)window.addEventListener('beforeunload',beforeUnload);else window.removeEventListener('beforeunload',beforeUnload)})
 function mergeEvents(items: TravelEvent[]) { events.value = [...new Map([...events.value,...items].map(e=>[e.id,e])).values()].sort((a,b)=>a.id-b.id) }
 async function refreshSaved() { saved.value = (await api.itineraries()).items }
 async function follow(created: Task) {
@@ -73,8 +107,9 @@ async function follow(created: Task) {
       draftConflict.value=false
       notice.value='需求草案已生成，请核对后填入表单'
     } else if (final.status === 'succeeded' && final.itinerary_id) {
-      itinerary.value = await api.itinerary(final.itinerary_id); selectedDay.value = 0; editing.value = false
-      notice.value = '行程已生成并保存'; await refreshSaved()
+      const result=await api.itinerary(final.itinerary_id)
+      if(!editing.value||result.id!==itinerary.value?.id){itinerary.value=result;selectedDay.value=0;clearEditor()}
+      notice.value = editing.value&&editDirty.value?'已同步保存版本，本次编辑尚未保存。':'行程已生成并保存'; await refreshSaved()
     } else if (final.error) error.value = final.error.message
     else notice.value = '任务已取消'
   } catch (e) { if (!localController.signal.aborted) {connection.value='offline';report(e)} }
@@ -92,6 +127,9 @@ function keepPending(value:PendingSubmission|null) {
 }
 async function submitOperation(operation:Operation) {
   if(busy.value||active.value) return
+  if(editing.value&&(operation.kind==='plan'||operation.kind==='retry')) {
+    requestLeave(()=>{clearEditor();return submitOperation(operation)},'放弃修改并提交新任务');return
+  }
   const value=newSubmission(operation)
   keepPending(value);busy.value=true;error.value='';notice.value=''
   try {const created=await sendSubmission(api,value);keepPending(null);await follow(created)}
@@ -112,7 +150,7 @@ async function retryTask() {if(task.value?.retry_available) await submitOperatio
 async function generate() {
   if (busy.value || active.value) return
   if(staleDraft.value) {error.value='草案已更新，请先填入最新草案，或选择保留当前表单。';return}
-  error.value = ''; editing.value = false
+  error.value = ''
   const budget = typeof form.budget === 'number' && Number.isFinite(form.budget) ? form.budget : null
   await submitOperation({kind:'plan',request:{...form,budget,user_prices:{}}})
 }
@@ -150,21 +188,24 @@ async function search() {
   finally { searching.value=false }
 }
 async function detail(poi: Poi) {
+  if(visiblePois.value.some(value=>value.id===poi.id)) void selectStop(poi.id)
   loadingDetail.value = true; error.value = ''
   try { selectedPoi.value = await api.detail(poi.id) } catch(e) { report(e) }
   finally { loadingDetail.value = false }
 }
 function edit() {
-  if (!itinerary.value) return
+  if (!itinerary.value||busy.value||active.value) return
+  if(editing.value){tab.value='plan';return}
+  clearEditor()
   editIds.value = itinerary.value.days.map(d=>d.stops.map(s=>s.poi.id))
   editStay.value=itinerary.value.request.stay_minutes; optimize.value=false
   for (const key of Object.keys(editPrices)) delete editPrices[key]
   for (const d of itinerary.value.days) for (const stop of d.stops) editPrices[stop.poi.id] = stop.user_cost == null ? '' : String(stop.user_cost)
-  editing.value=true
   addDay.value=selectedDay.value
   Object.assign(editConstraints, {start_date:itinerary.value.request.start_date, day_start:itinerary.value.request.day_start, day_end:itinerary.value.request.day_end, mode:itinerary.value.request.mode, budget:itinerary.value.request.budget??null})
   for(const key of Object.keys(editDurations)) delete editDurations[key]
   for(const d of itinerary.value.days) for(const stop of d.stops) editDurations[stop.poi.id]=stop.stay_minutes
+  editBaseline.value=captureEdit();editing.value=true
 }
 function editName(id:string) { return itinerary.value?.days.flatMap(d=>d.stops).find(s=>s.poi.id===id)?.poi.name || addedPois[id]?.name || id }
 function move(index:number, offset:number) { const ids=editIds.value[selectedDay.value]; const target=index+offset; if(target>=0&&target<ids.length) [ids[index],ids[target]]=[ids[target],ids[index]] }
@@ -176,6 +217,7 @@ function transfer(id:string) {
   editIds.value[target].push(id)
 }
 function add(poi:Poi) {
+  if(busy.value||active.value) return
   if (!editing.value) { error.value='请先在工作台点击编辑行程'; return }
   if(editIds.value.some(d=>d.includes(poi.id))) { error.value='该地点已在行程中'; return }
   if(editIds.value[addDay.value].length>=4) { error.value='每天最多 4 站'; return }
@@ -198,7 +240,10 @@ async function saveEdit() {
   const budget=typeof editConstraints.budget==='number'&&Number.isFinite(editConstraints.budget)?editConstraints.budget:null
   await submitOperation({kind:'adjust',itineraryId:itinerary.value.id,request:{...editConstraints, budget, poi_ids_by_day:editIds.value, user_prices:prices, stay_minutes:editStay.value, stay_minutes_by_poi:durations, optimize_order:optimize.value}})
 }
-async function openTrip(id:string) { if(active.value||busy.value) return; try { itinerary.value=await api.itinerary(id); selectedDay.value=0; tab.value='plan'; editing.value=false; selectedPoi.value=null; error.value=''; task.value=null; events.value=[]; delete session.taskId; persist() } catch(e) { report(e) } }
+function openTrip(id:string) {
+  if(active.value||busy.value) return
+  requestLeave(async()=>{busy.value=true;try {const result=await api.itinerary(id);clearEditor();itinerary.value=result;selectedDay.value=0;tab.value='plan';selectedPoi.value=null;error.value='';task.value=null;events.value=[];delete session.taskId;persist()}catch(e){report(e)}finally{busy.value=false}},'放弃修改并打开行程')
+}
 watch(form, ()=>{session.form={...form};persist()}, {deep:true})
 watch(itinerary, value=>{session.itineraryId=value?.id;persist()})
 watch(tab, value=>history.replaceState(null,'',`#${value}`))
@@ -208,7 +253,7 @@ async function synchronize() {
   restoring.value=true
   try {
     await Promise.allSettled([api.capabilities().then(value=>{capability.value=value}).catch(report),refreshSaved().catch(report)])
-    if(typeof session.itineraryId==='string') {
+    if(typeof session.itineraryId==='string'&&!editing.value) {
       try { itinerary.value=await api.itinerary(session.itineraryId) } catch(e) {if(e instanceof TravelApiError&&e.code==='itinerary_not_found') {delete session.itineraryId;persist()} else report(e)}
     }
     if(typeof session.draftId==='string') {
@@ -216,7 +261,7 @@ async function synchronize() {
     }
     restoring.value=false
     if(pending.value) await restorePending(true)
-    else if(typeof session.taskId==='string') {
+    else if(typeof session.taskId==='string'&&(!editing.value||taskActive.value)) {
       try { const existing=await api.task(session.taskId);await follow(existing) }
       catch(e) {connection.value='offline';report(e)}
     }
@@ -228,7 +273,7 @@ onMounted(async()=>{
   window.addEventListener('hashchange',hashChanged);window.addEventListener('online',online);window.addEventListener('offline',offline)
   await synchronize()
 })
-onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.removeEventListener('hashchange',hashChanged);window.removeEventListener('online',online);window.removeEventListener('offline',offline)})
+onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.removeEventListener('hashchange',hashChanged);window.removeEventListener('online',online);window.removeEventListener('offline',offline);window.removeEventListener('beforeunload',beforeUnload)})
 </script>
 
 <template>
@@ -240,10 +285,11 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
       <div class="sidebar-bottom"><span class="dot" :class="{offline:!capability?.configured}"/>{{capability?.configured ? '真实数据服务已配置' : '真实数据服务待配置'}}<small>每一个地点，都有来源</small></div>
     </aside>
     <main>
-      <header class="topbar"><span>TRAVEL WORKSPACE <span class="separator">/</span> {{nav.find(n=>n.id===tab)?.label}}</span><span class="local-badge">{{authEnabled?user.username:'本地旅行空间'}}</span><button v-if="authEnabled" class="text-button" title="已受理的任务会保留在自己的空间" @click="$emit('logout')">退出登录</button></header>
+      <header class="topbar"><span>TRAVEL WORKSPACE <span class="separator">/</span> {{nav.find(n=>n.id===tab)?.label}}</span><span class="local-badge">{{authEnabled?user.username:'本地旅行空间'}}</span><button v-if="authEnabled" class="text-button" title="已受理的任务会保留在自己的空间" @click="logout">退出登录</button></header>
       <div class="page-heading"><div><div class="eyebrow">PLAN WITH INTENTION</div><h1>{{title}}</h1><p>把地点、路线与时间放在一起，规划属于你的旅程。</p></div><span class="heading-tag">Web 工作台 <span>01</span></span></div>
       <div v-if="error" role="alert" class="alert error"><span>{{error}}</span><button aria-label="关闭错误提示" @click="error=''">×</button></div>
       <div v-if="notice" role="status" class="alert success">{{notice}}</div>
+      <div v-if="editing&&editDirty" role="status" aria-label="未保存行程修改" class="unsaved-note"><span>本次编辑有 {{changes.length}} 项未保存修改。切换页面会保留；保存后重算路线并生成新版本。</span><button class="text-button" @click="tab='plan'">返回行程编辑</button></div>
       <div v-if="connection!=='connected'||(!capability&&error)" role="status" class="config-note connection-note"><span>{{connection==='reconnecting'?`正在恢复连接（${reconnectAttempt}）`:'连接状态待确认'}}。已提交的任务保留原记录，恢复连接只同步状态。</span><button class="secondary" :disabled="busy||restoring" @click="synchronize">恢复连接</button></div>
       <div v-if="pending" role="status" class="config-note connection-note"><span>尚未确认上次任务是否已受理。恢复将使用上次提交条件，已受理的任务不会重复创建。</span><button class="secondary" :disabled="busy||restoring" @click="restorePending(false)">恢复上次提交</button></div>
       <div v-if="capability && !capability.configured" class="config-note">高德数据将在授权配置后启用。规划与搜索目前会明确提示数据不可用。</div>
@@ -276,24 +322,26 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
           <section class="card route-workspace">
             <div class="section-title"><div><div class="eyebrow">YOUR ITINERARY</div><h2>{{itinerary?.title || '旅程地图与时间轴'}}</h2></div><button v-if="itinerary && !editing" class="secondary" :disabled="active||busy" @click="edit">编辑行程</button></div>
             <p v-if="itinerary&&task&&(task.kind==='draft'||task.status!=='succeeded')" class="saved-version-note">当前地图与时间轴显示已保存行程；本次任务的结果将在保存后更新。</p>
-            <div v-if="itinerary" class="day-tabs"><button v-for="(d,i) in itinerary.days" :class="{selected:selectedDay===i}" @click="selectedDay=i">DAY {{i+1}}<small>{{d.date}}</small></button></div>
-            <div v-if="day" class="day-summary"><span>{{day.stops.length}} 站</span><span>停留 {{day.stops.reduce((sum,s)=>sum+s.stay_minutes,0)}} 分钟</span><span>交通 {{day.stops.reduce((sum,s)=>sum+(s.travel_to_next?.duration_min??0),0)}} 分钟</span><span>{{day.stops.reduce((sum,s)=>sum+(s.travel_to_next?.distance_km??0),0).toFixed(2)}} km</span><small v-if="editing">当前地图与汇总为已保存版本，重算后更新</small></div>
-            <OptimizationComparison v-if="itinerary?.optimization" :summary="itinerary.optimization"/>
+            <div v-if="itinerary" class="day-tabs"><button v-for="(d,i) in itinerary.days" :class="{selected:selectedDay===i}" :aria-pressed="selectedDay===i" @click="selectedDay=i">DAY {{i+1}}<small>{{d.date}}</small></button></div>
+            <div v-if="day&&!editing" class="day-summary"><span>{{day.stops.length}} 站</span><span>停留 {{day.stops.reduce((sum,s)=>sum+s.stay_minutes,0)}} 分钟</span><span>交通 {{day.stops.reduce((sum,s)=>sum+(s.travel_to_next?.duration_min??0),0)}} 分钟</span><span>{{day.stops.reduce((sum,s)=>sum+(s.travel_to_next?.distance_km??0),0).toFixed(2)}} km</span></div>
+            <div v-if="editing" class="day-summary"><span>编辑预览 · {{editIds[selectedDay]?.length??0}} 个地点</span><span>路线与时间将在保存后重算</span></div>
+            <OptimizationComparison v-if="itinerary?.optimization&&!editing" :summary="itinerary.optimization"/>
+            <EditComparison v-if="editing" :changes="changes"/>
             <div class="route-columns">
-              <div class="timeline">
+              <div ref="timeline" class="timeline">
                 <div v-if="!itinerary" class="empty-state"><span>↗</span><h3>你的旅程，等待出发</h3><p>选择目的地并开始规划，地点和每日行程会在这里展开。</p></div>
                 <template v-else-if="editing">
                   <div class="edit-note">跨天移动地点、逐站调整时间与费用。保存时查询真实路线，并保留原版本。</div>
                   <fieldset class="edit-fields" :disabled="busy||active">
-                  <div v-for="(id,i) in editIds[selectedDay]" :key="id" class="edit-stop"><strong>{{i+1}}. {{editName(id)}}</strong><div class="edit-actions"><button :disabled="i===0" :aria-label="`上移 ${editName(id)}`" @click="move(i,-1)">↑</button><button :disabled="i===editIds[selectedDay].length-1" :aria-label="`下移 ${editName(id)}`" @click="move(i,1)">↓</button><button @click="editIds[selectedDay].splice(i,1)">移除</button></div><div class="field-row"><label>停留（分钟）<input v-model.number="editDurations[id]" type="number" min="10" max="360"/></label><label>用户录入费用<input v-model="editPrices[id]" type="number" min="0" placeholder="未知"/></label></div><div v-if="editIds.length>1" class="transfer-row"><select v-model.number="moveDays[id]" :aria-label="`移动 ${editName(id)} 到哪一天`"><option :value="undefined" disabled>选择目标日</option><option v-for="(_,index) in editIds" :value="index" :disabled="index===selectedDay">第 {{index+1}} 天</option></select><button class="text-button" @click="transfer(id)">移动</button></div></div>
+                  <div v-for="(id,i) in editIds[selectedDay]" :key="id" class="edit-stop" :class="{'selected-stop':selectedStopId===id}" :data-stop-id="id"><button class="edit-select" :aria-label="`地图定位 ${editName(id)}`" :aria-pressed="selectedStopId===id" @click="selectStop(id)">{{i+1}}. {{editName(id)}}</button><div class="edit-actions"><button :disabled="i===0" :aria-label="`上移 ${editName(id)}`" @click="move(i,-1)">↑</button><button :disabled="i===editIds[selectedDay].length-1" :aria-label="`下移 ${editName(id)}`" @click="move(i,1)">↓</button><button :aria-label="`移除 ${editName(id)}`" @click="editIds[selectedDay].splice(i,1)">移除</button></div><div class="field-row"><label>停留（分钟）<input v-model.number="editDurations[id]" type="number" min="10" max="360"/></label><label>用户录入费用<input v-model="editPrices[id]" type="number" min="0" placeholder="未知"/></label></div><div v-if="editIds.length>1" class="transfer-row"><select v-model.number="moveDays[id]" :aria-label="`移动 ${editName(id)} 到哪一天`"><option :value="undefined" disabled>选择目标日</option><option v-for="(_,index) in editIds" :value="index" :disabled="index===selectedDay">第 {{index+1}} 天</option></select><button class="text-button" @click="transfer(id)">移动</button></div></div>
                   <p v-if="!editIds[selectedDay].length" class="edit-note">此日尚无地点，请从其他日期移动或搜索添加。</p>
                   <details class="edit-constraints" open><summary>日期与行程约束</summary><label>出发日期<input v-model="editConstraints.start_date" type="date" required/></label><div class="field-row"><label>每日开始<input v-model="editConstraints.day_start" type="time" required/></label><label>每日结束<input v-model="editConstraints.day_end" type="time" required/></label></div><label>交通方式<select v-model="editConstraints.mode"><option value="walking">步行</option><option value="driving">驾车</option></select></label><label>总预算上限<input v-model.number="editConstraints.budget" type="number" min="0" placeholder="留空取消上限"/></label><label>新增站点默认停留（分钟）<input v-model.number="editStay" type="number" min="10" max="360"/></label></details><label class="check-label"><input v-model="optimize" type="checkbox"/>按真实距离重新排序</label>
                   </fieldset>
-                  <div class="edit-actions"><button class="primary" :disabled="busy||active" @click="saveEdit">保存并重算</button><button class="secondary" :disabled="busy||active" @click="editing=false">退出编辑</button></div><button class="text-button" @click="tab='explore';searchCity=itinerary.request.city">探索并添加地点 ↗</button>
+                  <div class="edit-actions"><button class="primary" :disabled="busy||active" @click="saveEdit">保存并重算</button><button class="secondary" :disabled="busy||active" @click="exitEdit">退出编辑</button></div><button class="text-button" @click="tab='explore';searchCity=itinerary.request.city">探索并添加地点 ↗</button>
                 </template>
-                <template v-else><article v-for="(stop,i) in day?.stops" :key="stop.poi.id" class="timeline-stop"><div class="stop-number">{{String(i+1).padStart(2,'0')}}</div><div class="stop-body"><div class="stop-time">{{stop.arrival_time}} <span>— {{stop.departure_time}}</span></div><button class="poi-name" @click="detail(stop.poi)">{{stop.poi.name}}</button><p>{{stop.poi.address || '地址未提供'}}</p><div class="stop-meta"><span>{{stop.stay_minutes}} 分钟 · 用户设定</span><span>{{stop.user_cost==null?'费用未知':`¥${stop.user_cost}`}}</span></div></div><div v-if="stop.travel_to_next" class="travel-leg">↳ {{stop.travel_to_next.mode==='walking'?'步行':'驾车'}} {{stop.travel_to_next.duration_min}} 分钟 · {{stop.travel_to_next.distance_km.toFixed(2)}} km <small>高德路线</small></div></article></template>
+                <template v-else><article v-for="(stop,i) in day?.stops" :key="stop.poi.id" class="timeline-stop" :class="{'selected-stop':selectedStopId===stop.poi.id}" :data-stop-id="stop.poi.id"><button class="stop-number" :aria-label="`地图定位 ${stop.poi.name}`" :aria-pressed="selectedStopId===stop.poi.id" @click="selectStop(stop.poi.id)">{{String(i+1).padStart(2,'0')}}</button><div class="stop-body"><div class="stop-time">{{stop.arrival_time}} <span>— {{stop.departure_time}}</span></div><button class="poi-name" @click="detail(stop.poi)">{{stop.poi.name}}</button><p>{{stop.poi.address || '地址未提供'}}</p><div class="stop-meta"><span>{{stop.stay_minutes}} 分钟 · 用户设定</span><span>{{stop.user_cost==null?'费用未知':`¥${stop.user_cost}`}}</span></div></div><div v-if="stop.travel_to_next" class="travel-leg">↳ {{stop.travel_to_next.mode==='walking'?'步行':'驾车'}} {{stop.travel_to_next.duration_min}} 分钟 · {{stop.travel_to_next.distance_km.toFixed(2)}} km <small>高德路线</small></div></article></template>
               </div>
-              <RouteMap :itinerary="itinerary" :selected-day="selectedDay" :poi="selectedPoi"/>
+              <RouteMap :itinerary="itinerary" :selected-day="selectedDay" :poi="selectedPoi" :selected-poi-id="selectedStopId" :preview="previewPois" @select="selectStop($event,true)"/>
             </div>
           </section>
         </div>
@@ -304,7 +352,7 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
           <div v-if="editing" class="add-target">加入 <select v-model.number="addDay"><option v-for="(_,i) in editIds" :value="i">第 {{i+1}} 天</option></select><button class="text-button" @click="tab='plan'">返回编辑</button></div>
           <div v-if="!results.length" class="empty-state"><span>⌖</span><h3>{{searching?'正在查找地点':'从一个关键词开始探索'}}</h3><p>搜索结果与详情来自授权接口，缺失信息会明确标记。</p></div>
           <article v-for="poi in results" :key="poi.id" class="poi-card"><div><span class="poi-category">{{poi.category || '类别未提供'}}</span><button class="poi-name" @click="detail(poi)">{{poi.name}}</button><p>{{poi.address || '地址未提供'}}</p><small>评分 {{poi.rating ?? '未知'}} · 人均消费 {{poi.average_spend==null?'未知':`¥${poi.average_spend}（非门票）`}}</small></div><button v-if="editing" class="secondary" @click="add(poi)">＋ 加入行程</button></article>
-        </div><RouteMap :itinerary="itinerary" :selected-day="selectedDay" :poi="selectedPoi"/>
+        </div><RouteMap :itinerary="itinerary" :selected-day="selectedDay" :poi="selectedPoi" :selected-poi-id="selectedStopId" :preview="previewPois" @select="selectedStopId=$event"/>
       </section>
 
       <section v-if="tab==='saved'" class="card saved-panel"><div class="section-title"><h2>已保存行程</h2><button class="text-button" @click="refreshSaved().catch(report)">刷新 ↻</button></div><div v-if="!saved.length" class="empty-state"><span>▤</span><h3>这里将收藏你的旅程</h3><p>成功生成的行程会自动保存；重新调整后保留原版本。</p></div><div class="saved-grid"><button v-for="trip in saved" :key="trip.id" class="saved-card" :disabled="active||busy" @click="openTrip(trip.id)"><span class="eyebrow">{{trip.parent_id?'ADJUSTED ITINERARY':'SAVED ITINERARY'}}</span><h3>{{trip.title}}</h3><p>{{trip.request.start_date}} · {{trip.days.length}} 天</p><div><span>{{trip.days.reduce((n,d)=>n+d.stops.length,0)}} 个地点</span><span>打开行程 ↗</span></div></button></div></section>
@@ -313,6 +361,7 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
 
       <div v-if="selectedPoi" class="modal-backdrop" @click.self="selectedPoi=null"><section class="poi-dialog" role="dialog" aria-modal="true" aria-label="地点详情"><button class="dialog-close" aria-label="关闭地点详情" @click="selectedPoi=null">×</button><div class="eyebrow">POI DETAILS · AMAP</div><h2>{{selectedPoi.name}}</h2><p>{{selectedPoi.address || '地址未知'}}</p><dl><dt>类别</dt><dd>{{selectedPoi.category || '未知'}}</dd><dt>评分</dt><dd>{{selectedPoi.rating ?? '未知'}}</dd><dt>人均消费（非门票）</dt><dd>{{selectedPoi.average_spend==null?'未知':`¥${selectedPoi.average_spend}`}}</dd><dt>营业时间</dt><dd>{{selectedPoi.opening_hours || '未知，需人工确认'}}</dd><dt>坐标</dt><dd>{{selectedPoi.longitude}}, {{selectedPoi.latitude}} · GCJ-02</dd><dt>来源获取时间</dt><dd>{{sourceTime(selectedPoi.source.retrieved_at)}}</dd></dl><p class="detail-note">尚无授权评论和票价数据。人均消费不能作为门票或最终预算。</p><button v-if="editing" class="primary" @click="add(selectedPoi);selectedPoi=null">加入第 {{addDay+1}} 天</button></section></div>
       <div v-if="loadingDetail" class="loading-toast" role="status">正在获取真实地点详情…</div>
+      <DiscardChangesDialog :open="Boolean(discardIntent)" :action="discardIntent?.action??'放弃修改'" @keep="discardIntent=null" @discard="discardAndContinue"/>
       <footer>TravelAgent <span>·</span> 地点有来源，规划有依据 <span class="footer-right">{{new Date().getFullYear()}} / YOUR NEXT JOURNEY</span></footer>
     </main>
   </div>

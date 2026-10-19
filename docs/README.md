@@ -12,7 +12,8 @@ POI data; they are not a claim that every historical feature is complete.
 3. [../NOTICE.md](../NOTICE.md)
 4. [architecture/TRAVEL_DELIVERY.md](architecture/TRAVEL_DELIVERY.md)
 5. [architecture/DRAFT_CLARIFICATION.md](architecture/DRAFT_CLARIFICATION.md)
-6. [legacy/MUSE_README.md](legacy/MUSE_README.md) (historical)
+6. [architecture/WEB_EDITING.md](architecture/WEB_EDITING.md)
+7. [legacy/MUSE_README.md](legacy/MUSE_README.md) (historical)
 
 ## Doc Groups
 

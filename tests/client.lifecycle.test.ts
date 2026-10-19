@@ -3,11 +3,53 @@ import test from 'node:test'
 import { createServer } from 'node:http'
 import { TravelApiError, TravelClient, fetchTransport } from '../packages/api-schema/client'
 import { restoreForm } from '../apps/web/src/session'
-import { userPrices } from '../apps/web/src/editor'
+import { userPrices,editSnapshot,editChanges,type EditInput } from '../apps/web/src/editor'
 import { clarificationRequest, draftForm } from '../apps/web/src/draft'
 import type { Draft } from '../packages/api-schema/client'
 import { newSubmission, restoreSubmission, sendSubmission, recoverSubmission, submissionWasRejected } from '../apps/web/src/submissions'
 import { reactive } from 'vue'
+
+function editorInput():EditInput {return {groups:[['a','b'],['c']],prices:{a:'',b:'0'},durations:{a:60,b:60,c:60},constraints:{start_date:'2026-10-20',day_start:'09:00',day_end:'18:00',mode:'walking',budget:100},defaultStay:60,optimize:false}}
+
+test('edit snapshots normalize numbers without retaining mutable inputs or removed fields',()=>{
+  const input=editorInput(),before=editSnapshot(input)
+  input.prices={a:' ',b:0,removed:99};input.durations.b='60'
+  assert.deepEqual(editChanges(before,editSnapshot(input),id=>id),[])
+  input.groups[0].reverse()
+  assert.deepEqual(before.groups,[['a','b'],['c']])
+  assert.ok(editChanges(before,editSnapshot(input),id=>id).some(change=>change.label==='位置 a'))
+})
+
+test('edit diff explains cross-day moves, additions and removals without traffic estimates',()=>{
+  const input=editorInput(),before=editSnapshot(input)
+  input.groups=[['b','d'],['c','a']];input.durations.d=40
+  let changes=editChanges(before,editSnapshot(input),id=>'TEST ONLY '+id)
+  assert.ok(changes.some(c=>c.label==='新增 TEST ONLY d'&&c.after==='第 1 天第 2 站'))
+  assert.ok(changes.some(c=>c.label==='位置 TEST ONLY a'&&c.after==='第 2 天第 2 站'))
+  input.groups=[['d'],['c','a']]
+  changes=editChanges(before,editSnapshot(input),id=>'TEST ONLY '+id)
+  assert.ok(changes.some(c=>c.label==='移除 TEST ONLY b'))
+})
+
+test('edit diff distinguishes unknown from zero and keeps invalid values dirty',()=>{
+  const input=editorInput(),before=editSnapshot(input)
+  input.prices.a=0
+  assert.ok(editChanges(before,editSnapshot(input),id=>id).some(c=>c.label==='费用 a'&&c.before==='未知'&&c.after==='0 元'))
+  input.prices.a=' ';input.durations.a=Number.NaN
+  assert.ok(editChanges(before,editSnapshot(input),id=>id).some(c=>c.label==='停留 a'&&c.after==='NaN 分钟'))
+  input.durations.a=60
+  assert.deepEqual(editChanges(before,editSnapshot(input),id=>id),[])
+})
+
+test('edit diff tracks constraints and sorting, and becomes clean when restored',()=>{
+  const input=editorInput(),before=editSnapshot(input)
+  input.constraints.mode='driving';input.constraints.budget='';input.defaultStay=90;input.optimize=true
+  const changes=editChanges(before,editSnapshot(input),id=>id)
+  assert.equal(changes.length,4)
+  assert.ok(changes.some(c=>c.label==='交通方式'&&c.after==='驾车'))
+  assert.ok(changes.some(c=>c.label==='预算上限'&&c.after==='未知'))
+  assert.deepEqual(editChanges(before,editSnapshot(editorInput()),id=>id),[])
+})
 
 test('admission rejections expose Retry-After and release pending submissions without replaying POST',async()=>{
   let posts=0

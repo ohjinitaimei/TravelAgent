@@ -41,6 +41,23 @@ test('login, refresh and logout use HttpOnly cookies without exposing tokens',as
   expect((await context.cookies()).some(value=>value.name==='travelagent_session')).toBeFalsy()
 })
 
+test('logout asks before discarding itinerary edits and canceled logout keeps the same account',async({page})=>{
+  await login(page);await saved(page)
+  await page.locator('.saved-card').first().click()
+  await page.getByRole('button',{name:'编辑行程',exact:true}).click()
+  await page.getByLabel('用户录入费用').first().fill('20')
+  await page.getByRole('button',{name:'退出登录',exact:true}).click()
+  const dialog=page.getByRole('dialog',{name:'有未保存的行程修改'})
+  await expect(dialog).toBeVisible()
+  await dialog.getByRole('button',{name:'继续编辑',exact:true}).click()
+  await expect(page.locator('.local-badge')).toHaveText('test-alpha')
+  await expect(page.getByRole('region',{name:'本次编辑改动'})).toContainText('20 元')
+  await page.getByRole('button',{name:'退出登录',exact:true}).click()
+  await dialog.getByRole('button',{name:'放弃修改并退出登录',exact:true}).click()
+  await expect(page.getByRole('heading',{name:'登录旅行空间',exact:true})).toBeVisible()
+  expect((await page.request.get('/api/v1/travel/itineraries')).status()).toBe(401)
+})
+
 test('independent users cannot open or adjust each other saved itineraries',async({page,browser})=>{
   await login(page)
   const own=await (await page.request.get('/api/v1/travel/itineraries')).json()
