@@ -113,3 +113,5 @@ sudo systemctl restart caddy
 本轮没有数据库迁移，代码回退可在停服后恢复上一份源码与 dist，保持数据目录。若确需回退数据库，先停 API、保留当前库和伴随文件，按恢复工具写入全新 `/var/lib/travelagent/` 路径并验证，再修改 `TRAVEL_DB_PATH` 后启动。恢复撤销会话、中断任务须显式重试，详细行为遵循既有备份工具。此处不自动覆盖库、切换线上配置或删除旧版本。
 
 后续已补充源码/Web 发布包、归档启动检查，以及定时备份命令/保留策略和 timer 模板，见 [RELEASE_BACKUP.md](RELEASE_BACKUP.md)。目标主机仍需验证正式 DNS/ACME、域名授权、实际权限、服务重启、timer 和恢复，再按供应商额度调整限额；当前模板不提供多实例队列、自动异地备份或零停机发布。
+
+暂无服务器时，可先执行 [LOCAL_RECOVERY.md](LOCAL_RECOVERY.md) 的发布包 HTTPS 在线备份、恢复和回退流程。本地 58 项已通过，但不替代上述 Linux/公网检查。

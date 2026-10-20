@@ -30,8 +30,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 12425,
-      "sha256": "e52064bf0892e1227d1a48c0296039f983bb088b3a66e55991ac017222ff034c"
+      "bytes": 12723,
+      "sha256": "8ffd337622ac31705a1003addf5db610ed266c57ddd1267e88e6d0de7292f5d5"
     },
     {
       "path": "analysis_options.yaml",
@@ -825,8 +825,8 @@
     },
     {
       "path": "docs/ACCEPTANCE.md",
-      "bytes": 13677,
-      "sha256": "d2381ed2e1efc14a8914de30b4c9ff799fdbf594bebc5bf8e169db12461cc2bc"
+      "bytes": 14192,
+      "sha256": "2050565ca9ac2f22c9d9ddfa717c55bafd1a6965762feca3c887c4bc898b0405"
     },
     {
       "path": "docs/README.md",
@@ -835,8 +835,8 @@
     },
     {
       "path": "docs/RELEASE_STATUS.md",
-      "bytes": 9203,
-      "sha256": "c9a59f2e07d30dd247fff93f13ae3b33ae7223c85df5996253e3dc59e37577e7"
+      "bytes": 9561,
+      "sha256": "8ca14352541dec6366b3703e048549ce6259ce52d74ba8480fa5b8245c5123b7"
     },
     {
       "path": "docs/TECHNICAL_REPORT.md",
@@ -880,8 +880,8 @@
     },
     {
       "path": "docs/architecture/DEPLOYMENT.md",
-      "bytes": 10836,
-      "sha256": "92a1d82ba931e04f17e9f250269ad4e4abafd21acb4f455c1565bff21d2eeb6f"
+      "bytes": 11034,
+      "sha256": "a4dd0da7ae9f5ded13c78b19076d0fbf53ad4224c17e36627f0ec72759648ece"
     },
     {
       "path": "docs/architecture/DRAFT_CLARIFICATION.md",
@@ -914,14 +914,19 @@
       "sha256": "1c46892edc46a642354bee2123afb7d923772d95b86a1a464aed8896d981639d"
     },
     {
+      "path": "docs/architecture/LOCAL_RECOVERY.md",
+      "bytes": 6295,
+      "sha256": "bf40d99a6bc8903033a788eccf03a3c82c28b4ddc5c9bab130b32aedb88c0b01"
+    },
+    {
       "path": "docs/architecture/MCP_CLIENT.md",
       "bytes": 6099,
       "sha256": "3f65b6c3754dbbbe70634e56f68577c2bfabadd61d7d356164e6dccdb7993499"
     },
     {
       "path": "docs/architecture/OPERATIONS.md",
-      "bytes": 8151,
-      "sha256": "bc0f27baaaa0e9ca013fecd2528356fdd8ea4ca12257751146f33382cd508796"
+      "bytes": 8445,
+      "sha256": "b864888c904d9c72d8b7d726d31e7f8468fd571783af52e2f0cff7357c213762"
     },
     {
       "path": "docs/architecture/README.md",
@@ -1184,14 +1189,19 @@
       "sha256": "4d054dd798d75183bf84fc662670d01eb4a062a81e76418dbfd63d1813f8a495"
     },
     {
+      "path": "scripts/verify_recovery.py",
+      "bytes": 15570,
+      "sha256": "e9a19e41ad42819ea061122089aef8ef5f320c63ae5dfbee05e87688daf2fee8"
+    },
+    {
       "path": "scripts/verify_release_runtime.py",
       "bytes": 3110,
       "sha256": "3713d6341171343a1c2eec762ba45d8836fb7e8cec673efe67ab307c06aaf49a"
     },
     {
       "path": "scripts/verify_repository.py",
-      "bytes": 3393,
-      "sha256": "f17f0fa02ede48419c5f60c0efd0d83c3718f298bf915bc7e71017b0f0fb9817"
+      "bytes": 3419,
+      "sha256": "be9074e20b3c6895c19ac268581cd63e896b6425d23e699277df5d49356422b4"
     },
     {
       "path": "test/widget_test.dart",
@@ -1247,6 +1257,11 @@
       "path": "tests/mcp_fixture_server.py",
       "bytes": 3546,
       "sha256": "fe1da3cd54ef9de82e7a3200a68a967426811074479df062244d26180022ab21"
+    },
+    {
+      "path": "tests/recovery_seed.py",
+      "bytes": 3325,
+      "sha256": "e341fa77c7983afb399065f3dcdc3e2ce2bb1d4d32d8649f2cf61653656e1ff7"
     },
     {
       "path": "tests/test_agent_intake.py",
@@ -1307,6 +1322,11 @@
       "path": "tests/test_mcp_client.py",
       "bytes": 12064,
       "sha256": "718d353976807a6d7a99c3da41b20bc109d06adb5e67d9d811f0401a7781d5bd"
+    },
+    {
+      "path": "tests/test_recovery_safety.py",
+      "bytes": 1897,
+      "sha256": "41504f92d6c7c2e2acdb220134331106def6cc87389fa7eb780993b1bab1944d"
     },
     {
       "path": "tests/test_release_package.py",

@@ -19,13 +19,14 @@
 - 完成结果读取失败时保留旧行程与编辑内容，单列待同步状态，恢复同一任务并阻止重复保存；生产构建覆盖连续断线、迟到响应和 12 站行程的编辑/保存/刷新及交互门槛，见 [RESILIENCE_PERFORMANCE.md](architecture/RESILIENCE_PERFORMANCE.md)。
 - Caddy HTTPS 同源入口、单 API systemd 模板、配置预检、独立健康检查和只读上线检查；本地临时 CA 与生产构建完成 29 项 HTTPS 联调，见 [DEPLOYMENT.md](architecture/DEPLOYMENT.md)。
 - 可重复校验的源码/Web 发布 ZIP、独立归档启动检查，以及复用原 WAL 快照的定时备份命令、独占锁、显式保留清理与 systemd timer 模板，见 [RELEASE_BACKUP.md](architecture/RELEASE_BACKUP.md)。
+- 发布包内生产服务的本地 HTTPS 在线快照、新路径恢复和回退演练，覆盖双账号、旧会话撤销、任务事件、数据时间点与缺授权失败，58 项通过，见 [LOCAL_RECOVERY.md](architecture/LOCAL_RECOVERY.md)。
 - 同源高德 JS 安全密钥代理：密钥留在后端，固定 SDK 接口、账号会话、来源/参数校验、现有配额与并发限制，以及有界响应和日志脱敏；本地与登录模式均通过真实地图验证，见 [AMAP_PROXY.md](architecture/AMAP_PROXY.md)。
 
 ## 验证边界
 
 历史环境已验证真实模型需求提取及 Web 代理到后端的草案补充 HTTP 链路。自动验收中的成功行程使用 tests 中隔离的 FixtureProvider。2026-10-19 另以用户授权的高德 Web 服务 Key 完成直接 Provider 与 MCP 的真实 POI/路线/异步规划，以及多日调整版本、Web 保存重开与刷新复查；未使用 FixtureProvider、模拟交通或模型补事实。同日配置独立 JS API 授权后，Chromium 实测通过真实底图、编号标记、道路折线、跨天切换和刷新恢复，详细边界见 [LIVE_AMAP.md](architecture/LIVE_AMAP.md)。
 
-当前自动检查集规模为 180 个逻辑用例，共 264 次执行：Python 115 项、共享客户端 23 项、页面 42 个场景在 Chromium/Firefox/WebKit 各执行一次（126 次）。本次发布/备份阶段重跑 Python/客户端/构建；三引擎完整页面矩阵沿用同日弱网阶段，Chromium 账号 10 项与 29 项本地 HTTPS 联调来自部署阶段，未在本轮重复。另有归档启动 4 项独立检查。首轮完整回归因电脑休眠打断 MCP 超时断言，唤醒后按原超时复查并重新完整运行，详见 [发布与备份记录](architecture/RELEASE_BACKUP.md)。真实地图检查单列于 [跨浏览器验收](architecture/BROWSER_ACCEPTANCE.md)。本机草稿、键盘、弱网性能、部署及发布/备份阶段未新增真实高德调用；性能结果不包含 SDK 瓦片加载。无密钥脚本使用独立临时库和显式 TEST ONLY 服务。本轮未上传代码或触发新的 GitHub Actions；Linux systemd、公网证书、正式域名和真机不属于此次验证。
+当前自动检查集规模为 183 个逻辑用例，共 267 次执行：Python 118 项、共享客户端 23 项、页面 42 个场景在 Chromium/Firefox/WebKit 各执行一次（126 次）。发布/备份阶段重跑 Python 115/客户端/构建；本次本地恢复阶段定向通过备份/轮换/发布包/安全 Python 23 项及 HTTPS 恢复/回退 58 项，未重跑其余全量矩阵。三引擎完整页面矩阵沿用同日弱网阶段，Chromium 账号 10 项与 29 项 HTTPS 联调来自部署阶段；归档启动另有 4 项记录。首轮完整回归因电脑休眠打断 MCP 超时断言，唤醒后按原超时复查并完整重跑，详见 [发布与备份记录](architecture/RELEASE_BACKUP.md)。真实地图检查单列于 [跨浏览器验收](architecture/BROWSER_ACCEPTANCE.md)。本机草稿、键盘、弱网性能、部署、发布与本地恢复阶段未新增真实高德调用；性能结果不包含 SDK 瓦片加载。所有测试使用独立临时库和显式 TEST ONLY 记录。本轮未上传代码或触发新的 GitHub Actions；Linux systemd、公网证书、正式域名和真机不属于此次验证。
 
 验证服务使用文件信号优雅退出，确保 Windows 下任务进程、SQLite 和日志先关闭再清理临时目录。源码清单由 `scripts/update_publish_manifest.py` 生成并由 CI 校验，排除凭证、缓存和运行记录。
 

@@ -65,4 +65,6 @@ python -m travel.backup verify ../backups/2026-10-19-01
 
 `tests/test_business_limits.py` 使用独立数据库验证持久化、窗口到期、用户/全局配额、原子扣减、任务去重、队列/并发拒绝、取消与查询可用、工具异常释放、SSE 回收及非法配置。`tests/test_backup.py` 在源 WAL 连接与未提交事务仍存在时备份，恢复后通过真实 API 登录两用户并核对归属，验证草案修订、收据、配额、会话撤销、任务终结、损坏/缺失归属拒绝及不覆盖已有文件。
 
+发布包内生产服务另已完成本地 HTTPS 在线快照、新路径恢复与较新快照回退的 58 项演练，含双账号、会话撤销、任务事件与原库/快照不变；种子只在 `.tmp/` 离线写入，API 不替换 Provider，见 [LOCAL_RECOVERY.md](LOCAL_RECOVERY.md)。
+
 共享客户端与 Chromium 另验证 HTTP 429 提示、未确认提交清理及用户再次提交。浏览器拒绝响应通过显式测试故障注入，真实后端限流由 HTTP 测试覆盖。全部使用 `tests/` 的 TEST ONLY 记录，不涉及真实个人数据库或外部 API。
