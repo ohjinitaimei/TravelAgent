@@ -31,6 +31,8 @@ windows/flutter/ephemeral/
 .env.*
 !.env.example
 backend/.env
+deploy/backend.env
+deploy/gateway.env
 *.sqlite
 *.sqlite3
 *.sqlite-wal

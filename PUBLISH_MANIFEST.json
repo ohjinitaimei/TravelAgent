@@ -15,8 +15,8 @@
     },
     {
       "path": ".gitignore",
-      "bytes": 1336,
-      "sha256": "fb76ea51e1e8765ba7c5a77a3b5750f440370a864f4e94f99ab3fc3868edb1e2"
+      "bytes": 1374,
+      "sha256": "59431f329fffefb1f2ced9ea21d77f152292519f54a111c8846c479bf3f71424"
     },
     {
       "path": ".metadata",
@@ -30,8 +30,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 11785,
-      "sha256": "9dc8114403d74a6a1988469c2fcf18fde2d305b481b52be6d6f72bb0c1424e61"
+      "bytes": 12123,
+      "sha256": "309eb9044e1185e8a3782397613014add8bf2fd1c65aa1f8aad9c0e0101bf812"
     },
     {
       "path": "analysis_options.yaml",
@@ -505,8 +505,8 @@
     },
     {
       "path": "backend/main.py",
-      "bytes": 16736,
-      "sha256": "185e79b90285f30ac2ac0c251b61a1f5396ce52e9146d9b84d7fb2eb30a420b8"
+      "bytes": 16820,
+      "sha256": "f5c7393da36e9d9521174592ad60a8a30c53358da5b223e5d6ef9e1cd6ca63ad"
     },
     {
       "path": "backend/policy/README.md",
@@ -714,6 +714,11 @@
       "sha256": "89592eaead7b38b103265b5268dec3dc047d0d39787a09c51394459abc445b0f"
     },
     {
+      "path": "backend/travel/health.py",
+      "bytes": 930,
+      "sha256": "d7f4b3a33c38d3b79ae8747b39211986471539b4e3ecf827a27929bbe3b1671b"
+    },
+    {
       "path": "backend/travel/limits.py",
       "bytes": 4940,
       "sha256": "7582bb897a8c19cdfd85e1dfb802e3b69062a823d0c1343bddd319a1b289be79"
@@ -779,9 +784,34 @@
       "sha256": "7df93eeca552fd73500eec22be59c3c2818b043f9f111f722342a38f31afb70b"
     },
     {
+      "path": "deploy/Caddyfile",
+      "bytes": 1507,
+      "sha256": "f1cc0712786f2ed5e11a7a5ecd59c818aeb647cbf16a05d4981ac4b720bbc872"
+    },
+    {
+      "path": "deploy/backend.env.example",
+      "bytes": 684,
+      "sha256": "5dd0cf51675343d06db6d57652165f690c71eb6b4b5b3a9e7be3e925e81eec60"
+    },
+    {
+      "path": "deploy/caddy-override.conf",
+      "bytes": 343,
+      "sha256": "d0bc30f3719668b98afaaed4cb24c59cb5e5a4f121a091d6cd3f3aaf1e77fcba"
+    },
+    {
+      "path": "deploy/gateway.env.example",
+      "bytes": 405,
+      "sha256": "f28f995713580559545f4e21eb98aca4a532d870fbc87129180b8edbc7bc62f3"
+    },
+    {
+      "path": "deploy/travelagent-api.service",
+      "bytes": 781,
+      "sha256": "f8f534ac9a4b715f5619e4ebecd55d4980513b764bf722e5e452ad24cd2b6104"
+    },
+    {
       "path": "docs/ACCEPTANCE.md",
-      "bytes": 12415,
-      "sha256": "330b95ab9a940cace1f8a8dc6de3c7b00b2bf8a9143ec599397595657cab09a2"
+      "bytes": 13109,
+      "sha256": "a5e56ee6f66d16a13b4f759a0b0854690a227b554d301e4f13e5269ab617225e"
     },
     {
       "path": "docs/README.md",
@@ -790,8 +820,8 @@
     },
     {
       "path": "docs/RELEASE_STATUS.md",
-      "bytes": 8173,
-      "sha256": "74df7ba42d4a325a933531a6255b94967cfa07840681aa8aa7faf20593992237"
+      "bytes": 8683,
+      "sha256": "6ec62f7e29c3b909ba2f8af30db4faed6d89e5e2c2d270dfb9d2092d49e3b429"
     },
     {
       "path": "docs/TECHNICAL_REPORT.md",
@@ -834,6 +864,11 @@
       "sha256": "a79836cbfe6d208326e93e26efb7a3f2e7e50a50163635fc190b518de612d976"
     },
     {
+      "path": "docs/architecture/DEPLOYMENT.md",
+      "bytes": 10697,
+      "sha256": "f74a38e0775dcf092c65285b0b96e83ae39f52af7a233c446e338c3a3aa551c7"
+    },
+    {
       "path": "docs/architecture/DRAFT_CLARIFICATION.md",
       "bytes": 6955,
       "sha256": "ceeb7697017d917b44c96115c08489db4aeac3e148968db63e824eb117a7bd2f"
@@ -870,8 +905,8 @@
     },
     {
       "path": "docs/architecture/OPERATIONS.md",
-      "bytes": 7667,
-      "sha256": "271bdf5dfac31e90dc63a4d04c273b6b5823045df67bcd77a666cfa691f85338"
+      "bytes": 8027,
+      "sha256": "298b33c6d9adedcc3c5eeaabe8c65347f7b7755af7da362e5cfc537e2c378491"
     },
     {
       "path": "docs/architecture/README.md",
@@ -1069,6 +1104,11 @@
       "sha256": "aea5be938d5a96ef66603f71c0dba02b8632f9d39b4562b1a6a1522be670c1ba"
     },
     {
+      "path": "scripts/check_deployment.py",
+      "bytes": 4904,
+      "sha256": "fa91de4138bed0398449d0b46e6f62a7c00cdabe9df7bc0c3f08f1af55816cc9"
+    },
+    {
       "path": "scripts/export_openapi.py",
       "bytes": 1283,
       "sha256": "e4fe1b2d88920b0c26def3accf2eaa67eb247deb4aad4705869644890c114b39"
@@ -1077,6 +1117,11 @@
       "path": "scripts/prepare_github_snapshot.py",
       "bytes": 3133,
       "sha256": "e515c55007b363cef82f476cf482c17ce1eb98ae70c9d32b1cd6c146dd6931fb"
+    },
+    {
+      "path": "scripts/smoke_deployment.py",
+      "bytes": 3994,
+      "sha256": "665031965f3787c610cab5660b6ec9eb1fec5b7a789f4758eb6cd050f8cb42b9"
     },
     {
       "path": "scripts/update_publish_manifest.py",
@@ -1092,6 +1137,11 @@
       "path": "scripts/verify_browser.py",
       "bytes": 4525,
       "sha256": "772aad85698d3d349fc0411387ebd569080d8da234a6bc40ee77e8a4359e1ad0"
+    },
+    {
+      "path": "scripts/verify_deployment.py",
+      "bytes": 10258,
+      "sha256": "dfeafe0de66ce2d1bd8f097bcf344eaeebc1f4d3cf8b10f836adde7e1b5286dc"
     },
     {
       "path": "scripts/verify_live_clarification.py",
@@ -1110,8 +1160,8 @@
     },
     {
       "path": "scripts/verify_repository.py",
-      "bytes": 3296,
-      "sha256": "d3e89e541a75ca454be8f82db290927a251137f8382ae81812d921f04110835d"
+      "bytes": 3341,
+      "sha256": "cef1d1c53d17e37e5f123cf92078d26b7ba009711972f214534d9701ec49a900"
     },
     {
       "path": "test/widget_test.dart",
@@ -1140,8 +1190,8 @@
     },
     {
       "path": "tests/browser_fixture_server.py",
-      "bytes": 5481,
-      "sha256": "d9ecfe32f2350fe6742026844b325e223c7d1cd7dd328930ae94b3b123d74077"
+      "bytes": 5619,
+      "sha256": "ae88ee50bc7f3944dda71b5b9767c6a0e51150f336825ffc2ad3742a21ce2af8"
     },
     {
       "path": "tests/client.integration.test.ts",
@@ -1194,9 +1244,19 @@
       "sha256": "fd17287307b92e15743d7b2a21dfb7fc90c11e10bce6ea79d7e08a6f429ad38a"
     },
     {
+      "path": "tests/test_deployment_config.py",
+      "bytes": 3433,
+      "sha256": "e579e467898763a3b46229a3618929a3a35cd2a1cfe3c49d2df44ff596289853"
+    },
+    {
       "path": "tests/test_draft_clarification.py",
       "bytes": 7128,
       "sha256": "a2254f09bfb373d09689d660487ebc923e6328c343d461155709c244cf8d4c9d"
+    },
+    {
+      "path": "tests/test_health.py",
+      "bytes": 3330,
+      "sha256": "3413c2deb5dc8aac352b06ff7d204c1bd33f0924a99479a76dc745fa5344805c"
     },
     {
       "path": "tests/test_map_proxy.py",

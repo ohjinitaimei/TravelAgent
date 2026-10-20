@@ -41,10 +41,12 @@ from travel.api import router as travel_router
 from travel.runtime import configure_errors, lifespan
 from travel.auth import configure_auth
 from travel.map_proxy import router as map_proxy_router
+from travel.health import router as health_router
 
 app = FastAPI(title="CityRoute Agent API", version="1.1", lifespan=lifespan)
 app.include_router(travel_router)
 app.include_router(map_proxy_router)
+app.include_router(health_router)
 configure_errors(app)
 configure_auth(app)
 

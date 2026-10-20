@@ -15,7 +15,7 @@ TravelAgent 将自然语言旅行需求整理为可核对草案，再由统一 F
 | MCP | 可选 stdio 客户端与服务端，规划/查询复用同一 Provider，支持调用限额、超时、取消及结构化结果校验 |
 | App | 保留原 Flutter 源码；apps/mobile 是后续 uni-app 预留说明，不是可运行 App |
 | 账号与数据隔离 | 可选登录模式，按用户隔离任务、草案、行程和提交收据；保留本地空间模式 |
-| 部署 | 单 API 实例；用户/全局业务配额、工具/SSE 并发控制、SQLite 在线备份与恢复校验 |
+| 部署 | 单 API 实例；HTTPS 同源网关与服务模板、健康/上线检查、业务配额、工具/SSE 并发控制、SQLite 在线备份与恢复校验 |
 
 自动验收覆盖 API、共享客户端及 Chromium / Firefox / WebKit 页面交互，使用 tests 中隔离的 TEST ONLY 数据。2026-10-19 另通过授权高德真实数据联调，覆盖直接 Provider、MCP 和 Web 保存行程展示；密钥与运行记录不进入 Git，克隆后须配置自己的授权。详见 [验收记录](docs/ACCEPTANCE.md)、[真实高德联调](docs/architecture/LIVE_AMAP.md) 和 [功能范围与后续计划](docs/RELEASE_STATUS.md)。
 
@@ -28,6 +28,8 @@ TravelAgent 将自然语言旅行需求整理为可核对草案，再由统一 F
 键盘可跳过导航、切换页面并操作地点详情。提交有误时会聚焦中文摘要，摘要可定位其他日期或折叠区中的字段；站点排序、移动和移除后保留可用焦点。详见 [键盘与错误定位](docs/architecture/KEYBOARD_ACCESSIBILITY.md)。
 
 任务完成但结果读取失败时，会保留原行程并提示结果待同步；恢复连接继续读取同一任务，避免重复规划或保存。生产构建另有持续断线及 12 站行程读写验收，方法和测量范围见 [弱网与性能验收](docs/architecture/RESILIENCE_PERFORMANCE.md)。
+
+部署使用 Caddy 提供静态站点与 HTTPS，同一后端保留回环绑定；提供 systemd 模板、配置预检和只读上线检查。本地独立 CA 的 29 项 HTTPS 联调已通过，目标 Linux 主机和公网域名需按 [部署说明](docs/architecture/DEPLOYMENT.md) 验收。
 
 ## 工程结构
 

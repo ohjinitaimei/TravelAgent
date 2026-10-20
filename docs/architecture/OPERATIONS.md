@@ -2,6 +2,8 @@
 
 适用范围：单个 FastAPI API 实例、SQLite WAL、本地空间或账号模式。账号身份由后端会话解析；客户端不能指定配额归属。配置在 `backend/.env`，默认值见 `.env.example`，修改后重启服务。不会更改已有推荐、路线排序和时间调度算法。
 
+HTTPS 部署模板改用 systemd 读取 `/etc/travelagent/backend.env`，数据库放在 `/var/lib/travelagent/`，操作与健康检查见 [DEPLOYMENT.md](DEPLOYMENT.md)。在该模式执行下述备份/账号命令时显式传入实际 `--db`，避免依赖开发目录的默认路径；生产服务和操作者应使用同一个已核对的数据路径。
+
 ## 业务准入
 
 | 资源 | 配置 | 默认限额 |

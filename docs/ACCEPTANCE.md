@@ -18,12 +18,14 @@ Linux 浏览器首次安装使用 `npx playwright install --with-deps --only-she
 
 | 检查 | 数量 | 覆盖范围 |
 | --- | ---: | --- |
-| Python | 92 | 旅行 API 13、Agent 6、澄清 4、MCP 服务端 1、任务恢复 3、MCP 客户端 11、鉴权隔离 14、业务限流 8、备份恢复 6、分日算法 13、地图代理 13 |
+| Python | 101 | 旅行 API 13、Agent 6、澄清 4、MCP 服务端 1、任务恢复 3、MCP 客户端 11、鉴权隔离 14、业务限流 8、备份恢复 6、分日算法 13、地图代理 13、健康 4、部署配置 5 |
 | TypeScript 客户端 | 23 | HTTP 契约、轮询期限/取消、暂时断线、提交收据恢复、编辑差异与还原、工具握手、账号绑定与恢复、配额拒绝、本机草稿校验/冲突/存储失败 |
 | Chromium / Firefox / WebKit | 126 次 | 每引擎旅行工作台 27 项、账号流程 10 项、弱网与最大行程 5 项，三个引擎合计 126 次执行 |
 | Web / Schema | — | TypeScript 检查、Vite 构建、OpenAPI 生成文件一致性 |
 
-共 157 个逻辑用例、241 次执行（包含相同页面场景在不同引擎中的重复）。最终浏览器报告无失败、跳过或重试后通过；Windows WebKit 的 SameSite 元数据限制、真实地图复查和源码修改见 [BROWSER_ACCEPTANCE.md](architecture/BROWSER_ACCEPTANCE.md)。
+完整检查集规模为 166 个逻辑用例、250 次执行（包含相同页面场景在不同引擎中的重复）。三引擎 42 个场景的完整记录来自同日弱网阶段，最终报告无失败、跳过或重试后通过；本次部署阶段重新通过 Python 101、客户端 23、类型/构建与契约一致性，并定向复查 Chromium 账号 10 项，没有重复全部浏览器矩阵。Windows WebKit 的 SameSite 元数据限制、真实地图复查和源码修改见 [BROWSER_ACCEPTANCE.md](architecture/BROWSER_ACCEPTANCE.md)。
+
+部署阶段另使用真实 Caddy 2.11.7、本地 CA、独立数据库和生产构建通过 29 项 HTTPS 检查，TLS 验证始终开启，没有安装系统信任或系统服务；这 29 项单独计数。包括同源登录 Cookie、CSRF、异步任务去重、SSE 及时交付与终态、结果读取、退出和请求大小拒绝。源码入口、复现及 Linux/公网边界见 [DEPLOYMENT.md](architecture/DEPLOYMENT.md)。
 
 浏览器场景：
 
@@ -72,7 +74,7 @@ Linux 浏览器首次安装使用 `npx playwright install --with-deps --only-she
 
 测试服务必须显式传入 `--test-fixtures-only`，只绑定本机地址，数据库限制在仓库 `.tmp/`。FixtureProvider、固定模型回复和故障注入仅在 `tests/` 定义；生产服务不提供开启测试数据的配置。浏览器测试屏蔽外部 HTTPS，所有 POI 名称使用 TEST ONLY 标识。日志、截图和 trace 保存在被 Git 排除的 `artifacts/` 中，CI 仅在失败时上传测试诊断。
 
-上述自动检查验证页面、API 与后端算法之间的调用和状态一致性。2026-10-19 另通过授权高德的本地真实联调，覆盖 POI、步行/驾车、直接 Provider/MCP 异步规划、多日编辑版本和 Web 保存重开。地图接入阶段的 JS API 检查覆盖底图、编号、道路折线、跨天切换和刷新；地图编辑阶段另完成 23 项真实检查及截图核对，见 [WEB_EDITING.md](architecture/WEB_EDITING.md)。前端构建通过且不含后端 Key。授权联调不计入上表 241 次无密钥自动执行。实际范围、早期页面检查失败及后续复查记录见 [LIVE_AMAP.md](architecture/LIVE_AMAP.md)。未来交通与营业状态不在此次结论内；票价、库存、评论等无授权来源时保持缺失。
+上述自动检查验证页面、API 与后端算法之间的调用和状态一致性。2026-10-19 另通过授权高德的本地真实联调，覆盖 POI、步行/驾车、直接 Provider/MCP 异步规划、多日编辑版本和 Web 保存重开。地图接入阶段的 JS API 检查覆盖底图、编号、道路折线、跨天切换和刷新；地图编辑阶段另完成 23 项真实检查及截图核对，见 [WEB_EDITING.md](architecture/WEB_EDITING.md)。前端构建通过且不含后端 Key。授权联调不计入上表无密钥检查集。实际范围、早期页面检查失败及后续复查记录见 [LIVE_AMAP.md](architecture/LIVE_AMAP.md)。未来交通与营业状态不在此次结论内；票价、库存、评论等无授权来源时保持缺失。
 
 安全密钥代理阶段新增 12 项自动检查，总数增至 128。另在真实高德 SDK 下分别通过本地模式 25 项与账号模式 28 项检查，初始化代理请求全部成功，登录 Cookie 可用于该路径，退出后返回 401；安全密钥不在浏览器配置/请求/代理响应或前端构建中。步骤与部署边界见 [AMAP_PROXY.md](architecture/AMAP_PROXY.md)。此前 23 项地图编辑记录保留为历史验收。
 

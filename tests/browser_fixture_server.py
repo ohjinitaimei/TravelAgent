@@ -53,6 +53,7 @@ if __name__ == "__main__":
     parser.add_argument("--db",type=Path,default=ROOT/".tmp/browser-test.sqlite3")
     parser.add_argument("--stop-file",type=Path)
     parser.add_argument("--auth-fixtures",action="store_true")
+    parser.add_argument("--secure-cookies",action="store_true",help="TEST ONLY HTTPS gateway acceptance")
     args=parser.parse_args()
     if not args.test_fixtures_only or not args.db.resolve().is_relative_to((ROOT/".tmp").resolve()):
         raise SystemExit("Requires explicit --test-fixtures-only; never a production server")
@@ -68,7 +69,7 @@ if __name__ == "__main__":
     directory.mkdir(exist_ok=True)
     os.environ["TRAVEL_DB_PATH"] = str(args.db.resolve())
     os.environ["TRAVEL_AUTH_MODE"]="session" if args.auth_fixtures else "local"
-    os.environ["TRAVEL_COOKIE_SECURE"]="0"
+    os.environ["TRAVEL_COOKIE_SECURE"]="1" if args.secure_cookies else "0"
     os.environ["TRAVEL_TOOL_TRANSPORT"]="direct"
     # This explicit TEST ONLY service runs the entire suite under one local owner.
     # Production quota/429 behavior is independently exercised in test_business_limits.py.

@@ -1,0 +1,28 @@
+[Unit]
+Description=TravelAgent single FastAPI instance
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=travelagent
+Group=travelagent
+WorkingDirectory=/opt/travelagent
+EnvironmentFile=/etc/travelagent/backend.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/travelagent/.venv/bin/python -m uvicorn main:app --app-dir /opt/travelagent/backend --host 127.0.0.1 --port 8000 --workers 1 --proxy-headers --forwarded-allow-ips 127.0.0.1 --no-access-log
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillMode=control-group
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+StateDirectory=travelagent
+ReadWritePaths=/var/lib/travelagent
+
+[Install]
+WantedBy=multi-user.target
