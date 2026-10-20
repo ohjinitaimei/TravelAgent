@@ -1,0 +1,18 @@
+[Unit]
+Description=TravelAgent verified SQLite snapshot and retention
+
+[Service]
+Type=oneshot
+User=travelagent
+Group=travelagent
+WorkingDirectory=/opt/travelagent/backend
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/travelagent/.venv/bin/python -m travel.backup_schedule --db /var/lib/travelagent/travel.sqlite3 --root /var/backups/travelagent --keep 7 --prune
+TimeoutStartSec=300
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadOnlyPaths=/var/lib/travelagent
+ReadWritePaths=/var/backups/travelagent

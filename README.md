@@ -31,6 +31,8 @@ TravelAgent 将自然语言旅行需求整理为可核对草案，再由统一 F
 
 部署使用 Caddy 提供静态站点与 HTTPS，同一后端保留回环绑定；提供 systemd 模板、配置预检和只读上线检查。本地独立 CA 的 29 项 HTTPS 联调已通过，目标 Linux 主机和公网域名需按 [部署说明](docs/architecture/DEPLOYMENT.md) 验收。
 
+可按源码清单生成包含源码与生产 Web 的发布 ZIP，并逐文件校验、从归档独立启动后端。定时备份复用原有 WAL 快照，支持独占锁和显式保留清理；命令、定时模板与恢复边界见 [发布包与备份说明](docs/architecture/RELEASE_BACKUP.md)。
+
 ## 工程结构
 
 ```text

@@ -10,8 +10,8 @@
     },
     {
       "path": ".github/workflows/ci.yml",
-      "bytes": 1943,
-      "sha256": "735f257e198d2f51d86cbe712412bb13e9762522eda89425f7de85fadb43fe7c"
+      "bytes": 2277,
+      "sha256": "5f6abbb64dac265059ffdbb53020f0e33c031345272d24ef7086a34378a2f7af"
     },
     {
       "path": ".gitignore",
@@ -30,8 +30,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 12123,
-      "sha256": "309eb9044e1185e8a3782397613014add8bf2fd1c65aa1f8aad9c0e0101bf812"
+      "bytes": 12425,
+      "sha256": "e52064bf0892e1227d1a48c0296039f983bb088b3a66e55991ac017222ff034c"
     },
     {
       "path": "analysis_options.yaml",
@@ -709,6 +709,11 @@
       "sha256": "ce85f52caba0ea77d07aba79d0e0006ff15e9f7980d6e88014aa5c927280a60d"
     },
     {
+      "path": "backend/travel/backup_schedule.py",
+      "bytes": 4407,
+      "sha256": "2f7928ea90ae8c4332bdb9c4c2f6d3df6b4a01001c9a6dc89c3347f85e0ce452"
+    },
+    {
       "path": "backend/travel/drafts.py",
       "bytes": 2467,
       "sha256": "89592eaead7b38b103265b5268dec3dc047d0d39787a09c51394459abc445b0f"
@@ -809,9 +814,19 @@
       "sha256": "f8f534ac9a4b715f5619e4ebecd55d4980513b764bf722e5e452ad24cd2b6104"
     },
     {
+      "path": "deploy/travelagent-backup.service",
+      "bytes": 550,
+      "sha256": "d82fa846e763c8e7bbd0ebe2b100dde2501b1e835e277ce0ddf05af7f0646bc2"
+    },
+    {
+      "path": "deploy/travelagent-backup.timer",
+      "bytes": 193,
+      "sha256": "ee6fe0a71e55b02091d60880d2040230ea46aec6e4babda1b94b4ddb624534a9"
+    },
+    {
       "path": "docs/ACCEPTANCE.md",
-      "bytes": 13109,
-      "sha256": "a5e56ee6f66d16a13b4f759a0b0854690a227b554d301e4f13e5269ab617225e"
+      "bytes": 13677,
+      "sha256": "d2381ed2e1efc14a8914de30b4c9ff799fdbf594bebc5bf8e169db12461cc2bc"
     },
     {
       "path": "docs/README.md",
@@ -820,8 +835,8 @@
     },
     {
       "path": "docs/RELEASE_STATUS.md",
-      "bytes": 8683,
-      "sha256": "6ec62f7e29c3b909ba2f8af30db4faed6d89e5e2c2d270dfb9d2092d49e3b429"
+      "bytes": 9203,
+      "sha256": "c9a59f2e07d30dd247fff93f13ae3b33ae7223c85df5996253e3dc59e37577e7"
     },
     {
       "path": "docs/TECHNICAL_REPORT.md",
@@ -865,8 +880,8 @@
     },
     {
       "path": "docs/architecture/DEPLOYMENT.md",
-      "bytes": 10697,
-      "sha256": "f74a38e0775dcf092c65285b0b96e83ae39f52af7a233c446e338c3a3aa551c7"
+      "bytes": 10836,
+      "sha256": "92a1d82ba931e04f17e9f250269ad4e4abafd21acb4f455c1565bff21d2eeb6f"
     },
     {
       "path": "docs/architecture/DRAFT_CLARIFICATION.md",
@@ -905,13 +920,18 @@
     },
     {
       "path": "docs/architecture/OPERATIONS.md",
-      "bytes": 8027,
-      "sha256": "298b33c6d9adedcc3c5eeaabe8c65347f7b7755af7da362e5cfc537e2c378491"
+      "bytes": 8151,
+      "sha256": "bc0f27baaaa0e9ca013fecd2528356fdd8ea4ca12257751146f33382cd508796"
     },
     {
       "path": "docs/architecture/README.md",
       "bytes": 1483,
       "sha256": "4795686cc2631ab3cd486cc33b0b9be1ddd6d4831dc080d3d8392a1b1fbdeaee"
+    },
+    {
+      "path": "docs/architecture/RELEASE_BACKUP.md",
+      "bytes": 9272,
+      "sha256": "aa3f28c10ad98a26be7a8a25c7662f63e364a21eeeb1ff84b74f8a5f8657f6fc"
     },
     {
       "path": "docs/architecture/RESILIENCE_PERFORMANCE.md",
@@ -1114,6 +1134,11 @@
       "sha256": "e4fe1b2d88920b0c26def3accf2eaa67eb247deb4aad4705869644890c114b39"
     },
     {
+      "path": "scripts/package_release.py",
+      "bytes": 9174,
+      "sha256": "6deecbf16d0ddf791bc605ab0fd3ed571bdf30ba8b1d0c649ef8c6b8e59ea19a"
+    },
+    {
       "path": "scripts/prepare_github_snapshot.py",
       "bytes": 3133,
       "sha256": "e515c55007b363cef82f476cf482c17ce1eb98ae70c9d32b1cd6c146dd6931fb"
@@ -1159,9 +1184,14 @@
       "sha256": "4d054dd798d75183bf84fc662670d01eb4a062a81e76418dbfd63d1813f8a495"
     },
     {
+      "path": "scripts/verify_release_runtime.py",
+      "bytes": 3110,
+      "sha256": "3713d6341171343a1c2eec762ba45d8836fb7e8cec673efe67ab307c06aaf49a"
+    },
+    {
       "path": "scripts/verify_repository.py",
-      "bytes": 3341,
-      "sha256": "cef1d1c53d17e37e5f123cf92078d26b7ba009711972f214534d9701ec49a900"
+      "bytes": 3393,
+      "sha256": "f17f0fa02ede48419c5f60c0efd0d83c3718f298bf915bc7e71017b0f0fb9817"
     },
     {
       "path": "test/widget_test.dart",
@@ -1234,6 +1264,11 @@
       "sha256": "4ad704073a686bc7d7996d0631009e1750445a0a551fc3e3c29205a3ef7250b0"
     },
     {
+      "path": "tests/test_backup_schedule.py",
+      "bytes": 5762,
+      "sha256": "0f096e985cea488741dd905d766165ef633e41c73aca8958d2a8ed5e5b3f5955"
+    },
+    {
       "path": "tests/test_business_limits.py",
       "bytes": 12622,
       "sha256": "6ca8b347a124a0865bbb744c13e4a6d85991ef43e30d0589c30b29dfa046ed0a"
@@ -1272,6 +1307,11 @@
       "path": "tests/test_mcp_client.py",
       "bytes": 12064,
       "sha256": "718d353976807a6d7a99c3da41b20bc109d06adb5e67d9d811f0401a7781d5bd"
+    },
+    {
+      "path": "tests/test_release_package.py",
+      "bytes": 4387,
+      "sha256": "28fef2356462c1c5831f6d58995abf2e6efff66168fce8857c22b9fd9199e2ef"
     },
     {
       "path": "tests/test_task_recovery.py",

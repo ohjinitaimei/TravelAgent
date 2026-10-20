@@ -18,12 +18,14 @@ Linux 浏览器首次安装使用 `npx playwright install --with-deps --only-she
 
 | 检查 | 数量 | 覆盖范围 |
 | --- | ---: | --- |
-| Python | 101 | 旅行 API 13、Agent 6、澄清 4、MCP 服务端 1、任务恢复 3、MCP 客户端 11、鉴权隔离 14、业务限流 8、备份恢复 6、分日算法 13、地图代理 13、健康 4、部署配置 5 |
+| Python | 115 | 旅行 API 13、Agent 6、澄清 4、MCP 服务端 1、任务恢复 3、MCP 客户端 11、鉴权隔离 14、业务限流 8、备份恢复 6、分日算法 13、地图代理 13、健康 4、部署配置 5、定时备份 8、发布包 6 |
 | TypeScript 客户端 | 23 | HTTP 契约、轮询期限/取消、暂时断线、提交收据恢复、编辑差异与还原、工具握手、账号绑定与恢复、配额拒绝、本机草稿校验/冲突/存储失败 |
 | Chromium / Firefox / WebKit | 126 次 | 每引擎旅行工作台 27 项、账号流程 10 项、弱网与最大行程 5 项，三个引擎合计 126 次执行 |
 | Web / Schema | — | TypeScript 检查、Vite 构建、OpenAPI 生成文件一致性 |
 
-完整检查集规模为 166 个逻辑用例、250 次执行（包含相同页面场景在不同引擎中的重复）。三引擎 42 个场景的完整记录来自同日弱网阶段，最终报告无失败、跳过或重试后通过；本次部署阶段重新通过 Python 101、客户端 23、类型/构建与契约一致性，并定向复查 Chromium 账号 10 项，没有重复全部浏览器矩阵。Windows WebKit 的 SameSite 元数据限制、真实地图复查和源码修改见 [BROWSER_ACCEPTANCE.md](architecture/BROWSER_ACCEPTANCE.md)。
+完整检查集规模为 180 个逻辑用例、264 次执行（包含相同页面场景在不同引擎中的重复）。三引擎 42 个场景的完整记录来自同日弱网阶段，最终报告无失败、跳过或重试后通过。发布/备份阶段重新运行 Python 115、客户端 23、类型/构建；部署阶段的契约一致性、Chromium 账号 10 项和 HTTPS 结果保持原边界，本轮未重复浏览器矩阵。Windows WebKit 的 SameSite 元数据限制、真实地图复查和源码修改见 [BROWSER_ACCEPTANCE.md](architecture/BROWSER_ACCEPTANCE.md)。
+
+发布包增加逐文件清单校验、相同输入重复打包哈希一致、私密配置/数据排除与归档源码独立启动；后者另计 4 项。备份轮换在测试库演练显式保留、损坏/手工文件保护、失败与独占锁、时钟回拨以及不覆盖恢复。首轮回归中电脑休眠约 85 分钟使 MCP 超时用例失效，唤醒后按原限制复查并重跑完整检查；没有放宽超时或跳过。步骤与范围见 [RELEASE_BACKUP.md](architecture/RELEASE_BACKUP.md)。
 
 部署阶段另使用真实 Caddy 2.11.7、本地 CA、独立数据库和生产构建通过 29 项 HTTPS 检查，TLS 验证始终开启，没有安装系统信任或系统服务；这 29 项单独计数。包括同源登录 Cookie、CSRF、异步任务去重、SSE 及时交付与终态、结果读取、退出和请求大小拒绝。源码入口、复现及 Linux/公网边界见 [DEPLOYMENT.md](architecture/DEPLOYMENT.md)。
 

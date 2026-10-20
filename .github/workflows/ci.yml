@@ -52,6 +52,11 @@ jobs:
         run: python scripts/verify_browser.py
       - name: Verify source inventory
         run: python scripts/update_publish_manifest.py --check
+      - name: Verify release packaging and isolated startup
+        run: |
+          python scripts/package_release.py build --output artifacts/releases/ci
+          python scripts/package_release.py verify artifacts/releases/ci/TravelAgent.zip
+          python scripts/verify_release_runtime.py artifacts/releases/ci/TravelAgent.zip
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
