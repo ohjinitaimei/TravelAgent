@@ -30,8 +30,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 10738,
-      "sha256": "b7357f39e7546cbd9869735e418dbb159f2206403f6166bc54ae7d57ce56c724"
+      "bytes": 11083,
+      "sha256": "33e392b680cf01740a5958f86ccd68d55ee7d9a5b0f2f72630b7dc45b240796b"
     },
     {
       "path": "analysis_options.yaml",
@@ -155,8 +155,8 @@
     },
     {
       "path": "apps/web/src/App.vue",
-      "bytes": 39305,
-      "sha256": "83ce96cc30ac76b38494a26a8c3a012dede7b92709429a378694e6df87ea01a5"
+      "bytes": 44913,
+      "sha256": "97aa283c1d48a49665b4795b4138eb28d8bab85b7df416d7fd946ace759a9183"
     },
     {
       "path": "apps/web/src/WorkspaceRoot.vue",
@@ -209,9 +209,14 @@
       "sha256": "cf1d4e679cbff3b4cf3181edf90d3b706b62f439ba617c717e1d6caafbb42483"
     },
     {
+      "path": "apps/web/src/editDraft.ts",
+      "bytes": 4978,
+      "sha256": "fda43beea136b7e376863dfd445ce2399f3579bb2ba8993ac97e213b4827d504"
+    },
+    {
       "path": "apps/web/src/editor.ts",
-      "bytes": 3960,
-      "sha256": "f7f5d9e3091bf5c35cbd04baff6c35c357d8603766f3f725d8d4c43ba61b2985"
+      "bytes": 3967,
+      "sha256": "962699fa41e9ddd0167033c8c20bdf5e9789ac2825088606a2be00f0feae830b"
     },
     {
       "path": "apps/web/src/main.ts",
@@ -220,8 +225,8 @@
     },
     {
       "path": "apps/web/src/session.ts",
-      "bytes": 1964,
-      "sha256": "5184f6d4f82c4bb1f14fcff32b9b4163bab9f2e1a6683a8c6c68e8d1411f5951"
+      "bytes": 2054,
+      "sha256": "d33c071eb2510a390ff689b20959dc19bc42a11aeea6646dbe9ebb6d5dbf74ac"
     },
     {
       "path": "apps/web/src/style.css",
@@ -760,8 +765,8 @@
     },
     {
       "path": "docs/ACCEPTANCE.md",
-      "bytes": 10000,
-      "sha256": "729811d6eaedfd95ca6c80ac939c2c599fdc6221e34cb7ea0edce50ad82eaece"
+      "bytes": 11100,
+      "sha256": "b3b63229890413773682f74e7728ece5b370bdca84f240811873b47774bfa74f"
     },
     {
       "path": "docs/README.md",
@@ -770,8 +775,8 @@
     },
     {
       "path": "docs/RELEASE_STATUS.md",
-      "bytes": 7172,
-      "sha256": "52b03564aa56e50065d459243cc4e1f9f80f8ad4dfcb6ab6a8f079a375b1e6bd"
+      "bytes": 7484,
+      "sha256": "e2a914ad8cf2fec1ec9c705bcd631fb57596f99c43e3895601693c8cbe40882d"
     },
     {
       "path": "docs/TECHNICAL_REPORT.md",
@@ -805,8 +810,8 @@
     },
     {
       "path": "docs/architecture/BROWSER_ACCEPTANCE.md",
-      "bytes": 9035,
-      "sha256": "a6367916d305f171e5731f15a9af176f0f22c01eec4bc29d3b7834257bda8efb"
+      "bytes": 9760,
+      "sha256": "1ff389ee8eaff28dbea7c97fa619842ab42b9d30b1b1f5bb2ab323a32824ae0a"
     },
     {
       "path": "docs/architecture/DAY_GROUPING.md",
@@ -817,6 +822,11 @@
       "path": "docs/architecture/DRAFT_CLARIFICATION.md",
       "bytes": 6955,
       "sha256": "ceeb7697017d917b44c96115c08489db4aeac3e148968db63e824eb117a7bd2f"
+    },
+    {
+      "path": "docs/architecture/EDIT_DRAFT_RECOVERY.md",
+      "bytes": 3968,
+      "sha256": "28c3ad42a4886c866e31bd33742c8587d7497f5f36150b85f0ef02a6637ba4a9"
     },
     {
       "path": "docs/architecture/FLUTTER_STRUCTURE.md",
@@ -870,8 +880,8 @@
     },
     {
       "path": "docs/architecture/WEB_EDITING.md",
-      "bytes": 5203,
-      "sha256": "cd106cf6f01a800665d727db5ddd60883feb937675e09df5beaddafd173d8858"
+      "bytes": 5320,
+      "sha256": "5f92b1e7bdbae3a2f60517599a8b96e07cd064a9ac321c5b148c483f4ee40bd4"
     },
     {
       "path": "docs/legacy/MUSE_README.md",
@@ -990,8 +1000,8 @@
     },
     {
       "path": "package.json",
-      "bytes": 605,
-      "sha256": "c1281b2ea351a7e97d490175e42f0f171c19f5552d06d5f4ed2f104885cadd6a"
+      "bytes": 630,
+      "sha256": "4a2bdcc5e0aaa239a6132ab9ae6673344f27857bf481cf7bab4db4b83502433f"
     },
     {
       "path": "packages/api-schema/README.md",
@@ -1090,18 +1100,18 @@
     },
     {
       "path": "tests/browser/auth.spec.ts",
-      "bytes": 10401,
-      "sha256": "472dcc4f0c8673dbfda762027c48fc022ea888ff0723c623a7ec0f7963f18531"
+      "bytes": 12179,
+      "sha256": "13fde5d945300230215b41690f21bc4ba2df548e497a1cfd018a1b052d9f8a57"
     },
     {
       "path": "tests/browser/workspace.spec.ts",
-      "bytes": 22945,
-      "sha256": "da5d5ef1b0c0ad63ab4bcd8e6e69b863335521d4342f237353203469beff7e9a"
+      "bytes": 34418,
+      "sha256": "ef47980b98b4bac51a96092163005ae6c2a8d693d48d9d7ea7a250678219418e"
     },
     {
       "path": "tests/browser_fixture_server.py",
-      "bytes": 5089,
-      "sha256": "63b804f0029dfd13a739b07499d0678a3cd9c7a3282ac22f5a823d635167196d"
+      "bytes": 5116,
+      "sha256": "4752dc024ea1234cac2e9818c9720576f0593c1714e9635000c147416732d2be"
     },
     {
       "path": "tests/client.integration.test.ts",
@@ -1112,6 +1122,11 @@
       "path": "tests/client.lifecycle.test.ts",
       "bytes": 10895,
       "sha256": "da44362af8e8699365c0267f364067315f21c93738278eaebf017385dbfd2266"
+    },
+    {
+      "path": "tests/edit_draft.test.ts",
+      "bytes": 5158,
+      "sha256": "216698020de4e0b7e499b9693c53c2ab1d18c6518328b5dec6bdac5eef0641c8"
     },
     {
       "path": "tests/mcp_fixture_server.py",

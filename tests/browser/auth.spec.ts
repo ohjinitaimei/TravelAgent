@@ -19,6 +19,29 @@ async function saved(page:Page) {
   await expect(page.locator('.saved-card').first()).toBeVisible()
 }
 
+test('expired session retains an editor draft only for its owner and explicit logout removes it',async({page})=>{
+  // Dedicated accounts keep this multi-login scenario independent of the existing rate window.
+  await login(page,'test-draft-alpha');await saved(page);await page.locator('.saved-card').first().click()
+  await page.getByRole('button',{name:'编辑行程',exact:true}).click()
+  await page.getByLabel('用户录入费用').first().fill('31')
+  await expect(page.getByRole('status',{name:'编辑草稿存储'})).toContainText('已保存在本机')
+  const status=await (await page.request.get('/api/v1/travel/auth/status')).json()
+  expect((await page.request.post('/api/v1/travel/auth/logout',{headers:{'X-CSRF-Token':status.csrf_token}})).ok()).toBeTruthy()
+  await page.getByRole('button',{name:'已保存行程',exact:false}).first().click()
+  await page.getByRole('button',{name:'刷新',exact:false}).click()
+  await expect(page.getByRole('heading',{name:'登录旅行空间',exact:true})).toBeVisible()
+  await login(page,'test-draft-beta')
+  await expect(page.getByRole('region',{name:'本机编辑草稿'})).toHaveCount(0)
+  await page.getByRole('button',{name:'退出登录',exact:true}).click()
+  await login(page,'test-draft-alpha')
+  await page.getByRole('button',{name:'恢复编辑草稿',exact:true}).click()
+  await expect(page.getByRole('region',{name:'本次编辑改动'})).toContainText('31 元')
+  await page.getByRole('button',{name:'退出登录',exact:true}).click()
+  await page.getByRole('dialog',{name:'有未保存的行程修改'}).getByRole('button',{name:'放弃修改并退出登录',exact:true}).click()
+  await login(page,'test-draft-alpha')
+  await expect(page.getByRole('region',{name:'本机编辑草稿'})).toHaveCount(0)
+})
+
 test('login, refresh and logout use HttpOnly cookies without exposing tokens',async({page,context,browserName},testInfo)=>{
   await page.screenshot({path:testInfo.outputPath('auth-login-test-only.png'),fullPage:true})
   await page.getByLabel('账号',{exact:true}).fill('test-alpha')

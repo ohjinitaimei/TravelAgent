@@ -11,7 +11,7 @@ export function userPrices(ids: string[], values: Record<string,string|number>):
   return prices
 }
 
-type Value = string|number|null|undefined
+export type Value = string|number|null|undefined
 export type EditInput = {
   groups:string[][]; prices:Record<string,Value>; durations:Record<string,Value>
   constraints:{start_date:string;day_start:string;day_end:string;mode:string;budget:Value}

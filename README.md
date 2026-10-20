@@ -17,11 +17,13 @@ TravelAgent 将自然语言旅行需求整理为可核对草案，再由统一 F
 | 账号与数据隔离 | 可选登录模式，按用户隔离任务、草案、行程和提交收据；保留本地空间模式 |
 | 部署 | 单 API 实例；用户/全局业务配额、工具/SSE 并发控制、SQLite 在线备份与恢复校验 |
 
-自动验收覆盖 API、共享客户端及 Chromium 页面交互，使用 tests 中隔离的 TEST ONLY 数据。2026-10-19 另通过授权高德真实数据联调，覆盖直接 Provider、MCP 和 Web 保存行程展示；密钥与运行记录不进入 Git，克隆后须配置自己的授权。详见 [验收记录](docs/ACCEPTANCE.md)、[真实高德联调](docs/architecture/LIVE_AMAP.md) 和 [功能范围与后续计划](docs/RELEASE_STATUS.md)。
+自动验收覆盖 API、共享客户端及 Chromium / Firefox / WebKit 页面交互，使用 tests 中隔离的 TEST ONLY 数据。2026-10-19 另通过授权高德真实数据联调，覆盖直接 Provider、MCP 和 Web 保存行程展示；密钥与运行记录不进入 Git，克隆后须配置自己的授权。详见 [验收记录](docs/ACCEPTANCE.md)、[真实高德联调](docs/architecture/LIVE_AMAP.md) 和 [功能范围与后续计划](docs/RELEASE_STATUS.md)。
 
 多日新规划会比较有限地理交换候选与原分日，仅采用通过真实交通和每日时段检查的方案。上海实测样例总交通从 108 降为 96 分钟，杭州样例因每日负担未改善而保留原分日；规则、调用上限与验证边界见 [分日优化说明](docs/architecture/DAY_GROUPING.md)。
 
 地图编号与时间轴支持双向定位。编辑时显示地点预览与修改前后对照，切换工作台页面保留当前编辑，退出或打开其他行程前提示未保存修改；保存后由后端重算并生成新版本。操作与验证边界见 [地图与编辑说明](docs/architecture/WEB_EDITING.md)。
+
+未提交的行程编辑可在同一浏览器、同一账号下保留 7 天，刷新或关闭后显式恢复。恢复前核对原行程版本并重新获取新增地点，不自动提交；存储失败会提示，已保存的后端行程不受影响。详见 [草稿恢复说明](docs/architecture/EDIT_DRAFT_RECOVERY.md)。
 
 ## 工程结构
 

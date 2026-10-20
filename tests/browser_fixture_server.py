@@ -76,7 +76,7 @@ if __name__ == "__main__":
     if args.auth_fixtures:
         from travel.auth import AuthService
         auth=AuthService(store)
-        for name in ('alpha','beta'):
+        for name in ('alpha','beta','draft-alpha','draft-beta'):
             user=auth.create_user('test-'+name,'TEST ONLY account password 2026')
             request=PlanRequest(city='TEST ONLY '+name,query='TEST ONLY 地点',start_date='2026-10-20',days=1,stops_per_day=2)
             trip=plan(request,lambda *_:None,provider=FixtureProvider())

@@ -1,5 +1,6 @@
 import type { PlanRequest } from './api'
 import type { PendingSubmission } from './submissions'
+import { editDraftKey } from './editDraft'
 
 const KEY = 'travelagent.workspace.v1'
 function key(ownerId:string) {return ownerId==='local'?KEY:`${KEY}.user.${encodeURIComponent(ownerId)}`}
@@ -15,7 +16,7 @@ export function writeSession(value: WorkspaceSession,ownerId='local') {
   try { localStorage.setItem(key(ownerId), JSON.stringify(value)) } catch { /* Private mode/storage quota must not break the workspace. */ }
 }
 
-export function clearSession(ownerId:string) {try {localStorage.removeItem(key(ownerId))} catch {}}
+export function clearSession(ownerId:string) {try {localStorage.removeItem(key(ownerId));localStorage.removeItem(editDraftKey(ownerId))} catch {}}
 
 export function restoreForm(defaults: PlanRequest, stored: unknown): PlanRequest {
   if (!stored || typeof stored !== 'object') return defaults

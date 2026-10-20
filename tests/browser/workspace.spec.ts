@@ -210,9 +210,171 @@ test('saved multi-day itinerary editing creates a new version and preserves orig
 
 async function openSeed(page:Page) {
   await page.getByRole('button',{name:'已保存行程',exact:false}).first().click()
-  await page.locator('.saved-card').filter({hasText:'2026-10-10'}).first().click()
+  await page.locator('.saved-card').filter({hasText:'2026-10-10'}).filter({hasText:'SAVED ITINERARY'}).first().click()
   await expect(page.locator('.timeline')).toContainText('TEST ONLY fixture-a')
 }
+
+async function reloadEdited(page:Page) {
+  page.once('dialog',dialog=>dialog.accept())
+  await page.reload()
+  await expect(page.getByRole('region',{name:'本机编辑草稿'})).toBeVisible()
+}
+
+test('local editor draft restores partial inputs and cross-day edits after refresh then clears on save',async({page})=>{
+  await openSeed(page)
+  await page.getByRole('button',{name:'编辑行程',exact:true}).click()
+  await page.getByLabel('用户录入费用').first().fill('0')
+  await page.getByLabel('停留（分钟）',{exact:true}).first().fill('90')
+  await page.getByLabel('新增站点默认停留（分钟）').fill('')
+  await page.getByLabel('移动 TEST ONLY fixture-a 到哪一天').selectOption('1')
+  await page.locator('[data-stop-id="fixture-a"]').getByRole('button',{name:'移动',exact:true}).click()
+  await page.getByRole('button',{name:'DAY 2',exact:false}).click()
+  await expect(page.getByRole('status',{name:'编辑草稿存储'})).toContainText('已保存在本机')
+  await reloadEdited(page)
+  await expect(page.getByRole('region',{name:'本次编辑改动'})).toHaveCount(0)
+  let posts=0
+  page.on('request',request=>{if(request.method()==='POST'&&request.url().includes('/adjust'))posts++})
+  await page.getByRole('button',{name:'恢复编辑草稿',exact:true}).click()
+  await expect(page.getByRole('region',{name:'本次编辑改动'})).toContainText('90 分钟')
+  await expect(page.getByRole('region',{name:'本次编辑改动'})).toContainText('0 元')
+  await expect(page.getByLabel('新增站点默认停留（分钟）')).toHaveValue('')
+  await expect(page.locator('[data-stop-id="fixture-a"]')).toBeVisible()
+  expect(posts).toBe(0)
+  await page.getByLabel('新增站点默认停留（分钟）').fill('60')
+  await page.getByRole('button',{name:'保存并重算',exact:true}).click()
+  await expect(page.getByText('行程已生成并保存',{exact:true})).toBeVisible()
+  expect(posts).toBe(1)
+  expect(await page.evaluate(()=>localStorage.getItem('travelagent.edit.v1.local'))).toBeNull()
+  await page.reload()
+  await expect(page.getByRole('region',{name:'本机编辑草稿'})).toHaveCount(0)
+})
+
+test('draft restore retains inputs when source version changes or disappears and supports retry and discard',async({page})=>{
+  await openSeed(page);await page.getByRole('button',{name:'编辑行程',exact:true}).click()
+  await page.getByLabel('用户录入费用').first().fill('23')
+  await reloadEdited(page)
+  const stored=await page.evaluate(()=>localStorage.getItem('travelagent.edit.v1.local'))
+  let mode='changed'
+  await page.route(/\/itineraries\/[^/?]+$/,async route=>{
+    if(mode==='missing')return route.fulfill({status:404,contentType:'application/json',body:JSON.stringify({error:{code:'itinerary_not_found',message:'TEST ONLY 原行程不可用',retryable:false}})})
+    const response=await route.fetch(),trip=await response.json()
+    await route.fulfill({response,json:{...trip,created_at:'TEST ONLY changed version'}})
+  })
+  await page.getByRole('button',{name:'恢复编辑草稿',exact:true}).click()
+  await expect(page.getByRole('alert')).toContainText('原行程版本与草稿不一致')
+  mode='missing'
+  await page.getByRole('button',{name:'恢复编辑草稿',exact:true}).click()
+  await expect(page.getByRole('alert')).toContainText('TEST ONLY 原行程不可用')
+  expect(await page.evaluate(()=>localStorage.getItem('travelagent.edit.v1.local'))).toBe(stored)
+  await page.unroute(/\/itineraries\/[^/?]+$/)
+  await page.getByRole('button',{name:'恢复编辑草稿',exact:true}).click()
+  await expect(page.getByRole('region',{name:'本次编辑改动'})).toContainText('23 元')
+  await reloadEdited(page)
+  await page.getByRole('button',{name:'放弃本机草稿',exact:true}).click()
+  expect(await page.evaluate(()=>localStorage.getItem('travelagent.edit.v1.local'))).toBeNull()
+})
+
+test('draft restoration refetches added POIs and never stores provider facts or drops failed details',async({page})=>{
+  await openSeed(page)
+  const original=(await (await page.request.get('/api/v1/travel/itineraries')).json()).items.find((trip:any)=>trip.request.start_date==='2026-10-10'&&!trip.parent_id)
+  const poi={...original.days[0].stops[0].poi,id:'TEST-ONLY-extra',name:'TEST ONLY extra location'}
+  const second={...poi,id:'TEST-ONLY-extra-two',name:'TEST ONLY second extra location'}
+  await page.route('**/api/v1/travel/pois?*',route=>route.fulfill({json:{items:[poi,second]}}))
+  await page.getByRole('button',{name:'编辑行程',exact:true}).click()
+  await page.getByRole('button',{name:'探索并添加地点',exact:false}).click()
+  await page.getByLabel('搜索关键词').fill('TEST ONLY extra')
+  await page.getByRole('button',{name:'搜索',exact:true}).click()
+  await page.getByRole('button',{name:'＋ 加入行程',exact:true}).nth(0).click()
+  await page.getByRole('button',{name:'＋ 加入行程',exact:true}).nth(1).click()
+  await reloadEdited(page)
+  let details=0,fail=true,inFlight=0,maximum=0
+  await page.route('**/api/v1/travel/pois/TEST-ONLY-extra*',async route=>{
+    details++
+    if(fail)return route.fulfill({status:502,json:{error:{code:'provider_unavailable',message:'TEST ONLY 详情不可用',retryable:true}}})
+    inFlight++;maximum=Math.max(maximum,inFlight)
+    try {await new Promise(resolve=>setTimeout(resolve,80));await route.fulfill({json:route.request().url().endsWith('-two')?second:poi})}finally{inFlight--}
+  })
+  const stored=await page.evaluate(()=>localStorage.getItem('travelagent.edit.v1.local'))
+  expect(stored).not.toContain(poi.name);expect(stored).not.toContain('longitude');expect(stored).toContain(poi.id)
+  await page.getByRole('button',{name:'恢复编辑草稿',exact:true}).click()
+  await expect(page.getByRole('alert')).toContainText('TEST ONLY 详情不可用')
+  expect(await page.evaluate(()=>localStorage.getItem('travelagent.edit.v1.local'))).toBe(stored)
+  fail=false
+  await page.getByRole('button',{name:'恢复编辑草稿',exact:true}).click()
+  await expect(page.locator('.timeline')).toContainText(poi.name)
+  await expect(page.locator('.timeline')).toContainText(second.name)
+  expect(maximum).toBe(1)
+  expect(details).toBe(3)
+})
+
+test('another tab cannot overwrite or delete a newer editor draft',async({page,context})=>{
+  await openSeed(page);await page.getByRole('button',{name:'编辑行程',exact:true}).click()
+  const other=await context.newPage();await other.goto('/')
+  await expect(other.getByRole('button',{name:'编辑行程',exact:true})).toBeEnabled()
+  await other.getByRole('button',{name:'编辑行程',exact:true}).click()
+  await page.getByLabel('用户录入费用').first().fill('21')
+  await expect(page.getByRole('status',{name:'编辑草稿存储'})).toContainText('已保存在本机')
+  await other.getByLabel('用户录入费用').first().fill('99')
+  await expect(other.getByRole('status',{name:'编辑草稿存储'})).toContainText('已在其他页面变化')
+  await other.getByRole('button',{name:'保存并重算',exact:true}).click()
+  await expect(other.getByRole('alert')).toContainText('已在其他页面变化')
+  const value=await page.evaluate(()=>JSON.parse(localStorage.getItem('travelagent.edit.v1.local')!))
+  expect(value.value.prices['fixture-a']).toBe(21)
+  await other.close()
+  await reloadEdited(page)
+  const newer=await context.newPage();await newer.goto('/')
+  await newer.getByRole('button',{name:'恢复编辑草稿',exact:true}).click()
+  await expect(newer.getByRole('region',{name:'本次编辑改动'})).toContainText('21 元')
+  let release!:()=>void,waiting=false
+  const gate=new Promise<void>(resolve=>{release=resolve})
+  await page.route(/\/itineraries\/[^/?]+$/,async route=>{const response=await route.fetch();waiting=true;await gate;await route.fulfill({response})})
+  try {
+    await page.getByRole('button',{name:'恢复编辑草稿',exact:true}).click()
+    await expect.poll(()=>waiting).toBe(true)
+    await newer.getByLabel('用户录入费用').first().fill('41')
+    await expect.poll(()=>newer.evaluate(()=>JSON.parse(localStorage.getItem('travelagent.edit.v1.local')!).value.prices['fixture-a'])).toBe(41)
+    release()
+    await expect(page.getByRole('alert')).toContainText('已在其他页面变化')
+    await expect(page.getByRole('region',{name:'本次编辑改动'})).toHaveCount(0)
+    expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('travelagent.edit.v1.local')!).value.prices['fixture-a'])).toBe(41)
+  } finally {release();await newer.close()}
+})
+
+test('accepted adjustment with lost response resolves before offering a stale local draft on reload',async({page})=>{
+  await openSeed(page);await page.getByRole('button',{name:'编辑行程',exact:true}).click()
+  await page.getByLabel('用户录入费用').first().fill('17')
+  let posts=0
+  await page.route('**/api/v1/travel/itineraries/*/adjust',async route=>{posts++;await route.fetch();await route.abort('failed')})
+  await page.getByRole('button',{name:'保存并重算',exact:true}).click()
+  await expect(page.getByRole('button',{name:'恢复上次提交'})).toBeEnabled()
+  page.once('dialog',dialog=>dialog.accept());await page.reload()
+  await expect(page.getByText('行程已生成并保存',{exact:true})).toBeVisible()
+  await expect(page.getByRole('region',{name:'本机编辑草稿'})).toHaveCount(0)
+  expect(await page.evaluate(()=>localStorage.getItem('travelagent.edit.v1.local'))).toBeNull()
+  expect(posts).toBe(1)
+})
+
+test('storage quota failure is visible and still allows saving the itinerary to the backend',async({page})=>{
+  await openSeed(page);await page.getByRole('button',{name:'编辑行程',exact:true}).click()
+  await page.evaluate(()=>{const original=Storage.prototype.setItem;Storage.prototype.setItem=function(key,value){if(key.startsWith('travelagent.edit.'))throw new DOMException('TEST ONLY quota','QuotaExceededError');original.call(this,key,value)}})
+  await page.getByLabel('用户录入费用').first().fill('0')
+  await expect(page.getByRole('status',{name:'编辑草稿存储'})).toContainText('本机草稿未能保存')
+  await page.getByRole('button',{name:'保存并重算',exact:true}).click()
+  await expect(page.getByText('行程已生成并保存',{exact:true})).toBeVisible()
+  await expect(page.getByRole('status',{name:'编辑草稿存储'})).toHaveCount(0)
+  await expect(page.getByRole('region',{name:'本机编辑草稿'})).toHaveCount(0)
+  await page.getByRole('button',{name:'编辑行程',exact:true}).click()
+  await expect(page.getByRole('button',{name:'保存并重算',exact:true})).toBeVisible()
+  await page.getByRole('button',{name:'退出编辑',exact:true}).click()
+  await page.addInitScript(()=>{const original=Storage.prototype.getItem;Storage.prototype.getItem=function(key){if(key.startsWith('travelagent.edit.'))throw new DOMException('TEST ONLY denied','SecurityError');return original.call(this,key)}})
+  await page.reload()
+  await expect(page.getByRole('region',{name:'本机编辑草稿'})).toContainText('仍可编辑')
+  await page.getByRole('button',{name:'编辑行程',exact:true}).click()
+  await page.getByLabel('用户录入费用').first().fill('1')
+  await expect(page.getByRole('status',{name:'编辑草稿存储'})).toContainText('本机草稿未能保存')
+  await page.getByRole('button',{name:'保存并重算',exact:true}).click()
+  await expect(page.getByText('行程已生成并保存',{exact:true})).toBeVisible()
+})
 
 test('timeline and accessible map list share selection without querying POI details',async({page})=>{
   await openSeed(page)

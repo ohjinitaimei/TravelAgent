@@ -4,6 +4,7 @@ import { useTravelApi, apiBase, type Draft, type Itinerary, type PlanRequest, ty
 import RouteMap from './components/RouteMap.vue'
 import { readSession, restoreForm, writeSession } from './session'
 import { userPrices, editSnapshot, editChanges, type EditSnapshot } from './editor'
+import { EditDraftStore, EditDraftConflict, editDraftKey, itineraryBaseline, verifyEditSource } from './editDraft'
 import EditComparison from './components/EditComparison.vue'
 import DiscardChangesDialog from './components/DiscardChangesDialog.vue'
 import RequestAssistant from './components/RequestAssistant.vue'
@@ -22,6 +23,8 @@ const tabs = ['plan', 'explore', 'saved', 'budget'] as const
 const initialTab = location.hash.slice(1)
 const tab = ref<Tab>(tabs.includes(initialTab as Tab) ? initialTab as Tab : 'plan')
 const session = readSession(props.user.id)
+let editStore=new EditDraftStore(props.user.id)
+const recoverableEdit=ref(editStore.draft), editStorageIssue=ref(editStore.issue), editStorageConflict=ref(false)
 function persist() {if(!disposed) writeSession(session,props.user.id)}
 const today = new Date()
 const localDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`
@@ -40,13 +43,13 @@ const selectedDay = ref(0), selectedPoi = ref<Poi | null>(null)
 const results = ref<Poi[]>([]), searching = ref(false), loadingDetail = ref(false)
 const keyword = ref(''), searchCity = ref('')
 const editing = ref(false), editIds = ref<string[][]>([]), editPrices = reactive<Record<string,string|number>>({})
-const optimize = ref(false), editStay = ref(60), addDay = ref(0)
-const editDurations = reactive<Record<string, number>>({}), moveDays = reactive<Record<string,number>>({})
+const optimize = ref(false), editStay = ref<number|string>(60), addDay = ref(0)
+const editDurations = reactive<Record<string, number|string>>({}), moveDays = reactive<Record<string,number>>({})
 const addedPois = reactive<Record<string,Poi>>({})
 const editBaseline=ref<EditSnapshot|null>(null)
 const discardIntent=shallowRef<{action:string;run:()=>void|Promise<void>;returnFocus:HTMLElement|null}|null>(null)
 const selectedStopId=ref<string|null>(null), timeline=ref<HTMLElement>()
-const editConstraints = reactive({start_date:localDate, day_start:'09:00', day_end:'18:00', mode:'walking' as 'walking'|'driving', budget:null as number|null})
+const editConstraints = reactive({start_date:localDate, day_start:'09:00', day_end:'18:00', mode:'walking' as 'walking'|'driving', budget:null as number|string|null})
 const restoring = ref(false)
 let stream: EventSource | null = null, controller: AbortController | null = null
 const taskActive=computed(()=>['queued','running'].includes(task.value?.status||''))
@@ -68,17 +71,71 @@ function clearEditor() {
   for(const key of Object.keys(addedPois)) delete addedPois[key]
   for(const key of Object.keys(moveDays)) delete moveDays[key]
 }
+function storageFailure(e:unknown) {
+  editStorageConflict.value=e instanceof EditDraftConflict
+  editStorageIssue.value=e instanceof EditDraftConflict?e.message:'本机草稿未能保存，请保持页面打开或直接保存行程。'+(e instanceof Error?`（${e.message}）`:'')
+}
+function clearLocalEdit() {
+  if(editStore.unavailable)return true // No draft was read or written by this editor.
+  try {editStore.clear();recoverableEdit.value=null;editStorageIssue.value='';return true}
+  catch(e) {storageFailure(e);return false}
+}
+function persistEdit() {
+  if(disposed||!editing.value||!itinerary.value||!editBaseline.value||editStorageConflict.value)return
+  if(!editDirty.value) {if(recoverableEdit.value)clearLocalEdit();return}
+  try {
+    editStore.write({version:1,sourceId:itinerary.value.id,sourceCreatedAt:itinerary.value.created_at??'',baseline:editBaseline.value,value:captureEdit(),day:selectedDay.value,updatedAt:Date.now()})
+    recoverableEdit.value=editStore.draft;editStorageIssue.value=''
+  } catch(e) {storageFailure(e)}
+}
+async function restoreEdit() {
+  const value=recoverableEdit.value, restoringStore=editStore
+  if(!value||busy.value||active.value||editing.value||editStorageConflict.value)return
+  busy.value=true;error.value=''
+  try {
+    const source=await api.itinerary(value.sourceId)
+    verifyEditSource(value,source)
+    const original=new Set(source.days.flatMap(day=>day.stops.map(stop=>stop.poi.id)))
+    const extras:Poi[]=[]
+    for(const id of value.value.groups.flat().filter(id=>!original.has(id))) {
+      if(disposed)return
+      const poi=await api.detail(id)
+      if(poi.id!==id)throw Error('新增地点详情与草稿不一致，无法恢复。')
+      extras.push(poi)
+    }
+    if(disposed)return
+    // Verify storage again after network awaits, before replacing the visible editor.
+    if(restoringStore!==editStore)throw new EditDraftConflict()
+    restoringStore.check()
+    clearEditor();itinerary.value=source;selectedDay.value=value.day;tab.value='plan'
+    editIds.value=value.value.groups.map(day=>[...day]);editStay.value=value.value.defaultStay??'';optimize.value=value.value.optimize
+    for(const key of Object.keys(editPrices))delete editPrices[key]
+    for(const key of Object.keys(editDurations))delete editDurations[key]
+    for(const id of value.value.groups.flat()) {editPrices[id]=value.value.prices[id]??'';editDurations[id]=value.value.durations[id]??''}
+    Object.assign(editConstraints,{start_date:value.value.start_date,day_start:value.value.day_start,day_end:value.value.day_end,mode:value.value.mode,budget:value.value.budget??null})
+    for(const poi of extras)addedPois[poi.id]=poi
+    addDay.value=value.day;editBaseline.value=value.baseline;editing.value=true
+    notice.value='已恢复本机编辑草稿，尚未提交。保存时会重新查询真实路线。'
+  } catch(e) {if(e instanceof EditDraftConflict)storageFailure(e);report(e)} finally {busy.value=false}
+}
+function discardLocalEdit() {if(clearLocalEdit())notice.value='已放弃本机编辑草稿，已保存行程不变。'}
+function editStorageChanged(event:StorageEvent) {
+  if(event.key!==editDraftKey(props.user.id)&&event.key!==null)return
+  if(editing.value) {persistEdit();return}
+  editStore=new EditDraftStore(props.user.id);recoverableEdit.value=editStore.draft;editStorageIssue.value=editStore.issue;editStorageConflict.value=false
+}
 function requestLeave(run:()=>void|Promise<void>,action:string,trigger?:EventTarget|null) {
   if(editDirty.value) {discardIntent.value={run,action,returnFocus:trigger instanceof HTMLElement?trigger:document.activeElement as HTMLElement|null};return}
   void run()
 }
 function discardAndContinue() {
+  if(!clearLocalEdit())return
   const intent=discardIntent.value;discardIntent.value=null;clearEditor()
   if(intent) void Promise.resolve(intent.run()).catch(report)
 }
-function exitEdit(event?:MouseEvent) {requestLeave(()=>{clearEditor();notice.value='已退出编辑，显示已保存版本。'},'放弃修改并退出编辑',event?.currentTarget)}
+function exitEdit(event?:MouseEvent) {requestLeave(()=>{if(clearLocalEdit()){clearEditor();notice.value='已退出编辑，显示已保存版本。'}},'放弃修改并退出编辑',event?.currentTarget)}
 function logout(event?:MouseEvent) {requestLeave(()=>{clearEditor();emit('logout')},'放弃修改并退出登录',event?.currentTarget)}
-function beforeUnload(event:BeforeUnloadEvent) {if(editDirty.value){event.preventDefault();event.returnValue=''}}
+function beforeUnload(event:BeforeUnloadEvent) {persistEdit();if(editDirty.value){event.preventDefault();event.returnValue=''}}
 async function selectStop(id:string,fromMap=false) {
   if(!visiblePois.value.some(poi=>poi.id===id)) return
   selectedStopId.value=id
@@ -87,6 +144,7 @@ async function selectStop(id:string,fromMap=false) {
 watch([selectedDay,()=>itinerary.value?.id],()=>{selectedStopId.value=null})
 watch(visiblePois,pois=>{if(selectedStopId.value&&!pois.some(poi=>poi.id===selectedStopId.value))selectedStopId.value=null})
 watch(editDirty,value=>{if(value)window.addEventListener('beforeunload',beforeUnload);else window.removeEventListener('beforeunload',beforeUnload)})
+watch([captureEdit,editing,selectedDay],persistEdit,{deep:true})
 function mergeEvents(items: TravelEvent[]) { events.value = [...new Map([...events.value,...items].map(e=>[e.id,e])).values()].sort((a,b)=>a.id-b.id) }
 async function refreshSaved() { saved.value = (await api.itineraries()).items }
 async function follow(created: Task) {
@@ -108,6 +166,7 @@ async function follow(created: Task) {
       notice.value='需求草案已生成，请核对后填入表单'
     } else if (final.status === 'succeeded' && final.itinerary_id) {
       const result=await api.itinerary(final.itinerary_id)
+      if(result.parent_id&&result.parent_id===(recoverableEdit.value?.sourceId??(editing.value?itinerary.value?.id:undefined)))clearLocalEdit()
       if(!editing.value||result.id!==itinerary.value?.id){itinerary.value=result;selectedDay.value=0;clearEditor()}
       notice.value = editing.value&&editDirty.value?'已同步保存版本，本次编辑尚未保存。':'行程已生成并保存'; await refreshSaved()
     } else if (final.error) error.value = final.error.message
@@ -197,6 +256,7 @@ async function detail(poi: Poi) {
 function edit() {
   if (!itinerary.value||busy.value||active.value) return
   if(editing.value){tab.value='plan';return}
+  if(recoverableEdit.value||editStorageIssue.value&&!editStore.unavailable){notice.value='请先恢复或放弃本机编辑草稿，再开始新的编辑。';return}
   clearEditor()
   editIds.value = itinerary.value.days.map(d=>d.stops.map(s=>s.poi.id))
   editStay.value=itinerary.value.request.stay_minutes; optimize.value=false
@@ -206,7 +266,7 @@ function edit() {
   Object.assign(editConstraints, {start_date:itinerary.value.request.start_date, day_start:itinerary.value.request.day_start, day_end:itinerary.value.request.day_end, mode:itinerary.value.request.mode, budget:itinerary.value.request.budget??null})
   for(const key of Object.keys(editDurations)) delete editDurations[key]
   for(const d of itinerary.value.days) for(const stop of d.stops) editDurations[stop.poi.id]=stop.stay_minutes
-  editBaseline.value=captureEdit();editing.value=true
+  editBaseline.value=itineraryBaseline(itinerary.value);editing.value=true
 }
 function editName(id:string) { return itinerary.value?.days.flatMap(d=>d.stops).find(s=>s.poi.id===id)?.poi.name || addedPois[id]?.name || id }
 function move(index:number, offset:number) { const ids=editIds.value[selectedDay.value]; const target=index+offset; if(target>=0&&target<ids.length) [ids[index],ids[target]]=[ids[target],ids[index]] }
@@ -227,18 +287,22 @@ function add(poi:Poi) {
 }
 async function saveEdit() {
   if (!itinerary.value || busy.value || active.value) return
+  if(editStorageConflict.value){error.value=editStorageIssue.value;return}
   if(editIds.value.some(ids=>!ids.length||ids.length>4)) {error.value='每天须保留 1 至 4 个地点';return}
   if(!editConstraints.start_date||editConstraints.day_end<=editConstraints.day_start) {error.value='请填写日期，每日结束时间须晚于开始时间';return}
   const durations: Record<string,number>={}
   for(const id of editIds.value.flat()) {
     const value=editDurations[id]??editStay.value
-    if(!Number.isInteger(value)||value<10||value>360) {error.value='各站停留须为 10 至 360 分钟的整数';return}
+    if(typeof value!=='number'||!Number.isInteger(value)||value<10||value>360) {error.value='各站停留须为 10 至 360 分钟的整数';return}
     durations[id]=value
   }
   let prices: Record<string,number>
   try {prices=userPrices(editIds.value.flat(),editPrices)} catch(e) {report(e);return}
   error.value=''
   const budget=typeof editConstraints.budget==='number'&&Number.isFinite(editConstraints.budget)?editConstraints.budget:null
+  if(typeof editStay.value!=='number'||!Number.isInteger(editStay.value)||editStay.value<10||editStay.value>360){error.value='默认停留须为 10 至 360 分钟的整数';return}
+  persistEdit()
+  if(editStorageConflict.value){error.value=editStorageIssue.value;return}
   await submitOperation({kind:'adjust',itineraryId:itinerary.value.id,request:{...editConstraints, budget, poi_ids_by_day:editIds.value, user_prices:prices, stay_minutes:editStay.value, stay_minutes_by_poi:durations, optimize_order:optimize.value}})
 }
 function openTrip(id:string,event?:MouseEvent) {
@@ -271,10 +335,11 @@ async function synchronize() {
 function online() {if(!busy.value) {if(pending.value) void restorePending(true);else if(taskActive.value) void resume()}}
 function offline() {connection.value='offline'}
 onMounted(async()=>{
+  window.addEventListener('storage',editStorageChanged);window.addEventListener('pagehide',persistEdit)
   window.addEventListener('hashchange',hashChanged);window.addEventListener('online',online);window.addEventListener('offline',offline)
   await synchronize()
 })
-onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.removeEventListener('hashchange',hashChanged);window.removeEventListener('online',online);window.removeEventListener('offline',offline);window.removeEventListener('beforeunload',beforeUnload)})
+onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.removeEventListener('storage',editStorageChanged);window.removeEventListener('pagehide',persistEdit);window.removeEventListener('hashchange',hashChanged);window.removeEventListener('online',online);window.removeEventListener('offline',offline);window.removeEventListener('beforeunload',beforeUnload)})
 </script>
 
 <template>
@@ -290,6 +355,8 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
       <div class="page-heading"><div><div class="eyebrow">PLAN WITH INTENTION</div><h1>{{title}}</h1><p>把地点、路线与时间放在一起，规划属于你的旅程。</p></div><span class="heading-tag">Web 工作台 <span>01</span></span></div>
       <div v-if="error" role="alert" class="alert error"><span>{{error}}</span><button aria-label="关闭错误提示" @click="error=''">×</button></div>
       <div v-if="notice" role="status" class="alert success">{{notice}}</div>
+      <div v-if="!editing&&(recoverableEdit||editStorageIssue)" role="region" aria-label="本机编辑草稿" class="config-note connection-note"><span>{{editStorageIssue||'发现未提交的本机编辑草稿（保留 7 天）。恢复前会核对原行程版本和地点。'}}草稿仅保存在此浏览器、此账号下。</span><div><button v-if="recoverableEdit" class="secondary" :disabled="busy||active||editStorageConflict" @click="restoreEdit">恢复编辑草稿</button><button class="text-button" :disabled="busy||active||editStorageConflict" @click="discardLocalEdit">放弃本机草稿</button></div></div>
+      <div v-if="editing&&editDirty" role="status" aria-label="编辑草稿存储" class="config-note">{{editStorageIssue||'编辑草稿已保存在本机，保留 7 天；尚未提交到后端。刷新后可核对并恢复。'}}</div>
       <div v-if="editing&&editDirty" role="status" aria-label="未保存行程修改" class="unsaved-note"><span>本次编辑有 {{changes.length}} 项未保存修改。切换页面会保留；保存后重算路线并生成新版本。</span><button class="text-button" @click="tab='plan'">返回行程编辑</button></div>
       <div v-if="connection!=='connected'||(!capability&&error)" role="status" class="config-note connection-note"><span>{{connection==='reconnecting'?`正在恢复连接（${reconnectAttempt}）`:'连接状态待确认'}}。已提交的任务保留原记录，恢复连接只同步状态。</span><button class="secondary" :disabled="busy||restoring" @click="synchronize">恢复连接</button></div>
       <div v-if="pending" role="status" class="config-note connection-note"><span>尚未确认上次任务是否已受理。恢复将使用上次提交条件，已受理的任务不会重复创建。</span><button class="secondary" :disabled="busy||restoring" @click="restorePending(false)">恢复上次提交</button></div>
