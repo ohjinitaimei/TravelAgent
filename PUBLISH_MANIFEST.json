@@ -30,8 +30,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 12723,
-      "sha256": "8ffd337622ac31705a1003addf5db610ed266c57ddd1267e88e6d0de7292f5d5"
+      "bytes": 13099,
+      "sha256": "0fa23d7b8a8dbc454bc69f746ec23fe78729d1e5836ebf214be77b2f3e210c8f"
     },
     {
       "path": "analysis_options.yaml",
@@ -155,8 +155,8 @@
     },
     {
       "path": "apps/web/src/App.vue",
-      "bytes": 47112,
-      "sha256": "2df7907638bf6def46615ab2d621e916ae4d8e7da93657463cf28c9dcbdbf728"
+      "bytes": 46702,
+      "sha256": "c20f915f31577b13218eac52972334293997088490a38dd714b2e3e0d0b79f63"
     },
     {
       "path": "apps/web/src/WorkspaceRoot.vue",
@@ -172,6 +172,11 @@
       "path": "apps/web/src/components/AccessibleForm.vue",
       "bytes": 4903,
       "sha256": "3c5ed298f45030461e7bc11e95c294a68c30b665b52a9912386f3b0b8feec6b0"
+    },
+    {
+      "path": "apps/web/src/components/DayOverview.vue",
+      "bytes": 4260,
+      "sha256": "547bb32eb9ecf41ffd2c92e5d671ef83c4cc1f9046b4c58cc35041ef1601cd08"
     },
     {
       "path": "apps/web/src/components/DiscardChangesDialog.vue",
@@ -245,8 +250,8 @@
     },
     {
       "path": "apps/web/src/style.css",
-      "bytes": 19499,
-      "sha256": "607632e8f30eeecea3722c705a3261662b7bb76edff4207dc8f4a4f47908a080"
+      "bytes": 19359,
+      "sha256": "0d18959af527bc45c7c3b761cd5f34067d63491e3bb3138f58dd43d972cbfffe"
     },
     {
       "path": "apps/web/src/submissions.ts",
@@ -825,18 +830,18 @@
     },
     {
       "path": "docs/ACCEPTANCE.md",
-      "bytes": 14192,
-      "sha256": "2050565ca9ac2f22c9d9ddfa717c55bafd1a6965762feca3c887c4bc898b0405"
+      "bytes": 14944,
+      "sha256": "00dd1ea5fb8527e313dccdf6e13ce5a48df43f8633c66c921dc62fb917a27744"
     },
     {
       "path": "docs/README.md",
-      "bytes": 1304,
-      "sha256": "51d4cdf5aa88db7a0d3c376cfb2aa715b3bd3d2af8af8e11cbf624c62781ad54"
+      "bytes": 1433,
+      "sha256": "01cf415ce3367cb581cd36c14fcd2c955e821e5087ee7b9240f26a1ce8356af8"
     },
     {
       "path": "docs/RELEASE_STATUS.md",
-      "bytes": 9561,
-      "sha256": "8ca14352541dec6366b3703e048549ce6259ce52d74ba8480fa5b8245c5123b7"
+      "bytes": 10125,
+      "sha256": "eadbc32f9422124ca923a773aa3fe077400bed7ae6a95006a9100f81f72f99bd"
     },
     {
       "path": "docs/TECHNICAL_REPORT.md",
@@ -910,8 +915,8 @@
     },
     {
       "path": "docs/architecture/LIVE_AMAP.md",
-      "bytes": 5982,
-      "sha256": "1c46892edc46a642354bee2123afb7d923772d95b86a1a464aed8896d981639d"
+      "bytes": 6633,
+      "sha256": "84857917b1d900a4f6de01d6513acd038ccca82a1b54764784d8ddbf7bc67be2"
     },
     {
       "path": "docs/architecture/LOCAL_RECOVERY.md",
@@ -922,6 +927,11 @@
       "path": "docs/architecture/MCP_CLIENT.md",
       "bytes": 6099,
       "sha256": "3f65b6c3754dbbbe70634e56f68577c2bfabadd61d7d356164e6dccdb7993499"
+    },
+    {
+      "path": "docs/architecture/MULTIDAY_QUALITY.md",
+      "bytes": 6105,
+      "sha256": "0fe8222a6b968ec62e20ffa4e4c40b68065552b592a51919304279a2cc13ba54"
     },
     {
       "path": "docs/architecture/OPERATIONS.md",
@@ -1184,6 +1194,11 @@
       "sha256": "54564c063e233ad88ba6a37db63eae874416973afa41fa091a7d3d86e73102db"
     },
     {
+      "path": "scripts/verify_live_quality.py",
+      "bytes": 11909,
+      "sha256": "593725aabc3bd1fa99d85bc8e4bd1be1c19171c6b3039525f560f4c749aa559e"
+    },
+    {
       "path": "scripts/verify_live_travel.py",
       "bytes": 2326,
       "sha256": "4d054dd798d75183bf84fc662670d01eb4a062a81e76418dbfd63d1813f8a495"
@@ -1200,8 +1215,8 @@
     },
     {
       "path": "scripts/verify_repository.py",
-      "bytes": 3419,
-      "sha256": "be9074e20b3c6895c19ac268581cd63e896b6425d23e699277df5d49356422b4"
+      "bytes": 3442,
+      "sha256": "5fb616e62c23f6d97aa5af90ddc632485b3da976c14f85e32e9bf076711c715b"
     },
     {
       "path": "test/widget_test.dart",
@@ -1225,8 +1240,8 @@
     },
     {
       "path": "tests/browser/workspace.spec.ts",
-      "bytes": 46167,
-      "sha256": "c002aae088d1fa4d242b3f71f399b27bf7bc7382a34e64d8758506ba97528127"
+      "bytes": 50999,
+      "sha256": "3fcbdf09611365aedc5e9c57eb3dd134fee2335618f7aac301e58283ca01b6ec"
     },
     {
       "path": "tests/browser_fixture_server.py",
@@ -1307,6 +1322,11 @@
       "path": "tests/test_health.py",
       "bytes": 3330,
       "sha256": "3413c2deb5dc8aac352b06ff7d204c1bd33f0924a99479a76dc745fa5344805c"
+    },
+    {
+      "path": "tests/test_live_quality.py",
+      "bytes": 3655,
+      "sha256": "0b94daae0a79f89e330e971496d86f6ac2371b5ab57c91cd43ad19890db7d718"
     },
     {
       "path": "tests/test_map_proxy.py",

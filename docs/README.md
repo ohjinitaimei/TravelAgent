@@ -17,6 +17,8 @@ POI data; they are not a claim that every historical feature is complete.
 8. [architecture/BROWSER_ACCEPTANCE.md](architecture/BROWSER_ACCEPTANCE.md)
 9. [legacy/MUSE_README.md](legacy/MUSE_README.md) (historical)
 
+Current multiday overview and opt-in live quality checks: [architecture/MULTIDAY_QUALITY.md](architecture/MULTIDAY_QUALITY.md).
+
 ## Doc Groups
 
 - `architecture/`: orchestration boundaries, coordinator, tool contracts, UI structure.

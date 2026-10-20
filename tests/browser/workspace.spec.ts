@@ -1,10 +1,25 @@
 import { test, expect, type Page } from '@playwright/test'
 
 // This suite runs only against scripts/verify_browser.py's explicit TEST ONLY server.
-test.beforeEach(async ({ page }) => {
-  await page.route(/https:\/\//, route => route.abort())
+test.beforeEach(async ({ page, context }) => {
+  await context.route(/https:\/\//, route => route.abort())
   await page.goto('/')
   await expect(page.getByRole('heading', { name: '这次，去哪里？' })).toBeVisible()
+})
+
+test('workbench and secondary tabs load without remote stylesheet or font dependencies',async({page,context})=>{
+  const remoteAssets:string[]=[]
+  context.on('request',request=>{
+    if(request.url().startsWith('https:')&&['stylesheet','font'].includes(request.resourceType()))remoteAssets.push(request.url())
+  })
+  await page.reload()
+  await expect(page.getByRole('heading',{name:'这次，去哪里？'})).toBeVisible()
+  const other=await context.newPage()
+  try {
+    await other.goto('/')
+    await expect(other.getByRole('heading',{name:'这次，去哪里？'})).toBeVisible()
+    expect(remoteAssets).toEqual([])
+  } finally {await other.close()}
 })
 
 test('tool handshake does not claim map authorization is configured', async ({ page }) => {
@@ -213,6 +228,61 @@ async function openSeed(page:Page) {
   await page.locator('.saved-card').filter({hasText:'2026-10-10'}).filter({hasText:'SAVED ITINERARY'}).first().click()
   await expect(page.locator('.timeline')).toContainText('TEST ONLY fixture-a')
 }
+
+test('multiday overview matches saved API facts and supports keyboard date selection',async({page},testInfo)=>{
+  await openSeed(page)
+  const trips=await (await page.request.get('/api/v1/travel/itineraries')).json()
+  const trip=trips.items.find((item:any)=>item.days[0].date==='2026-10-10')
+  expect(trip).toBeTruthy()
+  const overview=page.getByRole('group',{name:'行程日期',exact:true})
+  for(const [index,day] of trip.days.entries()){
+    const card=overview.getByRole('button',{name:`DAY ${index+1}`,exact:false})
+    await expect(card).toContainText(`${day.stops.length} 站 · 停留 ${day.stops.reduce((sum:number,s:any)=>sum+s.stay_minutes,0)} 分钟`)
+    await expect(card).toContainText(`站间交通 ${day.stops.reduce((sum:number,s:any)=>sum+(s.travel_to_next?.duration_min??0),0)} 分钟`)
+    await expect(card).toContainText(`${day.stops.reduce((sum:number,s:any)=>sum+(s.travel_to_next?.distance_km??0),0).toFixed(2)} km`)
+    await expect(card).toContainText(`${day.stops.filter((s:any)=>s.user_cost==null).length} 站费用未填`)
+  }
+  await overview.getByRole('button',{name:'DAY 1',exact:false}).focus()
+  await page.keyboard.press('ArrowRight')
+  const second=overview.getByRole('button',{name:'DAY 2',exact:false})
+  await expect(second).toBeFocused();await expect(second).toHaveAttribute('aria-pressed','true')
+  await expect(page.locator('.timeline')).toContainText('TEST ONLY fixture-c')
+  await page.keyboard.press('Home')
+  await expect(overview.getByRole('button',{name:'DAY 1',exact:false})).toBeFocused()
+  await expect(page.locator('.timeline')).toContainText('TEST ONLY fixture-a')
+  await page.screenshot({path:testInfo.outputPath('multiday-overview-desktop-test-only.png'),fullPage:true})
+  await page.setViewportSize({width:680,height:900})
+  await second.click();await expect(second).toHaveAttribute('aria-pressed','true')
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBeTruthy()
+  await page.screenshot({path:testInfo.outputPath('multiday-overview-narrow-test-only.png'),fullPage:true})
+})
+
+test('multiday overview previews moved counts without stale route or cost summaries then shows saved facts',async({page})=>{
+  await openSeed(page);await page.getByRole('button',{name:'编辑行程',exact:true}).click()
+  const overview=page.getByRole('group',{name:'行程日期',exact:true})
+  await page.getByLabel('移动 TEST ONLY fixture-a 到哪一天').selectOption('1')
+  await page.locator('[data-stop-id="fixture-a"]').getByRole('button',{name:'移动',exact:true}).click()
+  await expect(overview.getByRole('button',{name:'DAY 1',exact:false})).toContainText('1 站 · 编辑预览')
+  await expect(overview.getByRole('button',{name:'DAY 2',exact:false})).toContainText('3 站 · 编辑预览')
+  await expect(overview).not.toContainText('站间交通');await expect(overview).not.toContainText('已录入站点费用')
+  await expect(overview).toContainText('路线、时间与费用待保存核算')
+  await page.getByRole('button',{name:'DAY 2',exact:false}).click()
+  await page.locator('[data-stop-id="fixture-a"]').getByLabel('用户录入费用',{exact:true}).fill('0')
+  await page.getByRole('button',{name:'保存并重算',exact:true}).click()
+  await expect(page.getByText('行程已生成并保存',{exact:true})).toBeVisible()
+  const second=overview.getByRole('button',{name:'DAY 2',exact:false})
+  await expect(second).toContainText('3 站 · 停留')
+  await expect(second).toContainText('已录入站点费用 ¥0.00')
+  await expect(second).toContainText('2 站费用未填')
+  await expect(second).toContainText('站间交通')
+  const task=await currentTask(page)
+  const trip=await (await page.request.get(`/api/v1/travel/itineraries/${task.itinerary_id}`)).json()
+  const source=await (await page.request.get(`/api/v1/travel/itineraries/${trip.parent_id}`)).json()
+  expect(source.days.map((d:any)=>d.stops.length)).toEqual([2,2])
+  expect(trip.days.map((d:any)=>d.stops.length)).toEqual([1,3])
+  expect(trip.days.flatMap((d:any)=>d.stops).find((s:any)=>s.poi.id==='fixture-a').user_cost).toBe(0)
+  expect(trip.budget.total).toBeNull()
+})
 
 test('keyboard skip link and navigation expose current page and move focus to the new heading',async({page})=>{
   await page.keyboard.press('Tab')

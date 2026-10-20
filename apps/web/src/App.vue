@@ -12,6 +12,7 @@ import DiscardChangesDialog from './components/DiscardChangesDialog.vue'
 import RequestAssistant from './components/RequestAssistant.vue'
 import ToolConnection from './components/ToolConnection.vue'
 import OptimizationComparison from './components/OptimizationComparison.vue'
+import DayOverview from './components/DayOverview.vue'
 import { draftForm } from './draft'
 import { TravelApiError } from '../../../packages/api-schema/client'
 import { newSubmission, restoreSubmission, sendSubmission, recoverSubmission, submissionWasRejected, type Operation, type PendingSubmission } from './submissions'
@@ -418,8 +419,7 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
           <section class="card route-workspace">
             <div class="section-title"><div><div class="eyebrow">YOUR ITINERARY</div><h2>{{itinerary?.title || '旅程地图与时间轴'}}</h2></div><button v-if="itinerary && !editing" class="secondary" :disabled="active||busy" @click="edit">编辑行程</button></div>
             <p v-if="itinerary&&task&&(task.kind==='draft'||task.status!=='succeeded'||resultPending)" class="saved-version-note">当前地图与时间轴显示原行程；本次任务的结果将在同步后更新。</p>
-            <div v-if="itinerary" class="day-tabs" role="group" aria-label="行程日期"><button v-for="(d,i) in itinerary.days" :class="{selected:selectedDay===i}" :aria-pressed="selectedDay===i" @click="selectedDay=i">DAY {{i+1}}<small>{{d.date}}</small></button></div>
-            <div v-if="day&&!editing" class="day-summary"><span>{{day.stops.length}} 站</span><span>停留 {{day.stops.reduce((sum,s)=>sum+s.stay_minutes,0)}} 分钟</span><span>交通 {{day.stops.reduce((sum,s)=>sum+(s.travel_to_next?.duration_min??0),0)}} 分钟</span><span>{{day.stops.reduce((sum,s)=>sum+(s.travel_to_next?.distance_km??0),0).toFixed(2)}} km</span></div>
+            <DayOverview v-if="itinerary" :itinerary="itinerary" :selected="selectedDay" :preview-counts="editing?editIds.map(ids=>ids.length):undefined" @select="selectedDay=$event"/>
             <div v-if="editing" class="day-summary"><span>编辑预览 · {{editIds[selectedDay]?.length??0}} 个地点</span><span>路线与时间将在保存后重算</span></div>
             <OptimizationComparison v-if="itinerary?.optimization&&!editing" :summary="itinerary.optimization"/>
             <EditComparison v-if="editing" :changes="changes"/>
