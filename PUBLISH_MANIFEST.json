@@ -30,8 +30,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 11083,
-      "sha256": "33e392b680cf01740a5958f86ccd68d55ee7d9a5b0f2f72630b7dc45b240796b"
+      "bytes": 11370,
+      "sha256": "9db05756f917c2fdcbee622d8e7f109e2414c45024fae3871e30e78bd16c54f9"
     },
     {
       "path": "analysis_options.yaml",
@@ -155,13 +155,13 @@
     },
     {
       "path": "apps/web/src/App.vue",
-      "bytes": 44913,
-      "sha256": "97aa283c1d48a49665b4795b4138eb28d8bab85b7df416d7fd946ace759a9183"
+      "bytes": 46577,
+      "sha256": "ff936c4c537725ab0c9545e9be1e3d8ad58c31476e1a8fb482b14a2cc42a2e25"
     },
     {
       "path": "apps/web/src/WorkspaceRoot.vue",
-      "bytes": 5312,
-      "sha256": "d9ee897ccfefd35ce21928ea66813c0942febd2e496b2b15a40d705be803cd75"
+      "bytes": 5406,
+      "sha256": "cd056a0ff8843498916a2d009c00541bec2ff0b4e11e9ac8c001aca576cecda8"
     },
     {
       "path": "apps/web/src/api.ts",
@@ -169,9 +169,14 @@
       "sha256": "6c7bebe05e0461ea3eeba6c2c8bdb496899a2857f64e64e3f62b139cd0d9faf6"
     },
     {
+      "path": "apps/web/src/components/AccessibleForm.vue",
+      "bytes": 4903,
+      "sha256": "3c5ed298f45030461e7bc11e95c294a68c30b665b52a9912386f3b0b8feec6b0"
+    },
+    {
       "path": "apps/web/src/components/DiscardChangesDialog.vue",
-      "bytes": 1590,
-      "sha256": "fe22179d3bfbceb6087bf9f8a1afe125785524e93de61e65e7b15302c64b65a9"
+      "bytes": 1666,
+      "sha256": "64986587d0f02470258095cdfc1662185ba20a693e44bd1767991f5a92c61497"
     },
     {
       "path": "apps/web/src/components/EditComparison.vue",
@@ -184,9 +189,14 @@
       "sha256": "4dcbc67887a78a66e34a5e76ad0d3dd99c98a31e942fee5e53ab76ea8bf5185c"
     },
     {
+      "path": "apps/web/src/components/PoiDialog.vue",
+      "bytes": 2501,
+      "sha256": "ef62f89ce9940dbf67d464ef62b48603d466cd154574bb619e0330ce8319bcca"
+    },
+    {
       "path": "apps/web/src/components/RequestAssistant.vue",
-      "bytes": 7639,
-      "sha256": "cbf4fa4e89328ec598e150cfa9a2c8e51555e364fc43deddfa68d1ab73a25da7"
+      "bytes": 7966,
+      "sha256": "a0cedf9100a5d54f83c7b71c3507d0320e96644f9c5eb002f972fabac9ff5864"
     },
     {
       "path": "apps/web/src/components/RouteMap.vue",
@@ -202,6 +212,11 @@
       "path": "apps/web/src/components/WorkspaceShell.vue",
       "bytes": 453,
       "sha256": "f53b9abb58049ea549d593a5736d5b8e828eb9bac9bbde26162147fa44401b46"
+    },
+    {
+      "path": "apps/web/src/dialogFocus.ts",
+      "bytes": 787,
+      "sha256": "4b3d8699055e208632bf45a5d0594b6940bd55fc89f714a7027ec69294ee0f7a"
     },
     {
       "path": "apps/web/src/draft.ts",
@@ -230,8 +245,8 @@
     },
     {
       "path": "apps/web/src/style.css",
-      "bytes": 17900,
-      "sha256": "c2ac765f9bb051d770ad4974ddb45247b64c0a622f5393ac66f5470f3d31834b"
+      "bytes": 19499,
+      "sha256": "607632e8f30eeecea3722c705a3261662b7bb76edff4207dc8f4a4f47908a080"
     },
     {
       "path": "apps/web/src/submissions.ts",
@@ -765,8 +780,8 @@
     },
     {
       "path": "docs/ACCEPTANCE.md",
-      "bytes": 11100,
-      "sha256": "b3b63229890413773682f74e7728ece5b370bdca84f240811873b47774bfa74f"
+      "bytes": 11914,
+      "sha256": "375ffd76703a072a17929a76ade06c550ec8a984a670cfc15bd953ad5bb5ae8f"
     },
     {
       "path": "docs/README.md",
@@ -775,8 +790,8 @@
     },
     {
       "path": "docs/RELEASE_STATUS.md",
-      "bytes": 7484,
-      "sha256": "e2a914ad8cf2fec1ec9c705bcd631fb57596f99c43e3895601693c8cbe40882d"
+      "bytes": 7784,
+      "sha256": "3e60dacdcbd135faf4a56622c8e7a4a6b73e4da0ca4525fdbed49858b3c4a1e3"
     },
     {
       "path": "docs/TECHNICAL_REPORT.md",
@@ -810,8 +825,8 @@
     },
     {
       "path": "docs/architecture/BROWSER_ACCEPTANCE.md",
-      "bytes": 9760,
-      "sha256": "1ff389ee8eaff28dbea7c97fa619842ab42b9d30b1b1f5bb2ab323a32824ae0a"
+      "bytes": 10283,
+      "sha256": "f28f8df7319b3ef41913b2514d075a16704ca0436dc5a72ce41198efd3797e53"
     },
     {
       "path": "docs/architecture/DAY_GROUPING.md",
@@ -837,6 +852,11 @@
       "path": "docs/architecture/HELLOAGENTS_INTAKE.md",
       "bytes": 9264,
       "sha256": "9a40789798d4139747b490db73e60a95290c16d7dc44e70d446424a5e772c642"
+    },
+    {
+      "path": "docs/architecture/KEYBOARD_ACCESSIBILITY.md",
+      "bytes": 3750,
+      "sha256": "98c8f5fe4b1f4bffe1bd9175e3b46032893eb544263d30f63070d909b5bafb4e"
     },
     {
       "path": "docs/architecture/LIVE_AMAP.md",
@@ -880,8 +900,8 @@
     },
     {
       "path": "docs/architecture/WEB_EDITING.md",
-      "bytes": 5320,
-      "sha256": "5f92b1e7bdbae3a2f60517599a8b96e07cd064a9ac321c5b148c483f4ee40bd4"
+      "bytes": 5608,
+      "sha256": "0d1531b32ff22366984c53455068597ccd8e8a5bf2221ead36749dc1b027f695"
     },
     {
       "path": "docs/legacy/MUSE_README.md",
@@ -1100,18 +1120,18 @@
     },
     {
       "path": "tests/browser/auth.spec.ts",
-      "bytes": 12179,
-      "sha256": "13fde5d945300230215b41690f21bc4ba2df548e497a1cfd018a1b052d9f8a57"
+      "bytes": 13178,
+      "sha256": "ed449d2bd7e92315e0d9a4d3a96306dac099667adbef83bc1c69fb09d1e0a349"
     },
     {
       "path": "tests/browser/workspace.spec.ts",
-      "bytes": 34418,
-      "sha256": "ef47980b98b4bac51a96092163005ae6c2a8d693d48d9d7ea7a250678219418e"
+      "bytes": 46167,
+      "sha256": "c002aae088d1fa4d242b3f71f399b27bf7bc7382a34e64d8758506ba97528127"
     },
     {
       "path": "tests/browser_fixture_server.py",
-      "bytes": 5116,
-      "sha256": "4752dc024ea1234cac2e9818c9720576f0593c1714e9635000c147416732d2be"
+      "bytes": 5333,
+      "sha256": "be8e7512f1973fc2c521a4affcff88cab96560f9b8eaaa45f59e43294cb46da1"
     },
     {
       "path": "tests/client.integration.test.ts",

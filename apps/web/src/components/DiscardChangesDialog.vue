@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { keepDialogFocus } from '../dialogFocus'
 const props=defineProps<{open:boolean;action:string;returnFocus?:HTMLElement|null}>()
 const emit=defineEmits<{discard:[];keep:[]}>()
 const dialog=ref<HTMLDialogElement>()
@@ -13,7 +14,7 @@ onBeforeUnmount(()=>dialog.value?.close())
 </script>
 
 <template>
-  <dialog ref="dialog" class="discard-dialog" aria-labelledby="discard-title" aria-describedby="discard-description" @cancel.prevent="emit('keep')">
+  <dialog ref="dialog" class="discard-dialog" aria-labelledby="discard-title" aria-describedby="discard-description" @cancel.prevent="emit('keep')" @keydown="keepDialogFocus">
     <h2 id="discard-title">有未保存的行程修改</h2>
     <p id="discard-description">继续此操作会放弃本次编辑，已保存的行程保持原样。</p>
     <div><button autofocus class="secondary" @click="emit('keep')">继续编辑</button><button class="primary" @click="emit('discard')">{{action}}</button></div>

@@ -5,6 +5,7 @@ import { TravelClient, fetchTransport } from '../../../packages/api-schema/clien
 import { workspaceTransport } from './workspaceTransport'
 import { clearSession } from './session'
 import WorkspaceShell from './components/WorkspaceShell.vue'
+import AccessibleForm from './components/AccessibleForm.vue'
 
 const status=ref<Schema<'AuthStatus'>|null>(null), loading=ref(true), busy=ref(false)
 const username=ref(''), password=ref(''), error=ref(''), notice=ref('')
@@ -72,11 +73,11 @@ onBeforeUnmount(()=>{closeWorkspace();window.removeEventListener('storage',other
       <p v-if="notice" role="status">{{notice}}</p>
       <p v-if="error" role="alert" class="auth-error">{{error}}</p>
       <p v-if="status?.setup_required">服务尚未配置账号，请联系管理员。</p>
-      <form v-if="!loading&&status?.mode==='session'" @submit.prevent="login">
+      <AccessibleForm v-if="!loading&&status?.mode==='session'" label="账号登录" @submit="login">
         <label>账号<input v-model="username" autocomplete="username" required minlength="3" maxlength="40" :disabled="busy"/></label>
         <label>密码<input v-model="password" type="password" autocomplete="current-password" required maxlength="128" :disabled="busy"/></label>
         <button class="primary full" type="submit" :disabled="busy||status.setup_required">{{busy?'正在登录…':'登录'}}</button>
-      </form>
+      </AccessibleForm>
       <button v-else-if="!loading" class="secondary" @click="initialize">重新连接</button>
     </section>
   </main>

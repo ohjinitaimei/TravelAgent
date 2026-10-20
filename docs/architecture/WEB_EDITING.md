@@ -47,3 +47,5 @@
 本地证据在被 Git 排除的 `artifacts/live-map-20261019T115658Z/`，包含 `report.json`、`browser.json`、`day-one-map.png`、`editing-preview.png`、`discard-dialog.png`、`day-two-map.png`；克隆不会附带这些授权记录。截图已目视检查。首次地图点击检查因先居中第一站、另一站移出视野而失败；复查先恢复整日视野后使用真实鼠标点击通过。自动测试中取消刷新没有新的 load 事件，已改为触发刷新、取消原生提示并直接断言页面内容，避免等待不存在的加载。
 
 上述 23 项为地图编辑阶段的历史记录。随后已完成三引擎与安全密钥代理实测，见 [BROWSER_ACCEPTANCE.md](BROWSER_ACCEPTANCE.md)。移动端真机和正式域名部署仍按 [后续计划](../RELEASE_STATUS.md) 分步验收。凭证、构建物、截图、运行库和日志均不进入 Git。
+
+2026-10-20 键盘操作阶段增加跨日移动后的目标日聚焦、排序/移除焦点保留、跨日期输入错误定位和原生详情模态。原日期与路线仍来自同一保存版本；最新操作与验收范围见 [KEYBOARD_ACCESSIBILITY.md](KEYBOARD_ACCESSIBILITY.md)。

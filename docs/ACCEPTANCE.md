@@ -20,10 +20,10 @@ Linux 浏览器首次安装使用 `npx playwright install --with-deps --only-she
 | --- | ---: | --- |
 | Python | 92 | 旅行 API 13、Agent 6、澄清 4、MCP 服务端 1、任务恢复 3、MCP 客户端 11、鉴权隔离 14、业务限流 8、备份恢复 6、分日算法 13、地图代理 13 |
 | TypeScript 客户端 | 23 | HTTP 契约、轮询期限/取消、暂时断线、提交收据恢复、编辑差异与还原、工具握手、账号绑定与恢复、配额拒绝、本机草稿校验/冲突/存储失败 |
-| Chromium / Firefox / WebKit | 93 次 | 每引擎旅行工作台 22 项、账号流程 9 项，三个引擎合计 93 次执行 |
+| Chromium / Firefox / WebKit | 111 次 | 每引擎旅行工作台 27 项、账号流程 10 项，三个引擎合计 111 次执行 |
 | Web / Schema | — | TypeScript 检查、Vite 构建、OpenAPI 生成文件一致性 |
 
-共 146 个逻辑用例、208 次执行（包含相同页面场景在不同引擎中的重复）。最终浏览器报告无失败、跳过或重试后通过；Windows WebKit 的 SameSite 元数据限制、真实地图复查和源码修改见 [BROWSER_ACCEPTANCE.md](architecture/BROWSER_ACCEPTANCE.md)。
+共 152 个逻辑用例、226 次执行（包含相同页面场景在不同引擎中的重复）。最终浏览器报告无失败、跳过或重试后通过；Windows WebKit 的 SameSite 元数据限制、真实地图复查和源码修改见 [BROWSER_ACCEPTANCE.md](architecture/BROWSER_ACCEPTANCE.md)。
 
 浏览器场景：
 
@@ -50,6 +50,14 @@ Linux 浏览器首次安装使用 `npx playwright install --with-deps --only-she
 21. 编辑已受理但响应丢失 → 刷新先恢复回执与任务 → 完成后清理对应草稿，只有一次调整 POST。
 22. 本机配额不足或禁止读取 → 明确提示草稿不可用，仍可编辑并直接保存到后端。
 
+23. 键盘跳过导航并切换页面 → 焦点到新标题 → 当前页面状态及窄屏名称可读取。
+24. 规划/搜索错误摘要与字段关联 → 纠正空格、时段与数值 → 无效请求不发出，费用与预算保留小数。
+25. 其他日期停留为空或约束折叠 → 摘要切换日期、展开并定位 → 修正或移除后更新错误，不丢编辑草稿。
+26. 键盘排序、跨日移动、移除 → 焦点保持可用 → 不误提交；放弃确认的 Tab/Shift+Tab/Escape 可用。
+27. 地点详情焦点循环、Escape 关闭与返回原按钮 → 编辑中可添加地点后继续原页面。
+
+账号第 10 项覆盖无效登录的摘要、字段定位和不发送凭证请求，详细范围见 [KEYBOARD_ACCESSIBILITY.md](architecture/KEYBOARD_ACCESSIBILITY.md)。
+
 账号第 9 项验证编辑后会话失效、切换账号不显示原草稿、重新登录原账号恢复，以及主动退出清理。该多次登录场景使用独立测试账号，不改变生产登录限额。草稿数据、有效期与浏览器存储边界见 [EDIT_DRAFT_RECOVERY.md](architecture/EDIT_DRAFT_RECOVERY.md)。
 
 新增的 MCP 客户端检查使用实际 stdio 子进程：生产工具服务的成功输出 Schema（测试进程显式注入 FixtureProvider）、现有规划算法、已有 ToolRegistry、工具白名单、调用次数/总时限、握手/调用超时、意外退出、文本或非法业务结果拒绝、错误脱敏、生产固定命令/凭证边界，以及任务取消和超时后的子进程退出。`POST /tool-service/check` 还对真实随仓库提供的服务执行不消耗 Provider 配额的握手；生产任务在缺 Key 时失败且不保存虚假行程。
@@ -62,7 +70,7 @@ Linux 浏览器首次安装使用 `npx playwright install --with-deps --only-she
 
 测试服务必须显式传入 `--test-fixtures-only`，只绑定本机地址，数据库限制在仓库 `.tmp/`。FixtureProvider、固定模型回复和故障注入仅在 `tests/` 定义；生产服务不提供开启测试数据的配置。浏览器测试屏蔽外部 HTTPS，所有 POI 名称使用 TEST ONLY 标识。日志、截图和 trace 保存在被 Git 排除的 `artifacts/` 中，CI 仅在失败时上传测试诊断。
 
-上述自动检查验证页面、API 与后端算法之间的调用和状态一致性。2026-10-19 另通过授权高德的本地真实联调，覆盖 POI、步行/驾车、直接 Provider/MCP 异步规划、多日编辑版本和 Web 保存重开。地图接入阶段的 JS API 检查覆盖底图、编号、道路折线、跨天切换和刷新；地图编辑阶段另完成 23 项真实检查及截图核对，见 [WEB_EDITING.md](architecture/WEB_EDITING.md)。前端构建通过且不含后端 Key。授权联调不计入上表 208 次无密钥自动执行。实际范围、早期页面检查失败及后续复查记录见 [LIVE_AMAP.md](architecture/LIVE_AMAP.md)。未来交通与营业状态不在此次结论内；票价、库存、评论等无授权来源时保持缺失。
+上述自动检查验证页面、API 与后端算法之间的调用和状态一致性。2026-10-19 另通过授权高德的本地真实联调，覆盖 POI、步行/驾车、直接 Provider/MCP 异步规划、多日编辑版本和 Web 保存重开。地图接入阶段的 JS API 检查覆盖底图、编号、道路折线、跨天切换和刷新；地图编辑阶段另完成 23 项真实检查及截图核对，见 [WEB_EDITING.md](architecture/WEB_EDITING.md)。前端构建通过且不含后端 Key。授权联调不计入上表 226 次无密钥自动执行。实际范围、早期页面检查失败及后续复查记录见 [LIVE_AMAP.md](architecture/LIVE_AMAP.md)。未来交通与营业状态不在此次结论内；票价、库存、评论等无授权来源时保持缺失。
 
 安全密钥代理阶段新增 12 项自动检查，总数增至 128。另在真实高德 SDK 下分别通过本地模式 25 项与账号模式 28 项检查，初始化代理请求全部成功，登录 Cookie 可用于该路径，退出后返回 401；安全密钥不在浏览器配置/请求/代理响应或前端构建中。步骤与部署边界见 [AMAP_PROXY.md](architecture/AMAP_PROXY.md)。此前 23 项地图编辑记录保留为历史验收。
 

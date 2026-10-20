@@ -67,6 +67,9 @@ if __name__ == "__main__":
     os.environ["TRAVEL_AUTH_MODE"]="session" if args.auth_fixtures else "local"
     os.environ["TRAVEL_COOKIE_SECURE"]="0"
     os.environ["TRAVEL_TOOL_TRANSPORT"]="direct"
+    # This explicit TEST ONLY service runs the entire suite under one local owner.
+    # Production quota/429 behavior is independently exercised in test_business_limits.py.
+    os.environ["TRAVEL_LIMIT_TASKS"]="100"
     os.environ["TRAVEL_TEST_MARKER"]=str(directory/"test-only-failure-marker")
     os.environ["TRAVEL_CORS_ORIGINS"] = os.getenv('E2E_BASE_URL',"http://127.0.0.1:5174")
     store=Store(Path(os.environ["TRAVEL_DB_PATH"]))

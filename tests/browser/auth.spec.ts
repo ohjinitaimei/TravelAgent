@@ -19,6 +19,20 @@ async function saved(page:Page) {
   await expect(page.locator('.saved-card').first()).toBeVisible()
 }
 
+test('keyboard login validation focuses an error summary without sending invalid credentials',async({page})=>{
+  let posts=0
+  page.on('request',request=>{if(request.method()==='POST'&&request.url().endsWith('/auth/login'))posts++})
+  await page.getByRole('button',{name:'登录',exact:true}).focus();await page.keyboard.press('Enter')
+  const summary=page.getByRole('alert',{name:'账号登录错误'})
+  await expect(summary).toBeFocused();await expect(summary).toContainText('账号');await expect(summary).toContainText('密码')
+  await summary.getByRole('button',{name:/账号/}).focus();await page.keyboard.press('Enter')
+  await expect(page.getByLabel('账号',{exact:true})).toBeFocused()
+  await page.getByLabel('账号',{exact:true}).fill('   ')
+  await page.getByRole('button',{name:'登录',exact:true}).click()
+  await expect(summary).toContainText('不能只填写空格')
+  expect(posts).toBe(0)
+})
+
 test('expired session retains an editor draft only for its owner and explicit logout removes it',async({page})=>{
   // Dedicated accounts keep this multi-login scenario independent of the existing rate window.
   await login(page,'test-draft-alpha');await saved(page);await page.locator('.saved-card').first().click()
@@ -48,6 +62,7 @@ test('login, refresh and logout use HttpOnly cookies without exposing tokens',as
   await page.getByLabel('密码',{exact:true}).fill('TEST ONLY incorrect password')
   await page.getByRole('button',{name:'登录',exact:true}).click()
   await expect(page.getByRole('alert')).toContainText('账号或密码不正确')
+  await expect(page.getByRole('alert',{name:'账号登录错误'})).toHaveCount(0)
   const response=await login(page)
   const setCookie=(await response.headersArray()).find(header=>header.name.toLowerCase()==='set-cookie')?.value??''
   expect(setCookie).toMatch(/(?:^|;\s*)SameSite=Strict(?:;|$)/i)
