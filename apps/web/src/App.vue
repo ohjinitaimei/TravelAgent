@@ -33,6 +33,7 @@ const localDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(
 const form = reactive<PlanRequest>(restoreForm({ city: '', query: '', start_date: localDate, days: 2, stops_per_day: 3, day_start: '09:00', day_end: '18:00', stay_minutes: 60, mode: 'walking', budget: null, user_prices: {} }, session.form))
 const capability = ref<Schema<'Capabilities'> | null>(null)
 const error = ref(''), notice = ref(''), busy = ref(false)
+const resultPending = ref(false)
 const task = ref<Task | null>(null), events = ref<TravelEvent[]>([])
 const itinerary = ref<Itinerary | null>(null), saved = ref<Itinerary[]>([])
 const draft = ref<Draft|null>(null)
@@ -56,7 +57,7 @@ const editConstraints = reactive({start_date:localDate, day_start:'09:00', day_e
 const restoring = ref(false)
 let stream: EventSource | null = null, controller: AbortController | null = null
 const taskActive=computed(()=>['queued','running'].includes(task.value?.status||''))
-const active = computed(() => restoring.value || taskActive.value || Boolean(pending.value))
+const active = computed(() => restoring.value || taskActive.value || resultPending.value || Boolean(pending.value))
 const day = computed(() => itinerary.value?.days[selectedDay.value])
 function captureEdit() {return editSnapshot({groups:editIds.value,prices:editPrices,durations:editDurations,constraints:editConstraints,defaultStay:editStay.value,optimize:optimize.value})}
 const changes=computed(()=>editing.value&&editBaseline.value?editChanges(editBaseline.value,captureEdit(),editName):[])
@@ -155,6 +156,7 @@ async function follow(created: Task) {
   stream?.close(); controller?.abort()
   if(task.value?.id!==created.id) events.value=[]
   task.value = created; notice.value = ''; error.value = ''; busy.value = true
+  resultPending.value = created.status === 'succeeded'
   session.taskId = created.id; persist()
   const localController = new AbortController(); controller = localController
   const localStream = new EventSource(`${apiBase}/tasks/${created.id}/events/stream?after=${events.value.at(-1)?.id??0}`, {withCredentials:true}); stream = localStream
@@ -164,14 +166,17 @@ async function follow(created: Task) {
   try {
     const final = await api.wait(created.id, (value, items)=>{ task.value=value; mergeEvents(items) }, {signal:localController.signal,onConnection:(state,attempt)=>{connection.value=state;reconnectAttempt.value=attempt}})
     task.value = final
+    resultPending.value = final.status === 'succeeded'
     if (final.status === 'succeeded' && final.kind==='draft' && final.draft_id) {
       draft.value=await api.draft(final.draft_id);session.draftId=draft.value.id;persist()
+      resultPending.value=false
       draftConflict.value=false
       notice.value='需求草案已生成，请核对后填入表单'
     } else if (final.status === 'succeeded' && final.itinerary_id) {
       const result=await api.itinerary(final.itinerary_id)
       if(result.parent_id&&result.parent_id===(recoverableEdit.value?.sourceId??(editing.value?itinerary.value?.id:undefined)))clearLocalEdit()
       if(!editing.value||result.id!==itinerary.value?.id){itinerary.value=result;selectedDay.value=0;clearEditor()}
+      resultPending.value=false
       notice.value = editing.value&&editDirty.value?'已同步保存版本，本次编辑尚未保存。':'行程已生成并保存'; await refreshSaved()
     } else if (final.error) error.value = final.error.message
     else notice.value = '任务已取消'
@@ -347,13 +352,13 @@ async function synchronize() {
     }
     restoring.value=false
     if(pending.value) await restorePending(true)
-    else if(typeof session.taskId==='string'&&(!editing.value||taskActive.value)) {
+    else if(typeof session.taskId==='string'&&(!editing.value||taskActive.value||resultPending.value)) {
       try { const existing=await api.task(session.taskId);await follow(existing) }
       catch(e) {connection.value='offline';report(e)}
     }
   } catch(e) {report(e)} finally {restoring.value=false}
 }
-function online() {if(!busy.value) {if(pending.value) void restorePending(true);else if(taskActive.value) void resume()}}
+function online() {if(!busy.value) {if(pending.value) void restorePending(true);else if(taskActive.value||resultPending.value) void resume()}}
 function offline() {connection.value='offline'}
 onMounted(async()=>{
   window.addEventListener('storage',editStorageChanged);window.addEventListener('pagehide',persistEdit)
@@ -382,6 +387,7 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
       <div v-if="editing&&editDirty" role="status" aria-label="未保存行程修改" class="unsaved-note"><span>本次编辑有 {{changes.length}} 项未保存修改。切换页面会保留；保存后重算路线并生成新版本。</span><button class="text-button" @click="tab='plan'">返回行程编辑</button></div>
       <div v-if="connection!=='connected'||(!capability&&error)" role="status" class="config-note connection-note"><span>{{connection==='reconnecting'?`正在恢复连接（${reconnectAttempt}）`:'连接状态待确认'}}。已提交的任务保留原记录，恢复连接只同步状态。</span><button class="secondary" :disabled="busy||restoring" @click="synchronize">恢复连接</button></div>
       <div v-if="pending" role="status" class="config-note connection-note"><span>尚未确认上次任务是否已受理。恢复将使用上次提交条件，已受理的任务不会重复创建。</span><button class="secondary" :disabled="busy||restoring" @click="restorePending(false)">恢复上次提交</button></div>
+      <div v-if="resultPending" role="status" aria-label="结果同步" class="config-note">任务已完成，结果尚未同步。{{busy?'正在读取已保存结果。':'恢复连接后继续读取同一任务的结果，无需再次提交。'}}</div>
       <div v-if="capability && !capability.configured" class="config-note">高德数据将在授权配置后启用。规划与搜索目前会明确提示数据不可用。</div>
       <div v-if="staleDraft" role="status" class="config-note connection-note"><span>草案已更新至第 {{draft?.revision}} 版，当前表单来自第 {{appliedDraft?.revision}} 版。</span><div><button class="secondary" :disabled="busy||active" @click="draft&&applyDraft(draft)">填入最新草案</button><button class="text-button" :disabled="busy||active" @click="retainForm">保留当前表单</button></div></div>
 
@@ -411,7 +417,7 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
           </section>
           <section class="card route-workspace">
             <div class="section-title"><div><div class="eyebrow">YOUR ITINERARY</div><h2>{{itinerary?.title || '旅程地图与时间轴'}}</h2></div><button v-if="itinerary && !editing" class="secondary" :disabled="active||busy" @click="edit">编辑行程</button></div>
-            <p v-if="itinerary&&task&&(task.kind==='draft'||task.status!=='succeeded')" class="saved-version-note">当前地图与时间轴显示已保存行程；本次任务的结果将在保存后更新。</p>
+            <p v-if="itinerary&&task&&(task.kind==='draft'||task.status!=='succeeded'||resultPending)" class="saved-version-note">当前地图与时间轴显示原行程；本次任务的结果将在同步后更新。</p>
             <div v-if="itinerary" class="day-tabs" role="group" aria-label="行程日期"><button v-for="(d,i) in itinerary.days" :class="{selected:selectedDay===i}" :aria-pressed="selectedDay===i" @click="selectedDay=i">DAY {{i+1}}<small>{{d.date}}</small></button></div>
             <div v-if="day&&!editing" class="day-summary"><span>{{day.stops.length}} 站</span><span>停留 {{day.stops.reduce((sum,s)=>sum+s.stay_minutes,0)}} 分钟</span><span>交通 {{day.stops.reduce((sum,s)=>sum+(s.travel_to_next?.duration_min??0),0)}} 分钟</span><span>{{day.stops.reduce((sum,s)=>sum+(s.travel_to_next?.distance_km??0),0).toFixed(2)}} km</span></div>
             <div v-if="editing" class="day-summary"><span>编辑预览 · {{editIds[selectedDay]?.length??0}} 个地点</span><span>路线与时间将在保存后重算</span></div>

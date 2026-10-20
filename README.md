@@ -27,6 +27,8 @@ TravelAgent 将自然语言旅行需求整理为可核对草案，再由统一 F
 
 键盘可跳过导航、切换页面并操作地点详情。提交有误时会聚焦中文摘要，摘要可定位其他日期或折叠区中的字段；站点排序、移动和移除后保留可用焦点。详见 [键盘与错误定位](docs/architecture/KEYBOARD_ACCESSIBILITY.md)。
 
+任务完成但结果读取失败时，会保留原行程并提示结果待同步；恢复连接继续读取同一任务，避免重复规划或保存。生产构建另有持续断线及 12 站行程读写验收，方法和测量范围见 [弱网与性能验收](docs/architecture/RESILIENCE_PERFORMANCE.md)。
+
 ## 工程结构
 
 ```text
@@ -134,7 +136,7 @@ npx playwright install --only-shell chromium firefox webkit
 .\.venv\Scripts\python.exe scripts/verify_browser.py
 ```
 
-可用 `--browser chromium|firefox|webkit` 单独运行；Linux 首次安装增加 `--with-deps`。脚本为每个引擎和账号模式创建独立库。网络场景、平台限制和报告路径见 [跨浏览器验收](docs/architecture/BROWSER_ACCEPTANCE.md)。
+可用 `--browser chromium|firefox|webkit` 单独运行，或用 `--suite resilience` 只验收生产构建的弱网和最大行程场景；Linux 首次安装增加 `--with-deps`。脚本为每个引擎的 local / auth / resilience 套件创建独立库。网络场景、平台限制和报告路径见 [跨浏览器验收](docs/architecture/BROWSER_ACCEPTANCE.md)。
 
 契约变更后运行并提交生成文件：
 

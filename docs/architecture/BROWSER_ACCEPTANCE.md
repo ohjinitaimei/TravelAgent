@@ -13,7 +13,7 @@ npx playwright install --only-shell chromium firefox webkit
 .\.venv\Scripts\python.exe scripts/verify_browser.py
 ```
 
-Linux 安装命令增加 `--with-deps`。浏览器安装方式及项目配置参照 [Playwright 官方浏览器文档](https://playwright.dev/docs/browsers)。编排脚本默认依次运行三个引擎的本地、账号两套测试；每次使用独立临时数据库和服务端口，清空真实凭证并阻止测试页面的外部 HTTPS。没有生产模拟数据开关。
+Linux 安装命令增加 `--with-deps`。浏览器安装方式及项目配置参照 [Playwright 官方浏览器文档](https://playwright.dev/docs/browsers)。编排脚本默认依次运行三个引擎的本地、账号、恢复与性能三套测试；每次使用独立临时数据库和服务端口，清空真实凭证并阻止测试页面的外部 HTTPS。没有生产模拟数据开关。
 
 ```powershell
 # 单浏览器完整验收
@@ -24,17 +24,19 @@ Linux 安装命令增加 `--with-deps`。浏览器安装方式及项目配置参
 
 默认仍为单个 Playwright worker、无自动重试；浏览器之间不共享原条件重试标记、账号或配额。直接对同一测试服务运行所有 project 不具备此数据库隔离，因此完整验收使用 Python 编排脚本。
 
-JSON 报告位于 `artifacts/browser-reports/{engine}/{local|auth}.json`，失败 trace/截图位于 `artifacts/browser-results/{engine}/{suite}/`，服务日志位于 `artifacts/browser-diagnostics/{engine}/{suite}/`，均被 Git 排除。CI 配置已同步安装三个引擎并保留失败报告；此次没有运行 Ubuntu CI。
+JSON 报告位于 `artifacts/browser-reports/{engine}/{local|auth|resilience}.json`，失败 trace/截图位于 `artifacts/browser-results/{engine}/{suite}/`，服务日志位于 `artifacts/browser-diagnostics/{engine}/{suite}/`，均被 Git 排除。CI 配置已同步安装三个引擎并保留失败报告；此次没有运行 Ubuntu CI。
 
 ## 结果与范围
 
-| 引擎 | 本地工作台 | 账号流程 | 失败 / 跳过 / 重试后通过 |
-| --- | ---: | ---: | --- |
-| Chromium | 27 | 10 | 0 / 0 / 0 |
-| Firefox | 27 | 10 | 0 / 0 / 0 |
-| WebKit | 27 | 10 | 0 / 0 / 0 |
+| 引擎 | 本地工作台 | 账号流程 | 恢复与性能 | 失败 / 跳过 / 重试后通过 |
+| --- | ---: | ---: | ---: | --- |
+| Chromium | 27 | 10 | 5 | 0 / 0 / 0 |
+| Firefox | 27 | 10 | 5 | 0 / 0 / 0 |
+| WebKit | 27 | 10 | 5 | 0 / 0 / 0 |
 
-键盘与错误定位阶段增至 37 个页面场景、111 次浏览器执行；加上 Python 92 和 TypeScript 23，共 152 个逻辑用例、226 次执行。Web 类型检查、Vite 构建及 OpenAPI 生成一致性通过。次数包含不同引擎执行同一页面场景，不表示新增了 226 个不同业务功能。
+弱网与最大行程阶段增至 42 个页面场景、126 次浏览器执行；加上 Python 92 和 TypeScript 23，共 157 个逻辑用例、241 次执行。Web 类型检查、Vite 构建及 OpenAPI 生成一致性通过。次数包含不同引擎执行同一页面场景，不表示新增了 241 个不同业务功能。
+
+新增生产构建套件验证连续读取失败后的有界停止与恢复、间歇事件读取失败、成功结果读取失败、取消后的迟到响应，以及 12 站最大行程的读写与页面性能。本轮修复结果尚未读取时显示旧行程却缺少同步状态的问题，联网后可同步同一任务且避免重复提交。计时方法、门槛与实测值见 [RESILIENCE_PERFORMANCE.md](RESILIENCE_PERFORMANCE.md)。以下保留先前键盘、本机草稿与真实地图阶段的具体记录。
 
 本轮增加跳过导航与窄屏名称、表单摘要/字段关联/跨日定位、排序与放弃确认的焦点、详情模态键盘操作、无效登录不提交。修复原生模态在 Tab 边界进入浏览器工具栏的问题，并为 WebKit 跳过链接增加显式 tabindex。各表单与输入框使用不同名称；跨日移动后跟随目标日期，旧测试显式选择要复查的原日期。操作与人工辅助技术验证边界见 [KEYBOARD_ACCESSIBILITY.md](KEYBOARD_ACCESSIBILITY.md)。
 
@@ -58,7 +60,7 @@ JSON 报告位于 `artifacts/browser-reports/{engine}/{local|auth}.json`，失�
 - 首轮 Firefox 在 Codex Windows 受限沙箱中无法建立自动化管道，离线最小启动复现超时；在正常 Windows 权限下启动成功并完成全部套件。仅关闭本轮测试所属的进程；无需改浏览器偏好或降低应用鉴权。终端复现若遇同类沙箱限制，在正常用户终端运行上述命令。
 - Windows WebKit 的 Cookie 元数据会把 Strict 报告为 None；[锁定版本的官方测试也记录此限制](https://github.com/microsoft/playwright/blob/v1.64.1/tests/library/browsercontext-cookies.spec.ts#L110-L120)。测试仍在所有引擎中验证服务端 `Set-Cookie: SameSite=Strict`、HttpOnly、登录/刷新/退出与数据隔离；Chromium/Firefox 另外验证 Cookie 元数据。Windows WebKit 此项使用明确的平台限制注解，不跳过整个账号场景，不修改生产 Cookie 设置，也不声称验证了该端口对跨站 SameSite 的完整执行。
 
-WebKit 引擎通过不等同于已在 macOS/iOS Safari 真机验收。实际部署的 HTTPS、域名授权、不同设备、完整键盘流程、持续弱网和大行程性能仍按部署与质量计划继续验证。
+WebKit 引擎通过不等同于已在 macOS/iOS Safari 真机验收。确定性断线与最大行程页面性能已有独立测试；实际部署的 HTTPS、域名授权、不同设备、辅助技术人工朗读、随机丢包和长时间压力仍按部署与质量计划继续验证。
 
 ## 真实地图补验
 

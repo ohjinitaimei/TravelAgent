@@ -30,8 +30,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 11370,
-      "sha256": "9db05756f917c2fdcbee622d8e7f109e2414c45024fae3871e30e78bd16c54f9"
+      "bytes": 11785,
+      "sha256": "9dc8114403d74a6a1988469c2fcf18fde2d305b481b52be6d6f72bb0c1424e61"
     },
     {
       "path": "analysis_options.yaml",
@@ -155,8 +155,8 @@
     },
     {
       "path": "apps/web/src/App.vue",
-      "bytes": 46577,
-      "sha256": "ff936c4c537725ab0c9545e9be1e3d8ad58c31476e1a8fb482b14a2cc42a2e25"
+      "bytes": 47112,
+      "sha256": "2df7907638bf6def46615ab2d621e916ae4d8e7da93657463cf28c9dcbdbf728"
     },
     {
       "path": "apps/web/src/WorkspaceRoot.vue",
@@ -780,8 +780,8 @@
     },
     {
       "path": "docs/ACCEPTANCE.md",
-      "bytes": 11914,
-      "sha256": "375ffd76703a072a17929a76ade06c550ec8a984a670cfc15bd953ad5bb5ae8f"
+      "bytes": 12415,
+      "sha256": "330b95ab9a940cace1f8a8dc6de3c7b00b2bf8a9143ec599397595657cab09a2"
     },
     {
       "path": "docs/README.md",
@@ -790,8 +790,8 @@
     },
     {
       "path": "docs/RELEASE_STATUS.md",
-      "bytes": 7784,
-      "sha256": "3e60dacdcbd135faf4a56622c8e7a4a6b73e4da0ca4525fdbed49858b3c4a1e3"
+      "bytes": 8173,
+      "sha256": "74df7ba42d4a325a933531a6255b94967cfa07840681aa8aa7faf20593992237"
     },
     {
       "path": "docs/TECHNICAL_REPORT.md",
@@ -825,8 +825,8 @@
     },
     {
       "path": "docs/architecture/BROWSER_ACCEPTANCE.md",
-      "bytes": 10283,
-      "sha256": "f28f8df7319b3ef41913b2514d075a16704ca0436dc5a72ce41198efd3797e53"
+      "bytes": 10938,
+      "sha256": "3f753f9231ae62390f782d8991617e99d30cc47b061111784d97e50c3d5d1bd3"
     },
     {
       "path": "docs/architecture/DAY_GROUPING.md",
@@ -877,6 +877,11 @@
       "path": "docs/architecture/README.md",
       "bytes": 1483,
       "sha256": "4795686cc2631ab3cd486cc33b0b9be1ddd6d4831dc080d3d8392a1b1fbdeaee"
+    },
+    {
+      "path": "docs/architecture/RESILIENCE_PERFORMANCE.md",
+      "bytes": 7604,
+      "sha256": "7673d3a1c4c4508eb247c27abacfa5ea0cea757cc4c76fe207c2cf18969b21d0"
     },
     {
       "path": "docs/architecture/SKILL_SPEC.md",
@@ -1045,8 +1050,8 @@
     },
     {
       "path": "playwright.config.ts",
-      "bytes": 810,
-      "sha256": "ba616d9250fe4b2fbe745b8b8585e6e329bcfc209519d6671651d4bf4836802c"
+      "bytes": 838,
+      "sha256": "2bb9f37f1c9bfb6bfdc98b0c44894b512a0fb27b3de8207334f17507df1564de"
     },
     {
       "path": "pubspec.lock",
@@ -1060,8 +1065,8 @@
     },
     {
       "path": "scripts/browser_test_web.mjs",
-      "bytes": 464,
-      "sha256": "de6325a0a2ca2b01c3f60c00352998ed9bf117c3647636f81a43bdde2b1011c0"
+      "bytes": 1162,
+      "sha256": "aea5be938d5a96ef66603f71c0dba02b8632f9d39b4562b1a6a1522be670c1ba"
     },
     {
       "path": "scripts/export_openapi.py",
@@ -1085,8 +1090,8 @@
     },
     {
       "path": "scripts/verify_browser.py",
-      "bytes": 4444,
-      "sha256": "4b49cd87f29e02a48b753d72737b5b702d3b2b2d08b2e520d9195479b374ed4c"
+      "bytes": 4525,
+      "sha256": "772aad85698d3d349fc0411387ebd569080d8da234a6bc40ee77e8a4359e1ad0"
     },
     {
       "path": "scripts/verify_live_clarification.py",
@@ -1124,14 +1129,19 @@
       "sha256": "ed449d2bd7e92315e0d9a4d3a96306dac099667adbef83bc1c69fb09d1e0a349"
     },
     {
+      "path": "tests/browser/resilience.spec.ts",
+      "bytes": 11192,
+      "sha256": "ce1c8b6fd1ed8fbae4bbee9ea5b8b88bea7faebe47b77c421cf9fc4ee28cd628"
+    },
+    {
       "path": "tests/browser/workspace.spec.ts",
       "bytes": 46167,
       "sha256": "c002aae088d1fa4d242b3f71f399b27bf7bc7382a34e64d8758506ba97528127"
     },
     {
       "path": "tests/browser_fixture_server.py",
-      "bytes": 5333,
-      "sha256": "be8e7512f1973fc2c521a4affcff88cab96560f9b8eaaa45f59e43294cb46da1"
+      "bytes": 5481,
+      "sha256": "d9ecfe32f2350fe6742026844b325e223c7d1cd7dd328930ae94b3b123d74077"
     },
     {
       "path": "tests/client.integration.test.ts",
@@ -1147,6 +1157,11 @@
       "path": "tests/edit_draft.test.ts",
       "bytes": 5158,
       "sha256": "216698020de4e0b7e499b9693c53c2ab1d18c6518328b5dec6bdac5eef0641c8"
+    },
+    {
+      "path": "tests/maximum_fixture.py",
+      "bytes": 1128,
+      "sha256": "85470a0997652cc50ab844eed20a4b0c4033fc13fcddbbc29c3e280de602e43a"
     },
     {
       "path": "tests/mcp_fixture_server.py",

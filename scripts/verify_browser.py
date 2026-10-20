@@ -16,7 +16,7 @@ ROOT=Path(__file__).resolve().parents[1]
 
 def verify(suite,browser,grep=None):
     (ROOT/".tmp").mkdir(exist_ok=True)
-    env=dict(os.environ,PYTHONIOENCODING="utf-8",E2E_AUTH_TESTS="1" if suite=='auth' else '0',E2E_BROWSER=browser)
+    env=dict(os.environ,PYTHONIOENCODING="utf-8",E2E_AUTH_TESTS="1" if suite=='auth' else '0',E2E_BROWSER=browser,E2E_SUITE=suite)
     for name in ('AMAP_KEY','AMAP_WEB_KEY','AMAP_JS_KEY','AMAP_JS_SECURITY_CODE','DASHSCOPE_API_KEY','OPENAI_API_KEY','TRAVEL_LLM_API_KEY','VITE_AMAP_JS_KEY','VITE_AMAP_SECURITY_CODE'):
         env[name]=''
     env.update(TRAVEL_SESSION_TTL='28800',TRAVEL_SESSION_IDLE_TTL='1800',VITE_API_BASE_URL='/api/v1/travel')
@@ -31,7 +31,7 @@ def verify(suite,browser,grep=None):
         folder=Path(folder)
         stop=folder/"stop"
         env.update({"E2E_WEB_PORT":str(web_port),"E2E_STOP_FILE":str(stop),"E2E_BASE_URL":f"http://127.0.0.1:{web_port}",
-            "E2E_API_URL":f"http://127.0.0.1:{api_port}/api/v1/travel","TRAVEL_BACKEND_URL":f"http://127.0.0.1:{api_port}"})
+            "E2E_API_URL":f"http://127.0.0.1:{api_port}/api/v1/travel","TRAVEL_BACKEND_URL":f"http://127.0.0.1:{api_port}","E2E_BUILD_DIR":str(folder/"web-dist")})
         with (folder/"api.log").open("w",encoding="utf-8") as api_log,(folder/"web.log").open("w",encoding="utf-8") as web_log:
             processes=[]
             try:
@@ -67,12 +67,12 @@ def verify(suite,browser,grep=None):
 
 def main():
     parser=argparse.ArgumentParser()
-    parser.add_argument('--suite',choices=['all','local','auth'],default='all')
+    parser.add_argument('--suite',choices=['all','local','auth','resilience'],default='all')
     parser.add_argument('--browser',choices=['all','chromium','firefox','webkit'],default='all')
     parser.add_argument('--grep',help='Run matching test names only; omit for full acceptance')
     args=parser.parse_args()
     for browser in (['chromium','firefox','webkit'] if args.browser=='all' else [args.browser]):
-        for suite in (['local','auth'] if args.suite=='all' else [args.suite]): verify(suite,browser,args.grep)
+        for suite in (['local','auth','resilience'] if args.suite=='all' else [args.suite]): verify(suite,browser,args.grep)
 
 
 if __name__=="__main__": main()
