@@ -20,12 +20,12 @@ Linux 浏览器首次安装使用 `npx playwright install --with-deps --only-she
 | --- | ---: | --- |
 | Python | 146 | 旅行 API 13、Agent 6、澄清 4、MCP 服务端 1、任务恢复 3、MCP 客户端 11、鉴权隔离 14、业务限流 8、备份恢复 6、分日算法 13、地图代理 13、健康 4、部署配置 5、定时备份 8、发布包 6、恢复种子保护 3、真实质量报告/预算预检 12、时间不可行诊断 7、保存列表分页/查询 9 |
 | TypeScript 客户端与展示逻辑 | 30 | HTTP 契约、轮询期限/取消、暂时断线、提交收据恢复、编辑差异与还原、工具握手、账号绑定与恢复、配额拒绝、本机草稿校验/冲突/存储失败、版本筛选/关系/缺省与只读差异、分页参数编码与元数据/错误 |
-| Chromium / Firefox / WebKit | 168 次 | 每引擎旅行工作台 39 项、账号流程 12 项、弱网与最大行程 5 项，三个引擎合计 168 次执行 |
+| Chromium / Firefox / WebKit | 183 次 | 每引擎旅行工作台 43 项、账号流程 13 项、弱网与最大行程 5 项，三个引擎合计 183 次执行 |
 | Web / Schema | — | TypeScript 检查、Vite 构建、OpenAPI 生成文件一致性 |
 
-完整检查集规模为 232 个逻辑用例、344 次执行（包含相同页面场景在不同引擎中的重复）。分页阶段重跑 Python 146、共享客户端/展示逻辑 30、类型/生产构建及三引擎 168 次页面交互，最终完整运行零重试，无失败或跳过；OpenAPI 与 TypeScript 契约按新增列表参数与元数据重新生成，并核对一致性。另以真实高德原规划→调整保存→全库子版搜索→只读对照→来源/刷新复查现有链路，范围、首轮测试修正及复现见 [SAVED_PAGINATION.md](architecture/SAVED_PAGINATION.md)。前轮扩展质量矩阵、时间约束、字体阻塞及 Windows WebKit 的 SameSite 元数据边界分别保留在 [EXPANDED_QUALITY.md](architecture/EXPANDED_QUALITY.md)、[TIME_CONSTRAINTS.md](architecture/TIME_CONSTRAINTS.md)、[MULTIDAY_QUALITY.md](architecture/MULTIDAY_QUALITY.md) 和 [BROWSER_ACCEPTANCE.md](architecture/BROWSER_ACCEPTANCE.md)，不声称重跑历史真实矩阵、SDK、HTTPS 或恢复演练。
+完整检查集规模为 237 个逻辑用例、359 次执行（包含相同页面场景在不同引擎中的重复）。分页交互恢复阶段重跑 Python 146、共享客户端/展示逻辑 30、类型/生产构建及三引擎 183 个引擎场景；重新生成的 OpenAPI 与 TypeScript 契约无差异。首次全跑在 WebKit 账号第 12 项的 beforeEach 期间遇系统休眠约 63 分钟，触发 30 秒准备超时；电源事件核对为上海时间 17:01–18:04。唤醒后保持代码与测试时限不变，重新运行 WebKit 账号 13 项及尚未执行的生产构建 5 项，最终各套件通过，无失败或跳过，配置始终为 `retries=0`。359 是完整检查集的执行规模，不重复计入定向复查和休眠后复跑。焦点、原页保留、并发插入、换号迟到响应及首个定向失败记录见 [SAVED_PAGE_RECOVERY.md](architecture/SAVED_PAGE_RECOVERY.md)。本轮未调用高德或模型接口，`224a597` 的南京真实规划→调整→搜索→对照记录保留在 [SAVED_PAGINATION.md](architecture/SAVED_PAGINATION.md)，不冒充本轮重测。历史扩展质量矩阵、时间约束、字体阻塞及 Windows WebKit 的 SameSite 元数据边界分别保留在 [EXPANDED_QUALITY.md](architecture/EXPANDED_QUALITY.md)、[TIME_CONSTRAINTS.md](architecture/TIME_CONSTRAINTS.md)、[MULTIDAY_QUALITY.md](architecture/MULTIDAY_QUALITY.md) 和 [BROWSER_ACCEPTANCE.md](architecture/BROWSER_ACCEPTANCE.md)，本轮未重跑真实 SDK、HTTPS、恢复演练或人工辅助技术听读。
 
-本轮扩展矩阵的博物馆 3 站、咖啡 4 站、公园 12 站各走直接 Provider/MCP，共六任务全部通过来源/调度检查；调用上限 138，单日保留上限与实测的区别，十二站任务各返回 48 条矩阵路段计数。详细结果、人工复核范围与非主观评分的判定见 [EXPANDED_QUALITY.md](architecture/EXPANDED_QUALITY.md)，不计入无密钥检查集。
+扩展矩阵阶段的博物馆 3 站、咖啡 4 站、公园 12 站各走直接 Provider/MCP，共六任务全部通过来源/调度检查；调用上限 138，单日保留上限与实测的区别，十二站任务各返回 48 条矩阵路段计数。详细结果、人工复核范围与非主观评分的判定见 [EXPANDED_QUALITY.md](architecture/EXPANDED_QUALITY.md)，不计入无密钥检查集。
 
 多日概览阶段另通过四项真实高德多日质量样本，实际 4 次搜索、16 次路线查询，直接 Provider/MCP 均通过，单列于 [MULTIDAY_QUALITY.md](architecture/MULTIDAY_QUALITY.md)，不计入无密钥检查集。
 
@@ -79,6 +79,10 @@ Linux 浏览器首次安装使用 `npx playwright install --with-deps --only-she
 37. 全库搜索 65 条历史 → 50/15 双页与回退 → 每条只出现一次、排序与 API 一致，窄屏无横向溢出。
 38. 查找默认首屏之外的原版 → 后端计数包含跨页直接子版本 → 直接条件不含孙版 → 对照与打开来源正常。
 39. 先后搜索的迟到响应不覆盖新结果 → 列表失败显式重试 → 不发送任务 POST，原编辑输入保持。
+40. Enter 翻页/回退后定位新结果标题，Tab 到首卡 → 状态/忙碌属性与窄屏布局通过 → 等待中转到搜索框后不抢焦点。
+41. 实际断网导致下一页读取失败 → 原 50 个 ID、页码与游标保留，聚焦失败摘要 → 同游标重试成功；第二页刷新 503 仍保留原 15 个 ID，费用草稿不变，无业务 POST。
+42. 延迟第二页响应期间改变筛选 → 新查询第一页与输入焦点保持 → 旧响应不回填旧数据、页码或错误。
+43. 实际向测试服务提交一个匹配的新行程 → 旧快照前后页 ID 和总数不变 → 显式刷新后第一页才纳入新版本。
 
 独立生产构建套件再验证 5 项：间歇状态/事件读取失败后恢复、连续 5 次失败后停止重试并恢复原任务、完成结果读取失败后保留旧版本并联网同步、取消后迟到状态不覆盖终态，以及 12 站/4608 路线点的日期切换、费用编辑、版本保存和刷新。详细门槛、计时方法和实测值见 [RESILIENCE_PERFORMANCE.md](architecture/RESILIENCE_PERFORMANCE.md)。
 
@@ -87,6 +91,8 @@ Linux 浏览器首次安装使用 `npx playwright install --with-deps --only-she
 账号第 11 项覆盖客户端 TEST ONLY 关系篡改后的来源读取，真实服务仍按当前账号拒绝他人来源并返回 404；页面不显示对照表或其他用户行程内容。版本阶段真实样本使用南京两个公园与真实道路，生产 Web 构建完成一次原规划、一次调整保存和后续只读浏览；调用上限 7，不计入上表无密钥检查。详见 [SAVED_VERSIONS.md](architecture/SAVED_VERSIONS.md)。
 
 账号第 12 项分别为两个测试账号保存 65 条明确 TEST ONLY 历史，验证翻页只含自身记录、他人 ID 搜索总数为 0、他人游标被拒绝。服务端另验证插入后旧快照页码和计数保持、重开同库可继续、字面通配字符不扩大查询、旧记录缺时间不补当前时刻。分页阶段的真实样本仍为两个真实版本，不将 65 条测试历史当作真实业务数据验收。
+
+账号第 13 项延迟旧账号的第二页实际 GET 响应，退出后工作区清空；重新登录另一个账号再交付旧响应，新页面仍只包含新账号第一页的 50 个 ID，不混入旧账号内容、页码或焦点操作。
 
 账号第 9 项验证编辑后会话失效、切换账号不显示原草稿、重新登录原账号恢复，以及主动退出清理。该多次登录场景使用独立测试账号，不改变生产登录限额。草稿数据、有效期与浏览器存储边界见 [EDIT_DRAFT_RECOVERY.md](architecture/EDIT_DRAFT_RECOVERY.md)。
 

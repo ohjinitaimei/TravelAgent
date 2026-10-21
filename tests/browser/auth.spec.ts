@@ -244,3 +244,31 @@ test('saved pagination keeps full history, foreign searches and cursor reuse sco
   await expect(page.getByText('没有匹配的版本',{exact:true})).toBeVisible()
   await expect(page.locator('.saved-panel .version-scope').first()).toContainText('全库匹配 0 个版本')
 })
+
+test('saved page recovery drops a delayed old-owner page after logout and another login',async({page})=>{
+  await login(page,'test-page-alpha');await saved(page)
+  const alpha=(await(await page.request.get('/api/v1/travel/itineraries',{params:{limit:100}})).json()).items
+  const alphaIds=new Set(alpha.map((item:any)=>item.id))
+  let release!:()=>void,finished!:()=>void,started=false
+  const gate=new Promise<void>(resolve=>release=resolve),done=new Promise<void>(resolve=>finished=resolve)
+  await page.route(/\/api\/v1\/travel\/itineraries\?.*cursor=/,async route=>{
+    const response=await route.fetch();started=true
+    try {await gate;await route.fulfill({response})} catch {/* Workspace cancellation aborts this old-owner read. */} finally {finished()}
+  })
+  await page.getByRole('navigation',{name:'已保存行程分页'}).getByRole('button',{name:'下一页',exact:true}).click()
+  try {
+    await expect.poll(()=>started).toBe(true)
+    await page.getByRole('button',{name:'退出登录',exact:true}).click()
+    await expect(page.getByRole('heading',{name:'登录旅行空间',exact:true})).toBeVisible()
+    await expect(page.locator('.saved-card')).toHaveCount(0)
+    await login(page,'test-page-beta');await saved(page)
+    await expect(page.getByRole('status',{name:'已保存行程列表状态',exact:true})).toContainText('第 1 页')
+  } finally {release()}
+  await done
+  const beta=(await(await page.request.get('/api/v1/travel/itineraries',{params:{limit:100}})).json()).items
+  const betaIds=new Set(beta.map((item:any)=>item.id))
+  const shown=await page.locator('.saved-card').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('data-trip-id')))
+  expect(shown).toHaveLength(50);expect(shown.every(id=>betaIds.has(id)&&!alphaIds.has(id))).toBe(true)
+  await expect(page.locator('.local-badge')).toHaveText('test-page-beta')
+  await expect(page.getByRole('heading',{name:'第 1 页行程',exact:true})).toBeVisible()
+})

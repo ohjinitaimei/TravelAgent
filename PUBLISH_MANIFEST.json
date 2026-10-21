@@ -30,8 +30,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 14257,
-      "sha256": "6257f10c3ecfa5685ffce1f3b1ce07a7f3471d3d20d2edb50dd31f3b7c438242"
+      "bytes": 14559,
+      "sha256": "22d3505747ae337d467e368d4eb819022b13ebf00d3c93038efd6645bc02f2b2"
     },
     {
       "path": "analysis_options.yaml",
@@ -210,8 +210,8 @@
     },
     {
       "path": "apps/web/src/components/SavedTrips.vue",
-      "bytes": 11806,
-      "sha256": "be997016f74d41f9e5349419643d8e9d88d80976d4b143513adf81ef836ca860"
+      "bytes": 14556,
+      "sha256": "4ea7eab12003c7f6853a396935a7baf7ebae33d93136d8cd6a536b26e0c4b919"
     },
     {
       "path": "apps/web/src/components/TimeConstraintGuide.vue",
@@ -855,18 +855,18 @@
     },
     {
       "path": "docs/ACCEPTANCE.md",
-      "bytes": 18449,
-      "sha256": "8c07f9ef09cf087498868da3480e3dac1575e728965c48a41c2a77fa2c405cc6"
+      "bytes": 19874,
+      "sha256": "5193e63d23f0bea54291812421109ed3ec142a21cf1d6bce45fd891087336035"
     },
     {
       "path": "docs/README.md",
-      "bytes": 1998,
-      "sha256": "81818867865de182188ceb0024856c4d4334ef98144accd4ebb120c1ebc9c08d"
+      "bytes": 2151,
+      "sha256": "7037300144753ae0ad87d34007566ec0513ddc8683e8140acee26285f1fc13c3"
     },
     {
       "path": "docs/RELEASE_STATUS.md",
-      "bytes": 11091,
-      "sha256": "baa122151d05aa55f05ebf1a530920b547a196f724b1a6abd9e96851faafba5f"
+      "bytes": 11549,
+      "sha256": "242756f5b4d4e52af98f5cfbfdc3b692b15abc72c0a621bc479c731fc7f76fea"
     },
     {
       "path": "docs/TECHNICAL_REPORT.md",
@@ -984,9 +984,14 @@
       "sha256": "7673d3a1c4c4508eb247c27abacfa5ea0cea757cc4c76fe207c2cf18969b21d0"
     },
     {
+      "path": "docs/architecture/SAVED_PAGE_RECOVERY.md",
+      "bytes": 6546,
+      "sha256": "a88daf1ed0cb0e755e1704f0677ff6af385a2cecbcec11c37dd9ad84fbab324a"
+    },
+    {
       "path": "docs/architecture/SAVED_PAGINATION.md",
-      "bytes": 7595,
-      "sha256": "e5bdcd12a285995f677409b383086aa39e6f3aff39c4ad4709d50d9d6fee413a"
+      "bytes": 7749,
+      "sha256": "a1b7cfd61f3011ef50192f386159310abbc2d0fb41b8da6e2dd510c61af14790"
     },
     {
       "path": "docs/architecture/SAVED_VERSIONS.md",
@@ -1275,8 +1280,8 @@
     },
     {
       "path": "tests/browser/auth.spec.ts",
-      "bytes": 16301,
-      "sha256": "ea0a092e34de31726b30883ecc0d77f95fbd564452dc9cd887d32149d7004c1b"
+      "bytes": 18251,
+      "sha256": "e2804159fae21cf252c4eddcf3d55178d23d51cff650c607df14d275b5c5f82e"
     },
     {
       "path": "tests/browser/resilience.spec.ts",
@@ -1285,8 +1290,8 @@
     },
     {
       "path": "tests/browser/workspace.spec.ts",
-      "bytes": 71784,
-      "sha256": "0495be2c418df013ff36a5f95804aee9ff27ec217b452253d873194e69eb1a3e"
+      "bytes": 80765,
+      "sha256": "b20b9df4691d08a672a67e7b3d926205cd69a395bbdfe162655b414ffa7f89d0"
     },
     {
       "path": "tests/browser_fixture_server.py",

@@ -1044,3 +1044,130 @@ test('saved pagination ignores stale searches and retries list failures while ke
   await expect(page.getByLabel('用户录入费用').first()).toHaveValue('23')
   expect(posts).toBe(0)
 })
+
+async function historyPage(page:Page) {
+  await page.getByRole('button',{name:'已保存行程',exact:false}).first().click()
+  await page.getByLabel('搜索已保存行程').fill('TEST ONLY 历史分页')
+  await expect(page.locator('.saved-panel .version-scope').first()).toContainText('全库匹配')
+  await expect(page.locator('.saved-card')).toHaveCount(50)
+  return page.getByRole('navigation',{name:'已保存行程分页'})
+}
+
+test('saved page recovery places keyboard focus at new results and leaves later input focus alone',async({page},testInfo)=>{
+  const pagination=await historyPage(page)
+  const next=pagination.getByRole('button',{name:'下一页',exact:true})
+  await next.focus();await page.keyboard.press('Enter')
+  await expect(page.locator('.saved-card')).toHaveCount(15)
+  // A successful explicit page read must leave focus at the start of the new results.
+  const results=page.getByRole('heading',{name:'第 2 页行程',exact:true})
+  await expect(results).toBeFocused()
+  const status=page.getByRole('status',{name:'已保存行程列表状态',exact:true})
+  await expect(status).toHaveAttribute('aria-live','polite');await expect(status).toHaveAttribute('aria-atomic','true')
+  await expect(status).toContainText('第 2 页，本页 15 个')
+  await page.keyboard.press('Tab');await expect(page.locator('.saved-card').first()).toBeFocused()
+  await page.setViewportSize({width:680,height:1000})
+  await pagination.getByRole('button',{name:'上一页',exact:true}).focus();await page.keyboard.press('Enter')
+  await expect(page.getByRole('heading',{name:'第 1 页行程',exact:true})).toBeFocused()
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+  await page.screenshot({path:testInfo.outputPath('saved-page-keyboard-start-test-only.png')})
+  let release!:()=>void,finished!:()=>void,started=false
+  const gate=new Promise<void>(resolve=>release=resolve),done=new Promise<void>(resolve=>finished=resolve)
+  await page.route(/\/api\/v1\/travel\/itineraries\?.*cursor=/,async route=>{
+    const response=await route.fetch();started=true
+    try {await gate;await route.fulfill({response})} finally {finished()}
+  })
+  await next.click()
+  const query=page.getByLabel('搜索已保存行程')
+  try {
+    await expect.poll(()=>started).toBe(true)
+    await expect(page.locator('#saved-version-results')).toHaveAttribute('aria-busy','true')
+    await query.focus()
+  } finally {release()}
+  await done;await expect(page.locator('.saved-card')).toHaveCount(15)
+  await expect(page.locator('#saved-version-results')).toHaveAttribute('aria-busy','false')
+  await expect(query).toBeFocused()
+  await query.fill('TEST ONLY 历史分页 064')
+  await expect(page.locator('.saved-card')).toHaveCount(1);await expect(query).toBeFocused()
+})
+
+test('saved page recovery retains the old page on network failure and retries the same cursor',async({page,context},testInfo)=>{
+  await openSeed(page);await page.getByRole('button',{name:'编辑行程',exact:true}).click()
+  await page.getByLabel('用户录入费用').first().fill('29')
+  const pagination=await historyPage(page)
+  const first=await page.locator('.saved-card').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('data-trip-id')))
+  const queries:string[]=[]
+  let posts=0
+  page.on('request',request=>{
+    if(request.method()==='POST')posts++
+    const url=new URL(request.url());if(url.pathname.endsWith('/itineraries')&&url.searchParams.has('cursor'))queries.push(url.searchParams.get('cursor')!)
+  })
+  const failure=page.getByRole('alert',{name:'已保存行程读取失败',exact:true})
+  try {
+    await context.setOffline(true)
+    await pagination.getByRole('button',{name:'下一页',exact:true}).focus();await page.keyboard.press('Enter')
+    await expect(failure).toBeFocused()
+    await expect(failure).toContainText('第 2 页')
+    await expect(page.locator('.saved-card')).toHaveCount(50)
+    expect(await page.locator('.saved-card').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('data-trip-id')))).toEqual(first)
+    await expect(page.getByRole('status',{name:'已保存行程列表状态',exact:true})).toContainText('仍显示第 1 页')
+    await page.screenshot({path:testInfo.outputPath('saved-page-network-failure-test-only.png')})
+  } finally {await context.setOffline(false)}
+  await failure.getByRole('button',{name:'重试列表读取',exact:true}).click()
+  await expect(page.getByRole('heading',{name:'第 2 页行程',exact:true})).toBeFocused()
+  await expect(page.locator('.saved-card')).toHaveCount(15)
+  expect(queries).toHaveLength(2);expect(queries[1]).toBe(queries[0])
+  const second=await page.locator('.saved-card').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('data-trip-id')))
+  let denyRefresh=true
+  await page.route(/\/api\/v1\/travel\/itineraries(?:\?.*)?$/,route=>{
+    if(denyRefresh&&!new URL(route.request().url()).searchParams.has('cursor'))return route.fulfill({status:503,json:{error:{code:'test_only_refresh',message:'TEST ONLY refresh unavailable',retryable:true}}})
+    return route.continue()
+  })
+  await page.locator('.saved-panel').getByRole('button',{name:'刷新',exact:false}).click()
+  await expect(failure).toBeFocused();await expect(failure).toContainText('刷新')
+  await expect(page.getByRole('status',{name:'已保存行程列表状态',exact:true})).toContainText('仍显示第 2 页')
+  expect(await page.locator('.saved-card').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('data-trip-id')))).toEqual(second)
+  denyRefresh=false;await failure.getByRole('button',{name:'重试列表读取',exact:true}).click()
+  await expect(page.getByRole('heading',{name:'第 1 页行程',exact:true})).toBeFocused()
+  await page.getByRole('button',{name:'返回行程编辑',exact:true}).click()
+  await expect(page.getByLabel('用户录入费用').first()).toHaveValue('29');expect(posts).toBe(0)
+})
+
+test('saved page recovery discards a delayed page after filters change without stealing focus',async({page})=>{
+  const pagination=await historyPage(page)
+  let release!:()=>void,finished!:()=>void,started=false
+  const gate=new Promise<void>(resolve=>release=resolve),done=new Promise<void>(resolve=>finished=resolve)
+  await page.route(/\/api\/v1\/travel\/itineraries\?.*cursor=/,async route=>{
+    const response=await route.fetch();started=true
+    try {await gate;await route.fulfill({response})} catch {/* Old request is explicitly cancelled. */} finally {finished()}
+  })
+  await pagination.getByRole('button',{name:'下一页',exact:true}).click()
+  const query=page.getByLabel('搜索已保存行程')
+  try {
+    await expect.poll(()=>started).toBe(true)
+    await query.fill('TEST ONLY 历史分页 064')
+    await expect(page.locator('.saved-card')).toHaveCount(1)
+    await expect(page.locator('.saved-card')).toContainText('历史分页 064')
+  } finally {release()}
+  await done
+  await expect(page.locator('.saved-card')).toContainText('历史分页 064')
+  await expect(page.getByRole('heading',{name:'第 1 页行程',exact:true})).toBeVisible()
+  await expect(query).toBeFocused();await expect(page.locator('.saved-panel').getByRole('alert')).toHaveCount(0)
+})
+
+test('saved page recovery keeps an insertion out of the old snapshot until explicit refresh',async({page})=>{
+  const pagination=await historyPage(page)
+  const snapshot=await(await page.request.get('/api/v1/travel/itineraries',{params:{query:'TEST ONLY 历史分页',limit:100}})).json()
+  const first=await page.locator('.saved-card').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('data-trip-id')))
+  const inserted=await versionResult(page,await page.request.post('/api/v1/travel/tasks',{data:{city:'TEST ONLY 历史分页 新增',query:'TEST ONLY 地点',start_date:'2026-11-02',days:1,stops_per_day:2}}))
+  await pagination.getByRole('button',{name:'下一页',exact:true}).click()
+  await expect(page.locator('.saved-card')).toHaveCount(snapshot.total-50)
+  expect(await page.locator('.saved-card').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('data-trip-id')))).toEqual(snapshot.items.slice(50).map((item:any)=>item.id))
+  await expect(page.getByRole('status',{name:'已保存行程列表状态',exact:true})).toContainText(`全库匹配 ${snapshot.total} 个版本`)
+  await pagination.getByRole('button',{name:'上一页',exact:true}).click()
+  await expect(page.locator('.saved-card')).toHaveCount(50)
+  expect(await page.locator('.saved-card').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('data-trip-id')))).toEqual(first)
+  await page.locator('.saved-panel').getByRole('button',{name:'刷新',exact:false}).click()
+  await expect(page.getByRole('heading',{name:'第 1 页行程',exact:true})).toBeFocused()
+  await expect(page.getByRole('status',{name:'已保存行程列表状态',exact:true})).toContainText(`全库匹配 ${snapshot.total+1} 个版本`)
+  await expect(page.locator('.saved-card').first()).toHaveAttribute('data-trip-id',inserted.id)
+})

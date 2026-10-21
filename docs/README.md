@@ -27,6 +27,8 @@ Saved itinerary filters, direct parent relationships and read-only version compa
 
 Owner-scoped full-history search, snapshot pagination and direct-child counts: [architecture/SAVED_PAGINATION.md](architecture/SAVED_PAGINATION.md).
 
+Pagination keyboard focus, status announcements and retained-page recovery: [architecture/SAVED_PAGE_RECOVERY.md](architecture/SAVED_PAGE_RECOVERY.md).
+
 ## Doc Groups
 
 - `architecture/`: orchestration boundaries, coordinator, tool contracts, UI structure.
