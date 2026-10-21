@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Page, type APIResponse } from '@playwright/test'
 
 // This suite runs only against scripts/verify_browser.py's explicit TEST ONLY server.
 test.beforeEach(async ({ page, context }) => {
@@ -840,4 +840,123 @@ test('offline edit submission keeps its snapshot and waits for explicit recovery
   expect(trip.days[0].stops[0].stay_minutes).toBe(90)
   expect(trip.parent_id).toBeTruthy()
   await expect(page.getByRole('status',{name:'未保存行程修改'})).toHaveCount(0)
+})
+
+// These families are created through the explicit TEST ONLY API, after older seed scenarios.
+async function versionResult(page:Page,response:APIResponse) {
+  expect(response.ok()).toBeTruthy()
+  const task=await response.json()
+  let result:any
+  await expect.poll(async()=>{result=await(await page.request.get(`/api/v1/travel/tasks/${task.id}`)).json();return result.status}).toBe('succeeded')
+  return (await page.request.get(`/api/v1/travel/itineraries/${result.itinerary_id}`)).json()
+}
+async function versionFamily(page:Page) {
+  const parent=await versionResult(page,await page.request.post('/api/v1/travel/tasks',{data:{city:'TEST ONLY 版本城市',query:'TEST ONLY 地点',start_date:'2026-11-01',days:1,stops_per_day:2,stay_minutes:60}}))
+  const child=await versionResult(page,await page.request.post(`/api/v1/travel/itineraries/${parent.id}/adjust`,{data:{poi_ids_by_day:[['fixture-b','fixture-a']],optimize_order:false,stay_minutes_by_poi:{'fixture-a':90,'fixture-b':60},user_prices:{'fixture-a':0}}}))
+  expect(child.parent_id).toBe(parent.id)
+  return {parent,child}
+}
+async function showVersions(page:Page,id:string) {
+  await page.getByRole('button',{name:'已保存行程',exact:false}).first().click()
+  await page.locator('.saved-panel').getByRole('button',{name:'刷新',exact:false}).click()
+  await expect(page.locator(`.saved-card[data-trip-id="${id}"]`)).toBeVisible()
+}
+
+test('saved versions filter actual direct relationships, IDs and empty results on wide and narrow screens',async({page},testInfo)=>{
+  const {parent,child}=await versionFamily(page)
+  const grandchild=await versionResult(page,await page.request.post(`/api/v1/travel/itineraries/${child.id}/adjust`,{data:{poi_ids_by_day:[['fixture-b','fixture-a']],budget:500}}))
+  await showVersions(page,grandchild.id)
+  const panel=page.locator('.saved-panel'),query=panel.getByLabel('搜索已保存行程')
+  await query.fill(parent.id);await expect(panel.locator('.saved-card')).toHaveCount(1)
+  await panel.getByLabel('版本类型').selectOption('adjusted');await expect(panel.getByText('没有匹配的版本',{exact:true})).toBeVisible()
+  await panel.getByLabel('版本类型').selectOption('original')
+  await panel.locator(`[data-version-id="${parent.id}"]`).getByRole('button',{name:'查看直接调整版本',exact:true}).click()
+  await expect(panel.locator('.saved-card')).toHaveCount(1)
+  await expect(panel.locator('.saved-card').first()).toHaveAttribute('data-trip-id',child.id)
+  await expect(panel.locator('.relation-filter')).toContainText(parent.id.slice(0,8))
+  await panel.getByRole('button',{name:'取消关系筛选'}).click()
+  await query.fill(child.id)
+  await panel.getByLabel('行程排序').selectOption('oldest')
+  await expect(panel.locator('.version-saved-time')).toContainText('保存于')
+  await expect(panel.locator('.version-links')).toContainText(parent.id.slice(0,8))
+  await page.screenshot({path:testInfo.outputPath('saved-versions-desktop-test-only.png'),fullPage:true})
+  await page.setViewportSize({width:680,height:1000})
+  await expect(panel.locator('.saved-card')).toBeVisible()
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+  await page.screenshot({path:testInfo.outputPath('saved-versions-narrow-test-only.png'),fullPage:true})
+})
+
+test('saved versions compare read only, distinguish unknown from zero and preserve unsaved edit guards',async({page},testInfo)=>{
+  const {parent,child}=await versionFamily(page)
+  await showVersions(page,child.id)
+  await page.getByLabel('搜索已保存行程').fill(child.id)
+  let posts=0
+  page.on('request',request=>{if(request.method()==='POST')posts++})
+  const opener=page.locator(`[data-version-id="${child.id}"]`).getByRole('button',{name:'对比来源版本',exact:true})
+  await opener.click()
+  const compare=page.getByRole('region',{name:'已保存版本对照'})
+  await expect(compare.getByRole('table')).toHaveCount(2)
+  await expect(compare.getByRole('row').filter({hasText:'费用 TEST ONLY fixture-a'})).toContainText('未知')
+  await expect(compare.getByRole('row').filter({hasText:'费用 TEST ONLY fixture-a'})).toContainText('0 元')
+  await expect(compare.getByRole('row').filter({hasText:'停留 TEST ONLY fixture-a'})).toContainText('90 分钟')
+  await expect(compare.getByRole('row').filter({hasText:'完整预算总额'})).toContainText('未知')
+  await page.screenshot({path:testInfo.outputPath('saved-version-comparison-test-only.png'),fullPage:true})
+  await compare.getByRole('button',{name:'关闭版本对照'}).click();await expect(opener).toBeFocused()
+  await page.locator(`.saved-card[data-trip-id="${child.id}"]`).click()
+  await page.getByRole('button',{name:'编辑行程',exact:true}).click()
+  await page.getByLabel('用户录入费用').first().fill('17')
+  await page.getByRole('button',{name:'已保存行程',exact:false}).first().click()
+  await page.locator(`[data-version-id="${child.id}"]`).getByRole('button',{name:'对比来源版本',exact:true}).click()
+  await expect(compare.getByRole('table')).toHaveCount(2)
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await compare.getByRole('button',{name:'打开对照中的来源版本'}).click()
+  const dialog=page.getByRole('dialog',{name:'有未保存的行程修改'})
+  await dialog.getByRole('button',{name:'继续编辑',exact:true}).click()
+  await page.getByRole('button',{name:'返回行程编辑',exact:true}).click()
+  await expect(page.getByLabel('用户录入费用').first()).toHaveValue('17')
+  await page.getByRole('button',{name:'已保存行程',exact:false}).first().click()
+  await page.locator(`[data-version-id="${child.id}"]`).getByRole('button',{name:'对比来源版本',exact:true}).click()
+  await expect(compare.getByRole('table')).toHaveCount(2)
+  await compare.getByRole('button',{name:'打开对照中的来源版本'}).click()
+  await dialog.getByRole('button',{name:'放弃修改并打开行程'}).click()
+  await expect(page.locator('.workspace-version')).toContainText(parent.id.slice(0,8))
+  expect(posts).toBe(0)
+  expect(await(await page.request.get(`/api/v1/travel/itineraries/${parent.id}`)).json()).toEqual(parent)
+})
+
+test('saved versions fetch an unloaded source and clear stale comparisons before denied reads and retry',async({page})=>{
+  const {parent,child}=await versionFamily(page)
+  await page.route('**/api/v1/travel/itineraries',route=>route.fulfill({json:{items:[child]}}))
+  await showVersions(page,child.id)
+  await expect(page.locator('.version-links')).toContainText('未在当前列表中')
+  const opener=page.getByRole('button',{name:'对比来源版本',exact:true}),compare=page.getByRole('region',{name:'已保存版本对照'})
+  await opener.click();await expect(compare.getByRole('table')).toHaveCount(2)
+  await compare.getByRole('button',{name:'关闭版本对照'}).click()
+  await page.route(`**/api/v1/travel/itineraries/${parent.id}`,route=>route.fulfill({status:404,json:{error:{code:'not_found',message:'TEST ONLY source unavailable',retryable:false}}}))
+  await opener.click();await expect(compare.getByRole('alert')).toContainText('版本对照暂不可用')
+  await expect(compare.getByRole('table')).toHaveCount(0)
+  await page.unroute(`**/api/v1/travel/itineraries/${parent.id}`)
+  await compare.getByRole('button',{name:'重试版本对照'}).click();await expect(compare.getByRole('table')).toHaveCount(2)
+})
+
+test('saved versions ignore late source responses after closing the comparison',async({page})=>{
+  const {parent,child}=await versionFamily(page)
+  await showVersions(page,child.id)
+  let release!:()=>void,started=false
+  const gate=new Promise<void>(resolve=>release=resolve)
+  await page.route(`**/api/v1/travel/itineraries/${parent.id}`,async route=>{const response=await route.fetch();started=true;await gate;await route.fulfill({response})})
+  const opener=page.locator(`[data-version-id="${child.id}"]`).getByRole('button',{name:'对比来源版本',exact:true})
+  await opener.click()
+  const compare=page.getByRole('region',{name:'已保存版本对照'})
+  const completed=page.waitForResponse(response=>response.url().endsWith(`/itineraries/${parent.id}`))
+  try {
+    await expect.poll(()=>started).toBe(true)
+    await expect(compare.getByRole('status')).toContainText('正在读取')
+    await compare.getByRole('button',{name:'关闭版本对照'}).click()
+    await expect(opener).toBeFocused()
+  } finally {release()}
+  await expect(compare).toHaveCount(0)
+  await completed
+  await expect(compare).toHaveCount(0)
+  await expect(page.locator('.route-workspace')).toHaveCount(0)
 })

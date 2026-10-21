@@ -197,3 +197,28 @@ test('offline logout failure preserves account identity until an explicit succes
   await expect(page.getByRole('heading',{name:'登录旅行空间',exact:true})).toBeVisible()
   expect((await page.request.get('/api/v1/travel/itineraries')).status()).toBe(401)
 })
+
+test('saved versions deny a foreign source even when TEST ONLY client metadata is tampered',async({page,browser})=>{
+  await login(page,'test-draft-beta')
+  const own=(await(await page.request.get('/api/v1/travel/itineraries')).json()).items[0]
+  const other=await browser.newContext({baseURL:process.env.E2E_BASE_URL})
+  let foreign:any
+  try {
+    await other.route(/https:\/\//,route=>route.abort())
+    const beta=await other.newPage();await beta.goto('/');await login(beta,'test-beta')
+    foreign=(await(await beta.request.get('/api/v1/travel/itineraries')).json()).items[0]
+  } finally {await other.close()}
+  // TEST ONLY forged relationship, never persisted. The source read uses the real owner check.
+  const forged={...own,parent_id:foreign.id}
+  await page.route('**/api/v1/travel/itineraries',route=>route.fulfill({json:{items:[forged]}}))
+  await page.route(`**/api/v1/travel/itineraries/${own.id}`,route=>route.fulfill({json:forged}))
+  await saved(page)
+  await page.locator('.saved-panel').getByRole('button',{name:'刷新',exact:false}).click()
+  const denied=page.waitForResponse(response=>response.url().endsWith(`/itineraries/${foreign.id}`))
+  await page.getByRole('button',{name:'对比来源版本',exact:true}).click()
+  expect((await denied).status()).toBe(404)
+  const compare=page.getByRole('region',{name:'已保存版本对照'})
+  await expect(compare.getByRole('alert')).toContainText('版本对照暂不可用')
+  await expect(compare.getByRole('table')).toHaveCount(0)
+  await expect(compare).not.toContainText(foreign.title)
+})

@@ -30,8 +30,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 13787,
-      "sha256": "d75d5ce1a22733d4fe5d2ff401d12504bf1b144dce3d5ee833533a51df3e8028"
+      "bytes": 14203,
+      "sha256": "7bb6b199274935677aed636343efbf868a6b505c1432c007085ce22a4d8d207d"
     },
     {
       "path": "analysis_options.yaml",
@@ -155,8 +155,8 @@
     },
     {
       "path": "apps/web/src/App.vue",
-      "bytes": 48251,
-      "sha256": "51eb58d4cb9c77d57345c2bbe5b4e60787722b9a4d5da1e7aa9073d3af223728"
+      "bytes": 48143,
+      "sha256": "aa65480b6e807ae871c277f4eae3adc8b1dbe38db0400225b8e38a348c892b79"
     },
     {
       "path": "apps/web/src/WorkspaceRoot.vue",
@@ -209,6 +209,11 @@
       "sha256": "88e05a21214e8c8275e67fe20dec6b82f3d95c7d129abd7f455765cecdf5ffc1"
     },
     {
+      "path": "apps/web/src/components/SavedTrips.vue",
+      "bytes": 8573,
+      "sha256": "1dc3ce7603c8958e72139b6590a754164d17e8a3269e625f435beacf5b1a2c51"
+    },
+    {
       "path": "apps/web/src/components/TimeConstraintGuide.vue",
       "bytes": 3617,
       "sha256": "83e86aa718a9cba12896c311dcd5387b0d8c793287c705e02d4bc00eef9da6cb"
@@ -217,6 +222,11 @@
       "path": "apps/web/src/components/ToolConnection.vue",
       "bytes": 1912,
       "sha256": "43b4afe38f72576a8a51999087379377cfc5525611f5fa6ce09dc6b5e985cf02"
+    },
+    {
+      "path": "apps/web/src/components/VersionComparison.vue",
+      "bytes": 2954,
+      "sha256": "026131d87b2f276f24b422f20fff7803c08b9864533b87dda1d4c1a48ade193f"
     },
     {
       "path": "apps/web/src/components/WorkspaceShell.vue",
@@ -255,13 +265,18 @@
     },
     {
       "path": "apps/web/src/style.css",
-      "bytes": 19359,
-      "sha256": "0d18959af527bc45c7c3b761cd5f34067d63491e3bb3138f58dd43d972cbfffe"
+      "bytes": 19646,
+      "sha256": "96e23b0fb4933a05cfaafcf9fd045e2ca0bee627d30ffb8aebe9521188c06416"
     },
     {
       "path": "apps/web/src/submissions.ts",
       "bytes": 2349,
       "sha256": "9a2533481fe5afdaf3f9888979538fe4aab39ec359cfa2203a66ef761044b39f"
+    },
+    {
+      "path": "apps/web/src/versions.ts",
+      "bytes": 3305,
+      "sha256": "1c92863de2771391bb154bf8a37958b497f36c762aab21879a5cdd35d370d381"
     },
     {
       "path": "apps/web/src/workspaceTransport.ts",
@@ -835,18 +850,18 @@
     },
     {
       "path": "docs/ACCEPTANCE.md",
-      "bytes": 16249,
-      "sha256": "33daac6bd1e671b0d28a56573f5d842257c97512aedd7d7e87ebc51d3a67cc86"
+      "bytes": 17427,
+      "sha256": "04fd01bc4303efafd1402b109490a61969afbded6ddd6844caaa9f335d23a4b6"
     },
     {
       "path": "docs/README.md",
-      "bytes": 1694,
-      "sha256": "74b22e1b586038390f4ec1cdbf10001c1b33ac0cfb74f1aa3d8277d1a192c7bd"
+      "bytes": 1848,
+      "sha256": "73cf1d3ab01b113ba72064a0cbfc4f64cc89846c9c13d61d9e43db2b43d598d6"
     },
     {
       "path": "docs/RELEASE_STATUS.md",
-      "bytes": 10666,
-      "sha256": "0e27c1afd92d327a0d0309b4923c6bd7cfab0207421f28643b882a2b8f9a8a02"
+      "bytes": 11013,
+      "sha256": "094752ddd2ec9dcfebceb3795937005f0e4e43547660759737a103c9fe0c003f"
     },
     {
       "path": "docs/TECHNICAL_REPORT.md",
@@ -962,6 +977,11 @@
       "path": "docs/architecture/RESILIENCE_PERFORMANCE.md",
       "bytes": 7604,
       "sha256": "7673d3a1c4c4508eb247c27abacfa5ea0cea757cc4c76fe207c2cf18969b21d0"
+    },
+    {
+      "path": "docs/architecture/SAVED_VERSIONS.md",
+      "bytes": 6038,
+      "sha256": "9a6098d52fb018f5d056aa79866fc4d731c30ea1d6852e54e416c5f38227c457"
     },
     {
       "path": "docs/architecture/SKILL_SPEC.md",
@@ -1110,8 +1130,8 @@
     },
     {
       "path": "package.json",
-      "bytes": 630,
-      "sha256": "4a2bdcc5e0aaa239a6132ab9ae6673344f27857bf481cf7bab4db4b83502433f"
+      "bytes": 653,
+      "sha256": "3788dd6ec2251e88ac5db24a76d518228638610a783aa9fc7b4fd23c12b5bf49"
     },
     {
       "path": "packages/api-schema/README.md",
@@ -1245,8 +1265,8 @@
     },
     {
       "path": "tests/browser/auth.spec.ts",
-      "bytes": 13178,
-      "sha256": "ed449d2bd7e92315e0d9a4d3a96306dac099667adbef83bc1c69fb09d1e0a349"
+      "bytes": 14742,
+      "sha256": "8cd6d9b12c988f5dd78612eb4c4297f444d2d44cc027f70c701553c6596adb6e"
     },
     {
       "path": "tests/browser/resilience.spec.ts",
@@ -1255,8 +1275,8 @@
     },
     {
       "path": "tests/browser/workspace.spec.ts",
-      "bytes": 57048,
-      "sha256": "d443c5c4daffe4efc25c281c3f8affa7952cd9143d56e74bd476574647c61d4a"
+      "bytes": 65688,
+      "sha256": "4192eae31d25b2702101322104e70c333679c376455fde5a845715f971f71d2c"
     },
     {
       "path": "tests/browser_fixture_server.py",
@@ -1382,6 +1402,11 @@
       "path": "tests/test_travel.py",
       "bytes": 13900,
       "sha256": "bf37bd235342b329e160bd6251446bd21f714a4a33fee279202d08b3d9ced10e"
+    },
+    {
+      "path": "tests/versions.test.ts",
+      "bytes": 4578,
+      "sha256": "e4aa651cf93da63120b1f5bf558a92788eb24d5add3f092c43b1ef6afad6e5ee"
     },
     {
       "path": "windows/.gitignore",

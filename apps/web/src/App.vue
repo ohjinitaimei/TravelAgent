@@ -14,6 +14,8 @@ import ToolConnection from './components/ToolConnection.vue'
 import OptimizationComparison from './components/OptimizationComparison.vue'
 import DayOverview from './components/DayOverview.vue'
 import TimeConstraintGuide from './components/TimeConstraintGuide.vue'
+import SavedTrips from './components/SavedTrips.vue'
+import { shortVersion, versionTime } from './versions'
 import { draftForm } from './draft'
 import { TravelApiError } from '../../../packages/api-schema/client'
 import { newSubmission, restoreSubmission, sendSubmission, recoverSubmission, submissionWasRejected, type Operation, type PendingSubmission } from './submissions'
@@ -439,6 +441,7 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
           </section>
           <section class="card route-workspace">
             <div class="section-title"><div><div class="eyebrow">YOUR ITINERARY</div><h2>{{itinerary?.title || '旅程地图与时间轴'}}</h2></div><button v-if="itinerary && !editing" class="secondary" :disabled="active||busy" @click="edit">编辑行程</button></div>
+            <div v-if="itinerary" class="workspace-version"><span>{{itinerary.parent_id?'调整版本':'原行程'}} <code :title="itinerary.id">#{{shortVersion(itinerary.id)}}</code> · 保存于 {{versionTime(itinerary.created_at)}}</span><button v-if="itinerary.parent_id" class="text-button" :disabled="active||busy" @click="openTrip(itinerary.parent_id,$event)">打开来源版本</button><button class="text-button" @click="navigate('saved')">浏览已保存版本</button></div>
             <p v-if="itinerary&&task&&(task.kind==='draft'||task.status!=='succeeded'||resultPending)" class="saved-version-note">当前地图与时间轴显示原行程；本次任务的结果将在同步后更新。</p>
             <DayOverview v-if="itinerary" :itinerary="itinerary" :selected="selectedDay" :preview-counts="editing?editIds.map(ids=>ids.length):undefined" @select="selectedDay=$event"/>
             <div v-if="editing" class="day-summary"><span>编辑预览 · {{editIds[selectedDay]?.length??0}} 个地点</span><span>路线与时间将在保存后重算</span></div>
@@ -474,7 +477,7 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
         </div><RouteMap :itinerary="itinerary" :selected-day="selectedDay" :poi="selectedPoi" :selected-poi-id="selectedStopId" :preview="previewPois" @select="selectedStopId=$event"/>
       </section>
 
-      <section v-if="tab==='saved'" class="card saved-panel"><div class="section-title"><h2>已保存行程</h2><button class="text-button" @click="refreshSaved().catch(report)">刷新 ↻</button></div><div v-if="!saved.length" class="empty-state"><span>▤</span><h3>这里将收藏你的旅程</h3><p>成功生成的行程会自动保存；重新调整后保留原版本。</p></div><div class="saved-grid"><button v-for="trip in saved" :key="trip.id" class="saved-card" :disabled="active||busy" @click="openTrip(trip.id,$event)"><span class="eyebrow">{{trip.parent_id?'ADJUSTED ITINERARY':'SAVED ITINERARY'}}</span><h3>{{trip.title}}</h3><p>{{trip.request.start_date}} · {{trip.days.length}} 天</p><div><span>{{trip.days.reduce((n,d)=>n+d.stops.length,0)}} 个地点</span><span>打开行程 ↗</span></div></button></div></section>
+      <SavedTrips v-if="tab==='saved'" :trips="saved" :disabled="active||busy" @refresh="refreshSaved().catch(report)" @open="openTrip"/>
 
       <section v-if="tab==='budget'" class="budget-layout"><div class="card"><div class="section-title"><h2>预算与约束</h2><span class="subtle">{{itinerary?.title || '尚未选择行程'}}</span></div><div v-if="!itinerary" class="empty-state"><span>◫</span><h3>先规划，再核对</h3><p>生成行程后查看已知费用、未知费用与约束结果。</p></div><template v-else><div class="budget-stats"><div><small>已知费用小计</small><strong>¥{{itinerary.budget.known_subtotal}}</strong><span>仅汇总用户录入的站点费用</span></div><div><small>总预算上限</small><strong>{{itinerary.budget.limit==null?'未设置':`¥${itinerary.budget.limit}`}}</strong><span>{{itinerary.budget.status==='exceeded'?'已知费用已超预算':'总额未知，无法确认预算满足'}}</span></div></div><h3>仍需补全的费用</h3><ul class="warning-list"><li v-for="item in itinerary.budget.unknown_items">{{item}}</li></ul><h3>行程约束与提醒</h3><ul class="warning-list"><li v-for="warning in itinerary.warnings">{{warning}}</li></ul><button class="secondary" @click="tab='plan';edit()" :disabled="active||busy">录入费用与调整行程</button></template></div><aside class="card capability-card"><div class="eyebrow">DATA COVERAGE</div><h2>数据覆盖范围</h2><ul class="warning-list"><li v-for="item in capability?.limitations">{{item}}</li></ul><p>空值表示来源未提供；不会自动补成免费、零交通时间或模拟评论。</p><ToolConnection/></aside></section>
 

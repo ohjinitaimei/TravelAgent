@@ -23,6 +23,8 @@ Time feasibility diagnostics and Web adjustment guidance: [architecture/TIME_CON
 
 Bounded keyword/stop-count matrix and measured live results: [architecture/EXPANDED_QUALITY.md](architecture/EXPANDED_QUALITY.md).
 
+Saved itinerary filters, direct parent relationships and read-only version comparison: [architecture/SAVED_VERSIONS.md](architecture/SAVED_VERSIONS.md).
+
 ## Doc Groups
 
 - `architecture/`: orchestration boundaries, coordinator, tool contracts, UI structure.
