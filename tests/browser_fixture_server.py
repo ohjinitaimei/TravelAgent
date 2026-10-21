@@ -80,6 +80,8 @@ if __name__ == "__main__":
     request=PlanRequest(city="TEST ONLY 测试城市",query="TEST ONLY 地点",start_date="2026-10-10",days=2,stops_per_day=2,budget=100)
     trip=plan(request,lambda *_:None,provider=FixtureProvider(),poi_ids_by_day=[["fixture-a","fixture-b"],["fixture-c","fixture-d"]],optimize_order=False)
     store.succeed(Task(id="test-only-"+trip.id,status="running"),trip)
+    from pagination_fixture import seed_history
+    seed_history(store,trip)
     if args.auth_fixtures:
         from travel.auth import AuthService
         auth=AuthService(store)
@@ -90,6 +92,9 @@ if __name__ == "__main__":
             task=Task(id='test-user-'+trip.id,status='running')
             store.register_task(task,{'request':request.model_dump(mode='json')},None,'test-only',owner_id=user.id)
             store.succeed(task,trip)
+        for name in ('page-alpha','page-beta'):
+            user=auth.create_user('test-'+name,'TEST ONLY account password 2026')
+            seed_history(store,trip,owner=user.id)
     store.close()
     os.environ["TRAVEL_AGENT_ENABLED"]="1"
     os.environ["LLM_INTENT_DISABLE_LLM"]="0"

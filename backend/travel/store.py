@@ -4,7 +4,7 @@ import sqlite3
 from pathlib import Path
 from threading import RLock
 
-from travel.schemas import Draft, Event, Itinerary, Task, now
+from travel.schemas import Draft, Event, Itinerary, ItineraryList, ItineraryQuery, Task, now
 
 
 class Store:
@@ -104,12 +104,17 @@ class Store:
         with self.lock:
             if owner_id is not None and not self.owns('itinerary',itinerary_id,owner_id): return None
             row = self.db.execute("SELECT data FROM itineraries WHERE id=?", (itinerary_id,)).fetchone()
-        return Itinerary.model_validate_json(row[0]) if row else None
+        return Itinerary.from_saved_json(row[0]) if row else None
 
     def itineraries(self, limit: int = 50, *, owner_id: str = 'local') -> list[Itinerary]:
         with self.lock:
             rows = self.db.execute("SELECT i.data FROM itineraries i JOIN resource_owners o ON o.kind='itinerary' AND o.resource_id=i.id WHERE o.owner_id=? ORDER BY i.rowid DESC LIMIT ?", (owner_id,limit)).fetchall()
-        return [Itinerary.model_validate_json(row[0]) for row in rows]
+        return [Itinerary.from_saved_json(row[0]) for row in rows]
+
+    def itinerary_page(self, query: ItineraryQuery, *, owner_id: str = 'local') -> ItineraryList:
+        from travel.itinerary_listing import itinerary_page
+        with self.lock:
+            return itinerary_page(self.db, query, owner_id)
 
     def succeed(self, task: Task, itinerary: Itinerary):
         task.status, task.itinerary_id, task.updated_at = "succeeded", itinerary.id, now()

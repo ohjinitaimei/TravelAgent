@@ -42,7 +42,6 @@ test('expired session retains an editor draft only for its owner and explicit lo
   const status=await (await page.request.get('/api/v1/travel/auth/status')).json()
   expect((await page.request.post('/api/v1/travel/auth/logout',{headers:{'X-CSRF-Token':status.csrf_token}})).ok()).toBeTruthy()
   await page.getByRole('button',{name:'已保存行程',exact:false}).first().click()
-  await page.getByRole('button',{name:'刷新',exact:false}).click()
   await expect(page.getByRole('heading',{name:'登录旅行空间',exact:true})).toBeVisible()
   await login(page,'test-draft-beta')
   await expect(page.getByRole('region',{name:'本机编辑草稿'})).toHaveCount(0)
@@ -138,8 +137,7 @@ test('revoked session returns to login and restores only the same user form',asy
   await page.locator('.planner-form').getByLabel('目的地',{exact:true}).fill('TEST ONLY alpha recovery')
   const status=await (await page.request.get('/api/v1/travel/auth/status')).json()
   expect((await page.request.post('/api/v1/travel/auth/logout',{headers:{'X-CSRF-Token':status.csrf_token}})).ok()).toBeTruthy()
-  await saved(page)
-  await page.getByRole('button',{name:'刷新',exact:false}).click()
+  await page.getByRole('button',{name:'已保存行程',exact:false}).first().click()
   await expect(page.getByRole('heading',{name:'登录旅行空间',exact:true})).toBeVisible()
   await expect(page.getByRole('status')).toContainText('会话已失效')
   await login(page)
@@ -221,4 +219,28 @@ test('saved versions deny a foreign source even when TEST ONLY client metadata i
   await expect(compare.getByRole('alert')).toContainText('版本对照暂不可用')
   await expect(compare.getByRole('table')).toHaveCount(0)
   await expect(compare).not.toContainText(foreign.title)
+})
+
+test('saved pagination keeps full history, foreign searches and cursor reuse scoped to one account',async({page,browser})=>{
+  await login(page,'test-page-alpha')
+  const own=await(await page.request.get('/api/v1/travel/itineraries',{params:{limit:100}})).json()
+  expect(own.total).toBe(65)
+  const other=await browser.newContext({baseURL:process.env.E2E_BASE_URL})
+  let foreign:any
+  try {
+    await other.route(/https:\/\//,route=>route.abort())
+    const beta=await other.newPage();await beta.goto('/');await login(beta,'test-page-beta')
+    foreign=(await(await beta.request.get('/api/v1/travel/itineraries')).json()).items[0]
+    const denied=await beta.request.get('/api/v1/travel/itineraries',{params:{cursor:own.page_cursor,limit:100}})
+    expect(denied.status()).toBe(422)
+    expect((await(await beta.request.get('/api/v1/travel/itineraries',{params:{query:own.items[0].id}})).json()).total).toBe(0)
+  } finally {await other.close()}
+  await saved(page)
+  await page.getByRole('navigation',{name:'已保存行程分页'}).getByRole('button',{name:'下一页',exact:true}).click()
+  await expect(page.locator('.saved-card')).toHaveCount(15)
+  const allowed=new Set(own.items.map((item:any)=>item.id))
+  expect((await page.locator('.saved-card').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('data-trip-id')))).every(id=>allowed.has(id))).toBe(true)
+  await page.getByLabel('搜索已保存行程').fill(foreign.id)
+  await expect(page.getByText('没有匹配的版本',{exact:true})).toBeVisible()
+  await expect(page.locator('.saved-panel .version-scope').first()).toContainText('全库匹配 0 个版本')
 })

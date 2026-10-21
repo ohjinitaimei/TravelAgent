@@ -960,3 +960,87 @@ test('saved versions ignore late source responses after closing the comparison',
   await expect(compare).toHaveCount(0)
   await expect(page.locator('.route-workspace')).toHaveCount(0)
 })
+
+test('saved pagination searches all history and traverses both pages without duplicates',async({page},testInfo)=>{
+  const query='TEST ONLY 历史分页'
+  const expected=await(await page.request.get('/api/v1/travel/itineraries',{params:{query,limit:100}})).json()
+  expect(expected.total).toBe(65)
+  await page.getByRole('button',{name:'已保存行程',exact:false}).first().click()
+  await page.getByLabel('搜索已保存行程').fill(query)
+  const panel=page.locator('.saved-panel'),pagination=page.getByRole('navigation',{name:'已保存行程分页'})
+  await expect(panel.locator('.saved-card')).toHaveCount(50)
+  await expect(panel.locator('.version-scope').first()).toContainText('全库匹配 65 个版本')
+  const first=await panel.locator('.saved-card').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('data-trip-id')))
+  expect(first).toEqual(expected.items.slice(0,50).map((t:any)=>t.id))
+  await pagination.getByRole('button',{name:'下一页',exact:true}).click()
+  await expect(panel.locator('.saved-card')).toHaveCount(15)
+  const second=await panel.locator('.saved-card').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('data-trip-id')))
+  expect(new Set([...first,...second]).size).toBe(65)
+  expect(second).toEqual(expected.items.slice(50).map((t:any)=>t.id))
+  await expect(pagination.getByRole('button',{name:'下一页',exact:true})).toBeDisabled()
+  await page.setViewportSize({width:680,height:1000})
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+  await page.screenshot({path:testInfo.outputPath('saved-pagination-narrow-test-only.png')})
+  await pagination.getByRole('button',{name:'上一页',exact:true}).click()
+  await expect(panel.locator('.saved-card')).toHaveCount(50)
+  expect(await panel.locator('.saved-card').evaluateAll(nodes=>nodes.map(node=>node.getAttribute('data-trip-id')))).toEqual(first)
+  await panel.getByLabel('行程排序').selectOption('departure')
+  const dates=panel.locator('.saved-card>p:first-of-type')
+  const sorted=await(await page.request.get('/api/v1/travel/itineraries',{params:{query,order:'departure'}})).json()
+  await expect(panel.locator('.saved-card').first()).toHaveAttribute('data-trip-id',sorted.items[0].id)
+  const dateValues=await dates.allTextContents()
+  expect(dateValues).toEqual([...dateValues].sort())
+})
+
+test('saved pagination finds older versions and counts direct children outside the current page',async({page})=>{
+  const root='test-only-local-history-000',child='test-only-local-history-060'
+  await page.getByRole('button',{name:'已保存行程',exact:false}).first().click()
+  await expect(page.locator('.saved-panel .version-scope').first()).not.toContainText('正在查询')
+  await expect(page.locator(`.saved-card[data-trip-id="${root}"]`)).toHaveCount(0)
+  await page.getByLabel('搜索已保存行程').fill(root)
+  const item=page.locator(`[data-version-id="${root}"]`)
+  await expect(item).toContainText('查询快照内 1 个直接调整版本')
+  await item.getByRole('button',{name:'查看直接调整版本',exact:true}).click()
+  await expect(page.locator('.saved-card')).toHaveCount(1)
+  await expect(page.locator('.saved-card')).toHaveAttribute('data-trip-id',child)
+  await expect(page.getByRole('button',{name:'下一页',exact:true})).toBeDisabled()
+  await page.getByRole('button',{name:'对比来源版本',exact:true}).click()
+  const comparison=page.getByRole('region',{name:'已保存版本对照'})
+  await expect(comparison.getByRole('table').first()).toBeVisible()
+  await comparison.getByRole('button',{name:'打开对照中的来源版本'}).click()
+  await expect(page.locator('.workspace-version')).toContainText(root.slice(0,8))
+  await expect(page.locator('.workspace-version')).toContainText('原行程')
+})
+
+test('saved pagination ignores stale searches and retries list failures while keeping edit drafts',async({page})=>{
+  await openSeed(page);await page.getByRole('button',{name:'编辑行程',exact:true}).click()
+  await page.getByLabel('用户录入费用').first().fill('23')
+  await page.getByRole('button',{name:'已保存行程',exact:false}).first().click()
+  await expect(page.locator('.saved-panel .version-scope').first()).not.toContainText('正在查询')
+  let release!:()=>void,finished!:()=>void,started=false,fail=false,posts=0
+  const gate=new Promise<void>(resolve=>release=resolve),done=new Promise<void>(resolve=>finished=resolve)
+  page.on('request',request=>{if(request.method()==='POST')posts++})
+  await page.route(/\/api\/v1\/travel\/itineraries(?:\?.*)?$/,async route=>{
+    const query=new URL(route.request().url()).searchParams.get('query')??''
+    if(query.endsWith('000')) {
+      const response=await route.fetch();started=true
+      try {await gate;await route.fulfill({response})} catch {/* Expected if AbortSignal cancels the old read. */} finally {finished()}
+    } else if(fail)await route.fulfill({status:503,json:{error:{code:'test_only_unavailable',message:'TEST ONLY list read failure',retryable:true}}})
+    else await route.continue()
+  })
+  const query=page.getByLabel('搜索已保存行程')
+  try {
+    await query.fill('TEST ONLY 历史分页 000');await expect.poll(()=>started).toBe(true)
+    await query.fill('TEST ONLY 历史分页 064')
+    await expect(page.locator('.saved-card')).toHaveCount(1)
+    await expect(page.locator('.saved-card')).toContainText('历史分页 064')
+  } finally {release()}
+  await done;await expect(page.locator('.saved-card')).toContainText('历史分页 064')
+  fail=true;await page.locator('.saved-panel').getByRole('button',{name:'刷新',exact:false}).click()
+  await expect(page.locator('.saved-panel').getByRole('alert')).toContainText('列表读取失败')
+  fail=false;await page.getByRole('button',{name:'重试列表读取',exact:true}).click()
+  await expect(page.locator('.saved-card')).toContainText('历史分页 064')
+  await page.getByRole('button',{name:'返回行程编辑',exact:true}).click()
+  await expect(page.getByLabel('用户录入费用').first()).toHaveValue('23')
+  expect(posts).toBe(0)
+})

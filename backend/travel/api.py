@@ -10,7 +10,7 @@ from starlette.background import BackgroundTask
 from services.amap_client import AmapClient
 from travel.provider import TravelFailure
 from travel.schemas import (Capabilities, Draft, DraftClarificationRequest, DraftRequest, EditRequest, ErrorResponse, EventList, Itinerary,
-                            ItineraryList, PlanRequest, Poi, PoiList, RouteQuery, Segment, Task, ToolServiceStatus)
+                            ItineraryList, ItineraryQuery, PlanRequest, Poi, PoiList, RouteQuery, Segment, Task, ToolServiceStatus)
 from travel.tasks import TERMINAL
 from travel.tool_runtime import open_tools, transport, check_service
 from travel.auth import require_user, owner_id
@@ -156,8 +156,8 @@ async def stream(task_id: str, request: Request, after: int = Query(default=0, g
 
 
 @router.get("/itineraries", response_model=ItineraryList)
-def list_itineraries(request: Request, limit: int = Query(default=50, ge=1, le=100)):
-    return ItineraryList(items=manager(request).store.itineraries(limit,owner_id=owner_id(request)))
+def list_itineraries(request: Request, query: Annotated[ItineraryQuery, Query()]):
+    return manager(request).store.itinerary_page(query, owner_id=owner_id(request))
 
 
 @router.get("/itineraries/{itinerary_id}", response_model=Itinerary)

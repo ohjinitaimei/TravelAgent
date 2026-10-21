@@ -39,7 +39,7 @@ const capability = ref<Schema<'Capabilities'> | null>(null)
 const error = ref(''), notice = ref(''), busy = ref(false)
 const resultPending = ref(false)
 const task = ref<Task | null>(null), events = ref<TravelEvent[]>([])
-const itinerary = ref<Itinerary | null>(null), saved = ref<Itinerary[]>([])
+const itinerary = ref<Itinerary | null>(null), saved = ref<Itinerary[]>([]), savedTotal=ref(0)
 const draft = ref<Draft|null>(null)
 const draftConflict = ref(false)
 const pending = ref<PendingSubmission|null>(restoreSubmission(session.pendingSubmission))
@@ -174,7 +174,8 @@ watch(visiblePois,pois=>{if(selectedStopId.value&&!pois.some(poi=>poi.id===selec
 watch(editDirty,value=>{if(value)window.addEventListener('beforeunload',beforeUnload);else window.removeEventListener('beforeunload',beforeUnload)})
 watch([captureEdit,editing,selectedDay],persistEdit,{deep:true})
 function mergeEvents(items: TravelEvent[]) { events.value = [...new Map([...events.value,...items].map(e=>[e.id,e])).values()].sort((a,b)=>a.id-b.id) }
-async function refreshSaved() { saved.value = (await api.itineraries()).items }
+function updateSaved(value:{items:Itinerary[];total?:number|null}) {saved.value=value.items;savedTotal.value=value.total??value.items.length}
+async function refreshSaved() { updateSaved(await api.itineraries()) }
 async function follow(created: Task) {
   stream?.close(); controller?.abort()
   if(task.value?.id!==created.id) events.value=[]
@@ -397,7 +398,7 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
     <aside class="sidebar">
       <a class="brand" href="#" @click.prevent="navigate('plan')"><span class="brand-mark">↗</span><span>TravelAgent<small>旅行规划工作台</small></span></a>
       <div class="nav-label">你的旅行空间</div>
-      <nav aria-label="工作台导航"><button v-for="item in nav" :key="item.id" :class="{selected:tab===item.id}" :aria-label="item.label" :aria-current="tab===item.id?'page':undefined" @click="navigate(item.id)"><span aria-hidden="true">{{item.icon}}</span>{{item.label}}<span v-if="item.id==='saved'" class="count">{{saved.length}}</span></button></nav>
+      <nav aria-label="工作台导航"><button v-for="item in nav" :key="item.id" :class="{selected:tab===item.id}" :aria-label="item.label" :aria-current="tab===item.id?'page':undefined" @click="navigate(item.id)"><span aria-hidden="true">{{item.icon}}</span>{{item.label}}<span v-if="item.id==='saved'" class="count">{{savedTotal}}</span></button></nav>
       <div class="sidebar-bottom"><span class="dot" :class="{offline:!capability?.configured}"/>{{capability?.configured ? '真实数据服务已配置' : '真实数据服务待配置'}}<small>每一个地点，都有来源</small></div>
     </aside>
     <main id="main-content" ref="mainContent" tabindex="-1">
@@ -477,7 +478,7 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
         </div><RouteMap :itinerary="itinerary" :selected-day="selectedDay" :poi="selectedPoi" :selected-poi-id="selectedStopId" :preview="previewPois" @select="selectedStopId=$event"/>
       </section>
 
-      <SavedTrips v-if="tab==='saved'" :trips="saved" :disabled="active||busy" @refresh="refreshSaved().catch(report)" @open="openTrip"/>
+      <SavedTrips v-if="tab==='saved'" :trips="saved" :disabled="active||busy" @updated="updateSaved" @open="openTrip"/>
 
       <section v-if="tab==='budget'" class="budget-layout"><div class="card"><div class="section-title"><h2>预算与约束</h2><span class="subtle">{{itinerary?.title || '尚未选择行程'}}</span></div><div v-if="!itinerary" class="empty-state"><span>◫</span><h3>先规划，再核对</h3><p>生成行程后查看已知费用、未知费用与约束结果。</p></div><template v-else><div class="budget-stats"><div><small>已知费用小计</small><strong>¥{{itinerary.budget.known_subtotal}}</strong><span>仅汇总用户录入的站点费用</span></div><div><small>总预算上限</small><strong>{{itinerary.budget.limit==null?'未设置':`¥${itinerary.budget.limit}`}}</strong><span>{{itinerary.budget.status==='exceeded'?'已知费用已超预算':'总额未知，无法确认预算满足'}}</span></div></div><h3>仍需补全的费用</h3><ul class="warning-list"><li v-for="item in itinerary.budget.unknown_items">{{item}}</li></ul><h3>行程约束与提醒</h3><ul class="warning-list"><li v-for="warning in itinerary.warnings">{{warning}}</li></ul><button class="secondary" @click="tab='plan';edit()" :disabled="active||busy">录入费用与调整行程</button></template></div><aside class="card capability-card"><div class="eyebrow">DATA COVERAGE</div><h2>数据覆盖范围</h2><ul class="warning-list"><li v-for="item in capability?.limitations">{{item}}</li></ul><p>空值表示来源未提供；不会自动补成免费、零交通时间或模拟评论。</p><ToolConnection/></aside></section>
 

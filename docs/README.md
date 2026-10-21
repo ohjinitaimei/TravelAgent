@@ -25,6 +25,8 @@ Bounded keyword/stop-count matrix and measured live results: [architecture/EXPAN
 
 Saved itinerary filters, direct parent relationships and read-only version comparison: [architecture/SAVED_VERSIONS.md](architecture/SAVED_VERSIONS.md).
 
+Owner-scoped full-history search, snapshot pagination and direct-child counts: [architecture/SAVED_PAGINATION.md](architecture/SAVED_PAGINATION.md).
+
 ## Doc Groups
 
 - `architecture/`: orchestration boundaries, coordinator, tool contracts, UI structure.

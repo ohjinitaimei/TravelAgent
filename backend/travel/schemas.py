@@ -247,9 +247,31 @@ class Itinerary(Model):
     algorithm: str = "ranker_engine + route_planner nearest-neighbor + route_planner scheduler"
     optimization: GroupingOptimization | None = None
 
+    @classmethod
+    def from_saved_json(cls, data: str) -> Itinerary:
+        import json
+        value = json.loads(data)
+        # New plans get a creation time. Reading an old record must not manufacture one.
+        if isinstance(value, dict) and "created_at" not in value:
+            value["created_at"] = ""
+        return cls.model_validate(value)
+
+
+class ItineraryQuery(Model):
+    limit: int = Field(default=50, ge=1, le=100)
+    query: str = Field(default="", max_length=120)
+    kind: Literal["all", "original", "adjusted"] = "all"
+    order: Literal["newest", "oldest", "departure"] = "newest"
+    parent_id: str | None = Field(default=None, min_length=1, max_length=100)
+    cursor: str | None = Field(default=None, min_length=1, max_length=2048)
+
 
 class ItineraryList(Model):
     items: list[Itinerary]
+    total: int | None = Field(default=None, ge=0, description="当前账号、查询与快照内的匹配版本总数")
+    page_cursor: str | None = Field(default=None, description="当前页快照游标；不是授权凭证")
+    next_cursor: str | None = None
+    direct_adjustment_counts: dict[str, int] = Field(default_factory=dict, description="当前页各版本在同账号快照内的直接调整数，不受搜索条件影响")
 
 
 class Event(Model):

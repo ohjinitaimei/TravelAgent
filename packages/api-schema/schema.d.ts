@@ -682,6 +682,25 @@ export interface components {
         ItineraryList: {
             /** Items */
             items: components["schemas"]["Itinerary"][];
+            /**
+             * Total
+             * @description 当前账号、查询与快照内的匹配版本总数
+             */
+            total?: number | null;
+            /**
+             * Page Cursor
+             * @description 当前页快照游标；不是授权凭证
+             */
+            page_cursor?: string | null;
+            /** Next Cursor */
+            next_cursor?: string | null;
+            /**
+             * Direct Adjustment Counts
+             * @description 当前页各版本在同账号快照内的直接调整数，不受搜索条件影响
+             */
+            direct_adjustment_counts?: {
+                [key: string]: number;
+            };
         };
         /** LoginRequest */
         LoginRequest: {
@@ -2455,6 +2474,11 @@ export interface operations {
         parameters: {
             query?: {
                 limit?: number;
+                query?: string;
+                kind?: "all" | "original" | "adjusted";
+                order?: "newest" | "oldest" | "departure";
+                parent_id?: string | null;
+                cursor?: string | null;
             };
             header?: {
                 /** @description Cookie 会话的写操作须携带 auth/status 返回的 CSRF Token */

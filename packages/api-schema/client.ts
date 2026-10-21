@@ -1,4 +1,4 @@
-import type { components } from './schema'
+import type { components, paths } from './schema'
 
 export type Schema<K extends keyof components['schemas']> = components['schemas'][K]
 export type PlanRequest = Schema<'PlanRequest'>
@@ -9,6 +9,7 @@ export type Poi = Schema<'Poi'>
 export type Draft = Schema<'Draft'>
 export type Transport = (path: string, init?: { method?: string; body?: unknown; signal?: AbortSignal; headers?:Record<string,string> }) => Promise<unknown>
 export type SubmitOptions = {idempotencyKey?:string}
+export type ItineraryQuery = NonNullable<paths['/api/v1/travel/itineraries']['get']['parameters']['query']>
 
 function delay(ms:number, signal:AbortSignal) {
   return new Promise<void>((resolve,reject)=>{
@@ -70,7 +71,14 @@ export class TravelClient {
   task(id: string, signal?: AbortSignal) { return this.get<Task>(`/tasks/${encodeURIComponent(id)}`, signal) }
   cancel(id: string) { return this.post<Task>(`/tasks/${encodeURIComponent(id)}/cancel`) }
   events(id: string, after = 0, signal?: AbortSignal) { return this.get<Schema<'EventList'>>(`/tasks/${encodeURIComponent(id)}/events?after=${after}`, signal) }
-  itineraries() { return this.get<Schema<'ItineraryList'>>('/itineraries') }
+  itineraries(query:ItineraryQuery={}, signal?:AbortSignal) {
+    const params=new URLSearchParams()
+    for(const [key,value] of Object.entries(query)) {
+      if(value==null||value===''||(key==='limit'&&value===50)||(key==='kind'&&value==='all')||(key==='order'&&value==='newest'))continue
+      params.set(key,String(value))
+    }
+    return this.get<Schema<'ItineraryList'>>(`/itineraries${params.size?'?'+params:''}`,signal)
+  }
   itinerary(id: string) { return this.get<Itinerary>(`/itineraries/${encodeURIComponent(id)}`) }
   adjust(id: string, request: Schema<'EditRequest'>, options?:SubmitOptions) { return this.post<Task>(`/itineraries/${encodeURIComponent(id)}/adjust`, request,options) }
   search(keyword: string, city: string) { return this.get<Schema<'PoiList'>>(`/pois?${new URLSearchParams({keyword, city})}`) }
