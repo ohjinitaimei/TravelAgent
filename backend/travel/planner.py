@@ -8,7 +8,7 @@ from uuid import uuid4
 from core.schemas import POI, ParsedIntent
 from services import poi_ranker, route_planner
 from travel.provider import AmapProvider, TravelFailure
-from travel.schemas import Budget, Day, GroupingOptimization, Itinerary, PlanningMetrics, PlanRequest, Poi, Stop
+from travel.schemas import Budget, Day, GroupingOptimization, Itinerary, PlanningMetrics, PlanRequest, Poi, Stop, TimeConflictDay, TimeConstraintDiagnostics
 from travel.tools import TravelTools
 
 
@@ -133,7 +133,21 @@ def plan(request: PlanRequest, emit: Callable[[str, str], None], *, provider: Am
             candidates=candidate_metrics, result=result, baseline_poi_ids_by_day=baseline_ids,
             route_queries=len(segments))
     if not result.feasible:
-        raise TravelFailure("time_constraint_exceeded", "行程超过每日结束时间；请减少站数或停留时长", status=422)
+        # Explain the original partition, never present an infeasible candidate
+        # as an accepted trip. Reuse the already queried matrix; no extra calls.
+        available = end_limit - start_time
+        conflicts = []
+        for index, group in enumerate(groups):
+            stay = sum(request.stay_minutes_by_poi.get(poi.id, request.stay_minutes) for poi in group)
+            travel = baseline.per_day_travel_minutes[index]
+            required = stay + travel
+            if required > available:
+                conflicts.append(TimeConflictDay(day_number=index + 1, stay_minutes=stay,
+                    travel_minutes=travel, required_minutes=required, overrun_minutes=required - available))
+        diagnostics = TimeConstraintDiagnostics(operation="adjust" if parent_id else "plan",
+            source_itinerary_id=parent_id, day_start=request.day_start, day_end=request.day_end,
+            available_minutes=available, days=conflicts)
+        raise TravelFailure("time_constraint_exceeded", "行程超过每日结束时间；请调整每日时段、站数或停留时长", status=422, time_constraints=diagnostics)
     if comparison:
         emit("grouping_validated", "真实路线核验通过，已采用更合适的分日" if comparison.applied else "真实路线核验后保留原分日")
 

@@ -14,10 +14,29 @@ class Model(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
 
+class TimeConflictDay(Model):
+    day_number: int = Field(ge=1, le=3)
+    stay_minutes: int = Field(ge=0)
+    travel_minutes: int = Field(ge=0)
+    required_minutes: int = Field(ge=0)
+    overrun_minutes: int = Field(gt=0)
+
+
+class TimeConstraintDiagnostics(Model):
+    operation: Literal["plan", "adjust"]
+    source_itinerary_id: str | None = None
+    basis: Literal["original_partition"] = "original_partition"
+    day_start: str
+    day_end: str
+    available_minutes: int = Field(gt=0, le=1439)
+    days: list[TimeConflictDay] = Field(min_length=1, max_length=3)
+
+
 class Error(Model):
     code: str
     message: str
     retryable: bool = False
+    time_constraints: TimeConstraintDiagnostics | None = None
 
 
 class ErrorResponse(Model):

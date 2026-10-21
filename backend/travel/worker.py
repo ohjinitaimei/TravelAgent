@@ -1,7 +1,7 @@
 """Spawn-safe isolated worker. Provider keys are never sent to frontends."""
 from travel.planner import plan
 from travel.provider import TravelFailure
-from travel.schemas import PlanRequest
+from travel.schemas import Error, PlanRequest
 
 
 def run(payload: dict, output):
@@ -20,6 +20,7 @@ def run(payload: dict, output):
                               optimize_order=payload.get("optimize_order", True), parent_id=payload.get("parent_id"))
         output.put({"kind": "result", "data": result.model_dump(mode="json")})
     except TravelFailure as error:
-        output.put({"kind": "error", "data": {"code": error.code, "message": error.message, "retryable": error.retryable}})
+        output.put({"kind": "error", "data": Error(code=error.code, message=error.message,
+            retryable=error.retryable, time_constraints=error.time_constraints).model_dump(mode="json")})
     except Exception:
         output.put({"kind": "error", "data": {"code": "planning_failed", "message": "规划执行失败，请检查服务端日志与输入", "retryable": False}})

@@ -609,6 +609,7 @@ export interface components {
              * @default false
              */
             retryable: boolean;
+            time_constraints?: components["schemas"]["TimeConstraintDiagnostics"] | null;
         };
         /** ErrorResponse */
         ErrorResponse: {
@@ -945,6 +946,43 @@ export interface components {
              * @default false
              */
             retry_available: boolean;
+        };
+        /** TimeConflictDay */
+        TimeConflictDay: {
+            /** Day Number */
+            day_number: number;
+            /** Stay Minutes */
+            stay_minutes: number;
+            /** Travel Minutes */
+            travel_minutes: number;
+            /** Required Minutes */
+            required_minutes: number;
+            /** Overrun Minutes */
+            overrun_minutes: number;
+        };
+        /** TimeConstraintDiagnostics */
+        TimeConstraintDiagnostics: {
+            /**
+             * Operation
+             * @enum {string}
+             */
+            operation: "plan" | "adjust";
+            /** Source Itinerary Id */
+            source_itinerary_id?: string | null;
+            /**
+             * Basis
+             * @default original_partition
+             * @constant
+             */
+            basis: "original_partition";
+            /** Day Start */
+            day_start: string;
+            /** Day End */
+            day_end: string;
+            /** Available Minutes */
+            available_minutes: number;
+            /** Days */
+            days: components["schemas"]["TimeConflictDay"][];
         };
         /** ToolServiceStatus */
         ToolServiceStatus: {

@@ -4643,6 +4643,16 @@
             "type": "boolean",
             "title": "Retryable",
             "default": false
+          },
+          "time_constraints": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TimeConstraintDiagnostics"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -5559,6 +5569,108 @@
           "status"
         ],
         "title": "Task"
+      },
+      "TimeConflictDay": {
+        "properties": {
+          "day_number": {
+            "type": "integer",
+            "maximum": 3.0,
+            "minimum": 1.0,
+            "title": "Day Number"
+          },
+          "stay_minutes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Stay Minutes"
+          },
+          "travel_minutes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Travel Minutes"
+          },
+          "required_minutes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Required Minutes"
+          },
+          "overrun_minutes": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Overrun Minutes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "day_number",
+          "stay_minutes",
+          "travel_minutes",
+          "required_minutes",
+          "overrun_minutes"
+        ],
+        "title": "TimeConflictDay"
+      },
+      "TimeConstraintDiagnostics": {
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "adjust"
+            ],
+            "title": "Operation"
+          },
+          "source_itinerary_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Itinerary Id"
+          },
+          "basis": {
+            "type": "string",
+            "const": "original_partition",
+            "title": "Basis",
+            "default": "original_partition"
+          },
+          "day_start": {
+            "type": "string",
+            "title": "Day Start"
+          },
+          "day_end": {
+            "type": "string",
+            "title": "Day End"
+          },
+          "available_minutes": {
+            "type": "integer",
+            "maximum": 1439.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Available Minutes"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/TimeConflictDay"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Days"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "operation",
+          "day_start",
+          "day_end",
+          "available_minutes",
+          "days"
+        ],
+        "title": "TimeConstraintDiagnostics"
       },
       "ToolServiceStatus": {
         "properties": {

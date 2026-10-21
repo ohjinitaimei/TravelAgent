@@ -7,13 +7,14 @@ from typing import Any
 import httpx
 
 from services.amap_client import AmapClient
-from travel.schemas import Poi, Point, Segment, Source
+from travel.schemas import Poi, Point, Segment, Source, TimeConstraintDiagnostics
 
 
 class TravelFailure(Exception):
-    def __init__(self, code: str, message: str, retryable: bool = False, status: int = 502):
+    def __init__(self, code: str, message: str, retryable: bool = False, status: int = 502, *, time_constraints: TimeConstraintDiagnostics | None = None):
         super().__init__(message)
         self.code, self.message, self.retryable, self.status = code, message, retryable, status
+        self.time_constraints = time_constraints
 
 
 def number(value: Any) -> float | None:

@@ -30,8 +30,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 13099,
-      "sha256": "0fa23d7b8a8dbc454bc69f746ec23fe78729d1e5836ebf214be77b2f3e210c8f"
+      "bytes": 13460,
+      "sha256": "d827d654dc0178532517d09a6b1a6e226f928db66c912d126faf9147735922f5"
     },
     {
       "path": "analysis_options.yaml",
@@ -155,8 +155,8 @@
     },
     {
       "path": "apps/web/src/App.vue",
-      "bytes": 46702,
-      "sha256": "c20f915f31577b13218eac52972334293997088490a38dd714b2e3e0d0b79f63"
+      "bytes": 48251,
+      "sha256": "51eb58d4cb9c77d57345c2bbe5b4e60787722b9a4d5da1e7aa9073d3af223728"
     },
     {
       "path": "apps/web/src/WorkspaceRoot.vue",
@@ -207,6 +207,11 @@
       "path": "apps/web/src/components/RouteMap.vue",
       "bytes": 5818,
       "sha256": "88e05a21214e8c8275e67fe20dec6b82f3d95c7d129abd7f455765cecdf5ffc1"
+    },
+    {
+      "path": "apps/web/src/components/TimeConstraintGuide.vue",
+      "bytes": 3617,
+      "sha256": "83e86aa718a9cba12896c311dcd5387b0d8c793287c705e02d4bc00eef9da6cb"
     },
     {
       "path": "apps/web/src/components/ToolConnection.vue",
@@ -750,23 +755,23 @@
     },
     {
       "path": "backend/travel/planner.py",
-      "bytes": 10390,
-      "sha256": "c014d169eab39a88da03696a7409acffcabb936d9edd8b5119ff2c07d67b1f2f"
+      "bytes": 11436,
+      "sha256": "2ce813eff9f606076667a3b57883362f4cb0a6c54b57d8bffa970205c405c5a3"
     },
     {
       "path": "backend/travel/provider.py",
-      "bytes": 5946,
-      "sha256": "c88d7b704759775a9cf0c9241e33d866781eb19e09e77eed0f6259987e9fe464"
+      "bytes": 6084,
+      "sha256": "1e1bb0d8b069d27cb0b9decb1e78c9c1b187a41c0a1ebc3151fa2dc86d35cd48"
     },
     {
       "path": "backend/travel/runtime.py",
-      "bytes": 2575,
-      "sha256": "5953716760a7520c62ae8b8dbf8993a261b42e6f41b9a96caf313720a2074614"
+      "bytes": 2616,
+      "sha256": "568ed253bb604c9971c08b446245b52f741639a2439d1b1c233fa0127fa8c6b8"
     },
     {
       "path": "backend/travel/schemas.py",
-      "bytes": 12341,
-      "sha256": "2e285ca7be45b7ba6ab251b5ef7acd3b26fbe57646825d9d71d359a563343ea3"
+      "bytes": 12972,
+      "sha256": "438e1bdbf2df4894d0af3f3e711888e48e8ecd2a539634b68f317038039be969"
     },
     {
       "path": "backend/travel/store.py",
@@ -790,8 +795,8 @@
     },
     {
       "path": "backend/travel/worker.py",
-      "bytes": 1412,
-      "sha256": "7df93eeca552fd73500eec22be59c3c2818b043f9f111f722342a38f31afb70b"
+      "bytes": 1492,
+      "sha256": "b51d8f4b03616500e3d9bba0ce736d79aab74efaf2687454217ae4a51cd10278"
     },
     {
       "path": "deploy/Caddyfile",
@@ -830,18 +835,18 @@
     },
     {
       "path": "docs/ACCEPTANCE.md",
-      "bytes": 14944,
-      "sha256": "00dd1ea5fb8527e313dccdf6e13ce5a48df43f8633c66c921dc62fb917a27744"
+      "bytes": 15793,
+      "sha256": "8660d5fcec6ae786eeb70bac89bb5864226b09df763ae02ec4beeef85dc3a845"
     },
     {
       "path": "docs/README.md",
-      "bytes": 1433,
-      "sha256": "01cf415ce3367cb581cd36c14fcd2c955e821e5087ee7b9240f26a1ce8356af8"
+      "bytes": 1562,
+      "sha256": "18d296588130974cbf9956181e06a9eaa33f34243357767b3649a868e67ba259"
     },
     {
       "path": "docs/RELEASE_STATUS.md",
-      "bytes": 10125,
-      "sha256": "eadbc32f9422124ca923a773aa3fe077400bed7ae6a95006a9100f81f72f99bd"
+      "bytes": 10541,
+      "sha256": "273e5e69b4d140c6e423a1f4e7c672e63f0711692c8c555814f20998c5e7b492"
     },
     {
       "path": "docs/TECHNICAL_REPORT.md",
@@ -957,6 +962,11 @@
       "path": "docs/architecture/SKILL_SPEC.md",
       "bytes": 6685,
       "sha256": "ba8d9106dbf3724e8950291a0393cfde31339ce56c402997ccaf99db36237a65"
+    },
+    {
+      "path": "docs/architecture/TIME_CONSTRAINTS.md",
+      "bytes": 6186,
+      "sha256": "fd36466117f793ea6bf6dbf865da20bbb7d6c44ce7fcd2cc48e35e13dd02b28d"
     },
     {
       "path": "docs/architecture/TRAVEL_ARCHITECTURE_AUDIT.md",
@@ -1100,8 +1110,8 @@
     },
     {
       "path": "packages/api-schema/README.md",
-      "bytes": 878,
-      "sha256": "8667474050097b1a0d9503ea21cceaa9bd6f0b9f75a45f72136ca07335612426"
+      "bytes": 1390,
+      "sha256": "484e91bb6014aeb4755b87183b82a7d696719a3970b8a069cd21fd28276f25ac"
     },
     {
       "path": "packages/api-schema/client.ts",
@@ -1110,13 +1120,13 @@
     },
     {
       "path": "packages/api-schema/openapi.json",
-      "bytes": 151103,
-      "sha256": "bad6deffe10302bae86e1b7bb3466d67cb4cb0f8ab10c3fbd44aa8c7e402818f"
+      "bytes": 154011,
+      "sha256": "fa301dbe26bc0c7fc5aeab6b4770aa0b541008e999b300d1d009bea40b61d430"
     },
     {
       "path": "packages/api-schema/schema.d.ts",
-      "bytes": 109612,
-      "sha256": "a5d88359f6221d1ae47ed1c626eedbb69fbd34ec8bbfc66edeb1309159a62b4e"
+      "bytes": 110861,
+      "sha256": "93f188f3022e4b221387435613c4bd469a0964b0fed8887fc9c600a253f5f0a9"
     },
     {
       "path": "playwright.config.ts",
@@ -1215,8 +1225,8 @@
     },
     {
       "path": "scripts/verify_repository.py",
-      "bytes": 3442,
-      "sha256": "5fb616e62c23f6d97aa5af90ddc632485b3da976c14f85e32e9bf076711c715b"
+      "bytes": 3469,
+      "sha256": "6fc60b1d5a01b7524fd3d32e383b0ae36dd17bf8dd0589c0422c654f211097a8"
     },
     {
       "path": "test/widget_test.dart",
@@ -1240,8 +1250,8 @@
     },
     {
       "path": "tests/browser/workspace.spec.ts",
-      "bytes": 50999,
-      "sha256": "3fcbdf09611365aedc5e9c57eb3dd134fee2335618f7aac301e58283ca01b6ec"
+      "bytes": 57048,
+      "sha256": "d443c5c4daffe4efc25c281c3f8affa7952cd9143d56e74bd476574647c61d4a"
     },
     {
       "path": "tests/browser_fixture_server.py",
@@ -1359,9 +1369,14 @@
       "sha256": "557b899dd7655f5d1d50fa63bb2e2587838b73945a73d4744fb856c58f15f5c1"
     },
     {
+      "path": "tests/test_time_constraints.py",
+      "bytes": 6776,
+      "sha256": "67f53569ea56f4e48c018707c86b84308a97081d63ce3d29011dd747380a417a"
+    },
+    {
       "path": "tests/test_travel.py",
-      "bytes": 13637,
-      "sha256": "3602e3b2d2c35f9388e005202182ece4254c055d4fd4f5d1bd925296f93b5f95"
+      "bytes": 13900,
+      "sha256": "bf37bd235342b329e160bd6251446bd21f714a4a33fee279202d08b3d9ced10e"
     },
     {
       "path": "windows/.gitignore",

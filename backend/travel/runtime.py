@@ -36,7 +36,7 @@ async def lifespan(app):
 def configure_errors(app):
     @app.exception_handler(TravelFailure)
     async def provider_error(request: Request, error: TravelFailure):
-        body = ErrorResponse(error=Error(code=error.code, message=error.message, retryable=error.retryable))
+        body = ErrorResponse(error=Error(code=error.code, message=error.message, retryable=error.retryable, time_constraints=error.time_constraints))
         headers={"WWW-Authenticate":'Bearer realm="TravelAgent"'} if error.status==401 else {}
         if error.code=='login_rate_limited': headers['Retry-After']='300'
         if getattr(error, 'retry_after', None): headers['Retry-After']=str(error.retry_after)

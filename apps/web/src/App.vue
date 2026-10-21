@@ -13,6 +13,7 @@ import RequestAssistant from './components/RequestAssistant.vue'
 import ToolConnection from './components/ToolConnection.vue'
 import OptimizationComparison from './components/OptimizationComparison.vue'
 import DayOverview from './components/DayOverview.vue'
+import TimeConstraintGuide from './components/TimeConstraintGuide.vue'
 import { draftForm } from './draft'
 import { TravelApiError } from '../../../packages/api-schema/client'
 import { newSubmission, restoreSubmission, sendSubmission, recoverSubmission, submissionWasRejected, type Operation, type PendingSubmission } from './submissions'
@@ -60,6 +61,11 @@ let stream: EventSource | null = null, controller: AbortController | null = null
 const taskActive=computed(()=>['queued','running'].includes(task.value?.status||''))
 const active = computed(() => restoring.value || taskActive.value || resultPending.value || Boolean(pending.value))
 const day = computed(() => itinerary.value?.days[selectedDay.value])
+const timeGuideEditable = computed(() => {
+  if(busy.value||active.value)return false
+  const details=task.value?.error?.time_constraints
+  return !details || (details.operation==='adjust' ? editing.value&&itinerary.value?.id===details.source_itinerary_id : !editing.value)
+})
 function captureEdit() {return editSnapshot({groups:editIds.value,prices:editPrices,durations:editDurations,constraints:editConstraints,defaultStay:editStay.value,optimize:optimize.value})}
 const changes=computed(()=>editing.value&&editBaseline.value?editChanges(editBaseline.value,captureEdit(),editName):[])
 const editDirty=computed(()=>changes.value.length>0)
@@ -72,6 +78,20 @@ function report(e: unknown) { error.value = e instanceof Error ? e.message : '�
 function eventTime(value?:string) { return value ? new Date(value).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '时间未提供' }
 async function navigate(value:Tab){tab.value=value;await nextTick();pageHeading.value?.focus()}
 async function focusEditField(field:HTMLElement){const index=field.closest<HTMLElement>('[data-edit-day]')?.dataset.editDay;if(index!==undefined)selectedDay.value=Number(index)}
+async function locateTimeConstraint(field:'window'|'stops'|'stay',dayNumber:number) {
+  if(!timeGuideEditable.value)return
+  tab.value='plan'
+  const index=Math.max(0,Math.min(dayNumber-1,editIds.value.length-1))
+  if(editing.value)selectedDay.value=index
+  await nextTick()
+  const formElement=editing.value?timeline.value?.querySelector<HTMLFormElement>('form'):mainContent.value?.querySelector<HTMLFormElement>('.planner-form form')
+  if(editing.value&&field==='window'){const details=formElement?.querySelector<HTMLDetailsElement>('.edit-constraints');if(details)details.open=true}
+  const selector=editing.value
+    ? field==='window'?'[name="day_end"]':`[data-edit-day="${index}"] ${field==='stay'?'input[type="number"]':'button.edit-select'}`
+    : `[name="${field==='window'?'day_end':field==='stay'?'stay_minutes':'stops_per_day'}"]`
+  const target=formElement?.querySelector<HTMLElement>(selector)
+  target?.focus();target?.scrollIntoView({block:'center'})
+}
 function clearEditor() {
   editing.value=false;editBaseline.value=null
   for(const key of Object.keys(addedPois)) delete addedPois[key]
@@ -414,6 +434,7 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
             <div v-if="!task" class="execution-empty"><span>◷</span>提交需求后，在这里查看真实执行进度。</div>
             <ol v-else class="event-list"><li v-for="event in events" :key="event.id"><span class="event-dot"/><span>{{event.message}}</span><time>{{eventTime(event.timestamp)}}</time></li></ol>
             <div v-if="task" class="task-controls"><small class="task-id">任务 {{task.id}}<span v-if="task.retry_of"> · 原任务重试</span></small><button v-if="!busy&&!pending" class="text-button" @click="resume">重新查询状态 ↻</button><button v-if="task.retry_available&&!pending" class="secondary" :disabled="busy" @click="retryTask">按原条件重试</button></div>
+            <TimeConstraintGuide v-if="task?.status==='failed'&&task.error?.code==='time_constraint_exceeded'" :details="task.error.time_constraints" :editable="timeGuideEditable" :editing="editing" @locate="locateTimeConstraint"/>
             <small v-if="restoring" role="status">正在恢复上次的工作空间…</small>
           </section>
           <section class="card route-workspace">

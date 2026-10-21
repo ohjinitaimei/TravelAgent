@@ -15,7 +15,7 @@ from fastapi.testclient import TestClient
 from services.amap_client import AmapClient
 from travel.planner import plan
 from travel.provider import AmapProvider, TravelFailure
-from travel.schemas import PlanRequest, Poi, Point, Segment, Source, Task
+from travel.schemas import Error, PlanRequest, Poi, Point, Segment, Source, Task
 from travel.store import Store
 from travel.tasks import TaskManager
 
@@ -38,11 +38,15 @@ class FixtureProvider:
 
 
 def fixture_worker(payload, output):
-    result = plan(PlanRequest.model_validate(payload["request"]),
-                  lambda stage, message: output.put({"kind": "event", "stage": stage, "message": message}),
-                  provider=FixtureProvider(), poi_ids_by_day=payload.get("poi_ids_by_day"),
-                  optimize_order=payload.get("optimize_order", True), parent_id=payload.get("parent_id"))
-    output.put({"kind": "result", "data": result.model_dump(mode="json")})
+    try:
+        result = plan(PlanRequest.model_validate(payload["request"]),
+                      lambda stage, message: output.put({"kind": "event", "stage": stage, "message": message}),
+                      provider=FixtureProvider(), poi_ids_by_day=payload.get("poi_ids_by_day"),
+                      optimize_order=payload.get("optimize_order", True), parent_id=payload.get("parent_id"))
+        output.put({"kind": "result", "data": result.model_dump(mode="json")})
+    except TravelFailure as error:
+        output.put({"kind":"error","data":Error(code=error.code,message=error.message,
+            retryable=error.retryable,time_constraints=error.time_constraints).model_dump(mode='json')})
 
 
 def stalled_worker(payload, output):

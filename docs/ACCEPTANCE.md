@@ -1,6 +1,6 @@
 # Web 验收记录
 
-验收环境：2026-10-19 至 2026-10-20，Python 3.12、Node.js、Windows、Chromium / Firefox / WebKit Headless。本轮仅在本地运行，未上传至 GitHub 或运行云端检查；仓库保留可在 Ubuntu / Node.js 22 上执行的 CI 配置。
+验收环境：2026-10-19 至 2026-10-21，Python 3.12、Node.js、Windows、Chromium / Firefox / WebKit Headless。本轮仅在本地运行，未上传至 GitHub 或运行云端检查；仓库保留可在 Ubuntu / Node.js 22 上执行的 CI 配置。
 
 ## 可复现检查
 
@@ -18,14 +18,16 @@ Linux 浏览器首次安装使用 `npx playwright install --with-deps --only-she
 
 | 检查 | 数量 | 覆盖范围 |
 | --- | ---: | --- |
-| Python | 122 | 旅行 API 13、Agent 6、澄清 4、MCP 服务端 1、任务恢复 3、MCP 客户端 11、鉴权隔离 14、业务限流 8、备份恢复 6、分日算法 13、地图代理 13、健康 4、部署配置 5、定时备份 8、发布包 6、恢复种子保护 3、真实质量报告拒绝门槛 4 |
+| Python | 129 | 旅行 API 13、Agent 6、澄清 4、MCP 服务端 1、任务恢复 3、MCP 客户端 11、鉴权隔离 14、业务限流 8、备份恢复 6、分日算法 13、地图代理 13、健康 4、部署配置 5、定时备份 8、发布包 6、恢复种子保护 3、真实质量报告拒绝门槛 4、时间不可行诊断 7 |
 | TypeScript 客户端 | 23 | HTTP 契约、轮询期限/取消、暂时断线、提交收据恢复、编辑差异与还原、工具握手、账号绑定与恢复、配额拒绝、本机草稿校验/冲突/存储失败 |
-| Chromium / Firefox / WebKit | 135 次 | 每引擎旅行工作台 30 项、账号流程 10 项、弱网与最大行程 5 项，三个引擎合计 135 次执行 |
+| Chromium / Firefox / WebKit | 141 次 | 每引擎旅行工作台 32 项、账号流程 10 项、弱网与最大行程 5 项，三个引擎合计 141 次执行 |
 | Web / Schema | — | TypeScript 检查、Vite 构建、OpenAPI 生成文件一致性 |
 
-完整检查集规模为 190 个逻辑用例、280 次执行（包含相同页面场景在不同引擎中的重复）。本轮运行 Python 122 项、客户端 23 项、类型检查和生产构建，重新导出 OpenAPI 与 TS 类型没有差异。新增三项页面场景；最终三引擎 135 次执行全部通过，无失败、跳过或重试后通过，保持零重试配置。首轮 Firefox 跨标签页加载受远程字体请求阻塞，按 trace 移除字体依赖并统一 context 拦截后，在原超时、零重试下复查；保留原失败记录，详见 [MULTIDAY_QUALITY.md](architecture/MULTIDAY_QUALITY.md)。Windows WebKit 的 SameSite 元数据限制保留原边界，见 [BROWSER_ACCEPTANCE.md](architecture/BROWSER_ACCEPTANCE.md)。
+完整检查集规模为 199 个逻辑用例、293 次执行（包含相同页面场景在不同引擎中的重复）。本轮 Python 129、共享客户端 23、类型/构建全部通过；共享错误模型增加可选时间诊断，OpenAPI 与 TS 类型已重新生成。新增两项页面场景，最终三引擎 141 次全部通过，无失败、跳过或重试后通过，保持零重试配置。首轮旧概览测试误按相同日期取到编辑子版本，已按页面打开原版本的条件修正取数，保留数值断言与原失败 trace，详见 [TIME_CONSTRAINTS.md](architecture/TIME_CONSTRAINTS.md)。前轮字体阻塞的诊断保留在 [MULTIDAY_QUALITY.md](architecture/MULTIDAY_QUALITY.md)；Windows WebKit 的 SameSite 元数据限制仍见 [BROWSER_ACCEPTANCE.md](architecture/BROWSER_ACCEPTANCE.md)。
 
-本轮另通过四项真实高德多日质量样本，实际 4 次搜索、16 次路线查询，直接 Provider/MCP 均通过，单列于 [MULTIDAY_QUALITY.md](architecture/MULTIDAY_QUALITY.md)，不计入无密钥检查集。
+多日概览阶段另通过四项真实高德多日质量样本，实际 4 次搜索、16 次路线查询，直接 Provider/MCP 均通过，单列于 [MULTIDAY_QUALITY.md](architecture/MULTIDAY_QUALITY.md)，不计入无密钥检查集。
+
+本轮另以独立临时库、生产 API/Web 构建和真实高德验证南京 1 日 2 站的失败到重新规划：原时段仅 1 分钟、需 81 分钟，显式扩大至 18:00 后新任务成功，旧失败记录保留；实际 2 次搜索、4 次路线查询，未加载 JS SDK。该真实链路单列于 [TIME_CONSTRAINTS.md](architecture/TIME_CONSTRAINTS.md)，不计入无密钥检查集。
 
 本地恢复/回退脚本以包内生产应用启动实际 HTTPS 服务，验证在线快照、新路径恢复、原会话撤销、数据时间点、双账号隔离、任务事件、原库/快照不变和缺授权时明确失败。全部测试业务记录离线构造，API 不替换 Provider；58 项单独计数，详见 [LOCAL_RECOVERY.md](architecture/LOCAL_RECOVERY.md)。
 
@@ -66,6 +68,8 @@ Linux 浏览器首次安装使用 `npx playwright install --with-deps --only-she
 28. 多日概览逐日核对 API 站数、停留、交通和缺失费用 → 方向键/Home 切日、焦点与时间轴同步 → 窄屏无横向溢出。
 29. 跨日移动同步概览站数 → 编辑时隐藏旧交通/费用 → 保存后显示新事实 → 原版本保持，0 元与未填区分。
 30. 工作台刷新及第二个标签页均完成加载 → 不请求外部字体或样式，避免第三方字体阻塞。
+31. 时间不可行任务展示原方案分日分钟 → 定位输入不自动改值或提交 → 刷新后诊断不跟随当前表单变化 → 手动修改后显式新任务成功。
+32. 第二天编辑超时 → 原行程和 0 元/停留草稿保留 → 刷新恢复、切日及展开定位 → 显式保存新版本，原版本不变。
 
 独立生产构建套件再验证 5 项：间歇状态/事件读取失败后恢复、连续 5 次失败后停止重试并恢复原任务、完成结果读取失败后保留旧版本并联网同步、取消后迟到状态不覆盖终态，以及 12 站/4608 路线点的日期切换、费用编辑、版本保存和刷新。详细门槛、计时方法和实测值见 [RESILIENCE_PERFORMANCE.md](architecture/RESILIENCE_PERFORMANCE.md)。
 

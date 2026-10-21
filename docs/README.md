@@ -19,6 +19,8 @@ POI data; they are not a claim that every historical feature is complete.
 
 Current multiday overview and opt-in live quality checks: [architecture/MULTIDAY_QUALITY.md](architecture/MULTIDAY_QUALITY.md).
 
+Time feasibility diagnostics and Web adjustment guidance: [architecture/TIME_CONSTRAINTS.md](architecture/TIME_CONSTRAINTS.md).
+
 ## Doc Groups
 
 - `architecture/`: orchestration boundaries, coordinator, tool contracts, UI structure.
