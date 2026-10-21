@@ -18,16 +18,18 @@ Linux 浏览器首次安装使用 `npx playwright install --with-deps --only-she
 
 | 检查 | 数量 | 覆盖范围 |
 | --- | ---: | --- |
-| Python | 129 | 旅行 API 13、Agent 6、澄清 4、MCP 服务端 1、任务恢复 3、MCP 客户端 11、鉴权隔离 14、业务限流 8、备份恢复 6、分日算法 13、地图代理 13、健康 4、部署配置 5、定时备份 8、发布包 6、恢复种子保护 3、真实质量报告拒绝门槛 4、时间不可行诊断 7 |
+| Python | 137 | 旅行 API 13、Agent 6、澄清 4、MCP 服务端 1、任务恢复 3、MCP 客户端 11、鉴权隔离 14、业务限流 8、备份恢复 6、分日算法 13、地图代理 13、健康 4、部署配置 5、定时备份 8、发布包 6、恢复种子保护 3、真实质量报告/预算预检 12、时间不可行诊断 7 |
 | TypeScript 客户端 | 23 | HTTP 契约、轮询期限/取消、暂时断线、提交收据恢复、编辑差异与还原、工具握手、账号绑定与恢复、配额拒绝、本机草稿校验/冲突/存储失败 |
 | Chromium / Firefox / WebKit | 141 次 | 每引擎旅行工作台 32 项、账号流程 10 项、弱网与最大行程 5 项，三个引擎合计 141 次执行 |
 | Web / Schema | — | TypeScript 检查、Vite 构建、OpenAPI 生成文件一致性 |
 
-完整检查集规模为 199 个逻辑用例、293 次执行（包含相同页面场景在不同引擎中的重复）。本轮 Python 129、共享客户端 23、类型/构建全部通过；共享错误模型增加可选时间诊断，OpenAPI 与 TS 类型已重新生成。新增两项页面场景，最终三引擎 141 次全部通过，无失败、跳过或重试后通过，保持零重试配置。首轮旧概览测试误按相同日期取到编辑子版本，已按页面打开原版本的条件修正取数，保留数值断言与原失败 trace，详见 [TIME_CONSTRAINTS.md](architecture/TIME_CONSTRAINTS.md)。前轮字体阻塞的诊断保留在 [MULTIDAY_QUALITY.md](architecture/MULTIDAY_QUALITY.md)；Windows WebKit 的 SameSite 元数据限制仍见 [BROWSER_ACCEPTANCE.md](architecture/BROWSER_ACCEPTANCE.md)。
+完整检查集定义规模为 207 个逻辑用例、301 次执行（包含相同页面场景在不同引擎中的重复）。本轮重新运行 Python 137、共享客户端 23、类型/生产构建；扩展质量脚本完成六个真实 API 任务。生产 API/Web/Schema 未改，三引擎 141 次页面记录沿用同日时间约束阶段的 b6f1358，该轮无失败、跳过或重试后通过，零重试；本轮未重跑页面矩阵，不能将 301 次全称为本轮执行。扩展质量脚本、数据与上限见 [EXPANDED_QUALITY.md](architecture/EXPANDED_QUALITY.md)。前轮版本选取修正、字体阻塞及 Windows WebKit 的 SameSite 元数据边界分别保留在 [TIME_CONSTRAINTS.md](architecture/TIME_CONSTRAINTS.md)、[MULTIDAY_QUALITY.md](architecture/MULTIDAY_QUALITY.md) 和 [BROWSER_ACCEPTANCE.md](architecture/BROWSER_ACCEPTANCE.md)。
+
+本轮扩展矩阵的博物馆 3 站、咖啡 4 站、公园 12 站各走直接 Provider/MCP，共六任务全部通过来源/调度检查；调用上限 138，单日保留上限与实测的区别，十二站任务各返回 48 条矩阵路段计数。详细结果、人工复核范围与非主观评分的判定见 [EXPANDED_QUALITY.md](architecture/EXPANDED_QUALITY.md)，不计入无密钥检查集。
 
 多日概览阶段另通过四项真实高德多日质量样本，实际 4 次搜索、16 次路线查询，直接 Provider/MCP 均通过，单列于 [MULTIDAY_QUALITY.md](architecture/MULTIDAY_QUALITY.md)，不计入无密钥检查集。
 
-本轮另以独立临时库、生产 API/Web 构建和真实高德验证南京 1 日 2 站的失败到重新规划：原时段仅 1 分钟、需 81 分钟，显式扩大至 18:00 后新任务成功，旧失败记录保留；实际 2 次搜索、4 次路线查询，未加载 JS SDK。该真实链路单列于 [TIME_CONSTRAINTS.md](architecture/TIME_CONSTRAINTS.md)，不计入无密钥检查集。
+时间约束阶段另以独立临时库、生产 API/Web 构建和真实高德验证南京 1 日 2 站的失败到重新规划：原时段仅 1 分钟、需 81 分钟，显式扩大至 18:00 后新任务成功，旧失败记录保留；实际 2 次搜索、4 次路线查询，未加载 JS SDK。该真实链路单列于 [TIME_CONSTRAINTS.md](architecture/TIME_CONSTRAINTS.md)，不计入无密钥检查集。
 
 本地恢复/回退脚本以包内生产应用启动实际 HTTPS 服务，验证在线快照、新路径恢复、原会话撤销、数据时间点、双账号隔离、任务事件、原库/快照不变和缺授权时明确失败。全部测试业务记录离线构造，API 不替换 Provider；58 项单独计数，详见 [LOCAL_RECOVERY.md](architecture/LOCAL_RECOVERY.md)。
 

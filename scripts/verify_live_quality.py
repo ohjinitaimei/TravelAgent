@@ -1,7 +1,7 @@
 """Opt-in, bounded real Amap quality checks through an isolated production API.
 
 No fixture injection, model calls, production database access or automatic retries.
-Four plans at most; each uses four POIs and at most twelve directed route calls.
+Fixed smoke/expanded profiles; six plans and 138 provider calls at most.
 """
 import argparse
 from collections import Counter
@@ -9,6 +9,7 @@ from datetime import date, datetime, timedelta, timezone
 import json
 import os
 from pathlib import Path
+import re
 import socket
 import subprocess
 import sys
@@ -27,6 +28,35 @@ def require(condition, label):
         raise ValueError(label)
 
 
+def provider_call_bound(request):
+    days, stops = request['days'], request['stops_per_day']
+    count = days * stops
+    routes = min(48, count * (count - 1)) if days > 1 and stops > 1 else days * stops * (stops - 1)
+    return 1 + routes  # One POI search; the existing planner queries a directed matrix.
+
+
+def scenarios(profile, travel_date):
+    from travel.schemas import PlanRequest
+    definitions = {
+        'smoke': [('nanjing-parks', '南京', '公园', 2, 2, 'walking'),
+                  ('suzhou-parks', '苏州', '公园', 2, 2, 'driving')],
+        'expanded': [('nanjing-museums-3', '南京', '博物馆', 1, 3, 'walking'),
+                     ('suzhou-coffee-4', '苏州', '咖啡', 1, 4, 'driving'),
+                     ('suzhou-parks-12', '苏州', '公园', 3, 4, 'driving')],
+    }
+    cases = []
+    for identifier, city, keyword, days, stops, mode in definitions[profile]:
+        request = PlanRequest(city=city, query=keyword, start_date=travel_date, days=days,
+            stops_per_day=stops, stay_minutes=30, day_start='09:00', day_end='22:00', mode=mode).model_dump(mode='json')
+        cases.append({'scenario': identifier, 'request': request, 'maximum_provider_calls': provider_call_bound(request)})
+    return cases
+
+
+def minute(value):
+    require(isinstance(value, str) and re.fullmatch(r'([01]\d|2[0-3]):[0-5]\d', value), 'invalid_clock')
+    return int(value[:2]) * 60 + int(value[3:])
+
+
 def summarize(raw, expected):
     """Reject invalid provenance/schedules before recording a passing sample."""
     from travel.schemas import Itinerary, PlanRequest
@@ -34,8 +64,7 @@ def summarize(raw, expected):
     request = PlanRequest.model_validate(expected)
     require(trip.request == request, 'request_mismatch')
     require(len(trip.days) == request.days, 'day_count')
-    ids, days, missing = [], [], Counter()
-    minute = lambda value: int(value[:2]) * 60 + int(value[3:])
+    ids, days, missing, evidence = [], [], Counter(), []
     for index, day in enumerate(trip.days):
         require(day.date == request.start_date + timedelta(days=index), 'day_date')
         require(len(day.stops) == request.stops_per_day, 'stop_count')
@@ -44,6 +73,9 @@ def summarize(raw, expected):
         for position, stop in enumerate(day.stops):
             ids.append(stop.poi.id)
             require(stop.poi.source.provider == 'amap', 'poi_provenance')
+            original = raw['days'][index]['stops'][position]
+            # Source defaults must not manufacture a retrieval timestamp for the report.
+            require(bool(original['poi']['source'].get('retrieved_at')), 'poi_timestamp_missing')
             require(datetime.fromisoformat(stop.poi.source.retrieved_at).tzinfo is not None, 'poi_timestamp')
             for field in ('city', 'address', 'category', 'rating', 'average_spend', 'opening_hours'):
                 absent = getattr(stop.poi, field) is None
@@ -57,12 +89,16 @@ def summarize(raw, expected):
             require(minute(stop.departure_time) == arrival, 'departure_schedule')
             require(arrival <= minute(request.day_end), 'day_end_exceeded')
             require(stop.user_cost is None and stop.cost_source is None, 'invented_station_cost')
+            evidence.append({'id': stop.poi.id, 'name': stop.poi.name, 'city': stop.poi.city,
+                'category': stop.poi.category, 'name_contains_keyword': request.query in stop.poi.name,
+                'category_contains_keyword': request.query in (stop.poi.category or '')})
             segment = stop.travel_to_next
             if position == len(day.stops) - 1:
                 require(segment is None, 'unexpected_last_route')
             else:
                 require(segment is not None, 'missing_route')
                 require(segment.source.provider == 'amap', 'route_provenance')
+                require(bool(original['travel_to_next']['source'].get('retrieved_at')), 'route_timestamp_missing')
                 require(datetime.fromisoformat(segment.source.retrieved_at).tzinfo is not None, 'route_timestamp')
                 require(segment.origin_id == stop.poi.id and segment.destination_id == day.stops[position + 1].poi.id, 'route_link')
                 require(segment.mode == request.mode and bool(segment.polyline), 'route_mode_geometry')
@@ -75,15 +111,67 @@ def summarize(raw, expected):
                      'distance_km': round(distance, 6), 'last_departure': day.stops[-1].departure_time})
     require(len(ids) == len(set(ids)), 'duplicate_poi')
     require(trip.budget.total is None and trip.budget.known_subtotal == 0 and bool(trip.budget.unknown_items), 'unknown_budget_lost')
-    require(trip.optimization is not None, 'missing_comparison')
-    metrics = trip.optimization.result
-    require(metrics.feasible and metrics.per_day_travel_minutes == [d['travel_minutes'] for d in days], 'comparison_schedule')
-    require(abs(metrics.distance_km - sum(d['distance_km'] for d in days)) < 1e-5, 'comparison_distance')
-    require(0 < trip.optimization.route_queries <= 12, 'route_call_bound')
+    automatic_grouping = request.days > 1 and request.stops_per_day > 1
+    require(bool(trip.optimization) == automatic_grouping, 'comparison_presence')
+    route_bound = provider_call_bound(expected) - 1
+    totals = {'distance_km': round(sum(d['distance_km'] for d in days), 6),
+              'travel_minutes': sum(d['travel_minutes'] for d in days),
+              'busiest_day_minutes': max(d['stay_minutes'] + d['travel_minutes'] for d in days)}
+    comparison = trip.optimization
+    improvement = None
+    if comparison:
+        metrics = comparison.result
+        require(metrics.feasible and metrics.per_day_travel_minutes == [d['travel_minutes'] for d in days], 'comparison_schedule')
+        require(abs(metrics.distance_km - totals['distance_km']) < 1e-5, 'comparison_distance')
+        require(metrics.travel_minutes == totals['travel_minutes'] and metrics.busiest_day_minutes == totals['busiest_day_minutes'], 'comparison_totals')
+        require(0 < comparison.route_queries <= route_bound, 'route_call_bound')
+        improvement = {'baseline_feasible': comparison.baseline.feasible,
+            'travel_minutes_saved': comparison.baseline.travel_minutes - metrics.travel_minutes,
+            'distance_km_saved': round(comparison.baseline.distance_km - metrics.distance_km, 6),
+            'busiest_day_minutes_saved': comparison.baseline.busiest_day_minutes - metrics.busiest_day_minutes}
+    unmatched = [item['id'] for item in evidence if not (item['name_contains_keyword'] or item['category_contains_keyword'])]
+    other_cities = [item['id'] for item in evidence if item['city'] and item['city'].removesuffix('市') != request.city.removesuffix('市')]
+    missing_cities = [item['id'] for item in evidence if not item['city']]
     return {'itinerary_id': trip.id, 'days': days, 'missing_fields': dict(sorted(missing.items())),
             'budget_total': trip.budget.total, 'unknown_budget_items': len(trip.budget.unknown_items),
-            'route_queries': trip.optimization.route_queries, 'grouping_applied': trip.optimization.applied,
-            'grouping_reason': trip.optimization.reason}
+            'route_queries': comparison.route_queries if comparison else None,
+            'route_query_upper_bound': route_bound, 'route_count_basis': 'backend_matrix_count' if comparison else 'upper_bound_only',
+            'grouping_applied': comparison.applied if comparison else False,
+            'grouping_reason': comparison.reason if comparison else 'not_applicable',
+            'totals': totals, 'improvement': improvement, 'poi_evidence': evidence,
+            'keyword_evidence': {'method': 'literal_name_or_category', 'matched': len(evidence) - len(unmatched), 'total': len(evidence), 'unmatched_ids': unmatched},
+            'different_reported_city_ids': other_cities, 'missing_reported_city_ids': missing_cities,
+            'review_required': bool(unmatched or other_cities or missing_cities)}
+
+
+def compare_transports(cases):
+    pairs = {}
+    for case in cases:
+        if 'scenario' in case:
+            pairs.setdefault(case['scenario'], {})[case['transport']] = case
+    comparisons = []
+    for scenario, pair in pairs.items():
+        if 'direct' not in pair or 'mcp' not in pair:
+            continue
+        a, b = pair['direct'], pair['mcp']
+        comparable = a.get('passed') and b.get('passed')
+        comparisons.append({'scenario': scenario, 'both_succeeded': bool(comparable),
+            'same_ordered_poi_ids': [d['poi_ids'] for d in a['days']] == [d['poi_ids'] for d in b['days']] if comparable else None,
+            'same_route_totals': a['totals'] == b['totals'] if comparable else None})
+    return comparisons
+
+
+def finalize_report(report):
+    cases = report['cases']
+    report['planning_success_count'] = sum(case.get('status') == 'succeeded' for case in cases)
+    report['planning_failure_count'] = sum(case.get('status') in {'failed', 'timed_out', 'cancelled'} for case in cases)
+    report['planning_unknown_count'] = report['expected_cases'] - report['planning_success_count'] - report['planning_failure_count']
+    report['integrity_rejection_count'] = sum(case.get('status') == 'succeeded' and not case['passed'] for case in cases)
+    report['failure_counts'] = dict(Counter(case.get('error_code', 'unknown') for case in cases if not case['passed']))
+    report['review_required'] = any(case.get('review_required') for case in cases)
+    report['transport_comparisons'] = compare_transports(cases)
+    report['passed'] = len(cases) == report['expected_cases'] and all(case['passed'] for case in cases) and report['services_stopped_gracefully']
+    return report
 
 
 def run_case(client, request, transport):
@@ -103,16 +191,26 @@ def run_case(client, request, transport):
         else:
             return {'passed': False, 'error_code': 'verification_deadline', 'task_id': task_id}
         if task['status'] != 'succeeded':
-            return {'passed': False, 'status': task['status'], 'error_code': (task.get('error') or {}).get('code'), 'task_id': task_id}
-        response = client.get(f"/itineraries/{task['itinerary_id']}")
-        response.raise_for_status()
-        summary = summarize(response.json(), request)
-        response = client.get(f'/tasks/{task_id}/events')
-        response.raise_for_status()
-        stages = [event['stage'] for event in response.json()['items']]
-        require('validated' in stages, 'validation_event_missing')
-        require(('tool_connected' in stages) == (transport == 'mcp'), 'transport_evidence')
-        return {'passed': True, 'task_id': task_id, 'seconds': round(time.monotonic() - started, 2), 'stages': stages, **summary}
+            from travel.schemas import Error
+            error = Error.model_validate(task['error']) if task.get('error') else None
+            require(task.get('itinerary_id') is None, 'failed_task_has_itinerary')
+            return {'passed': False, 'status': task['status'], 'error_code': error.code if error else None, 'task_id': task_id,
+                'retry_available': task.get('retry_available'), 'no_partial_itinerary': True,
+                'time_constraints': error.time_constraints.model_dump(mode='json') if error and error.time_constraints else None}
+        try:
+            response = client.get(f"/itineraries/{task['itinerary_id']}")
+            response.raise_for_status()
+            summary = summarize(response.json(), request)
+            response = client.get(f'/tasks/{task_id}/events')
+            response.raise_for_status()
+            stages = [event['stage'] for event in response.json()['items']]
+            require('validated' in stages, 'validation_event_missing')
+            require(('tool_connected' in stages) == (transport == 'mcp'), 'transport_evidence')
+            return {'passed': True, 'status': 'succeeded', 'task_id': task_id, 'seconds': round(time.monotonic() - started, 2), 'stages': stages, **summary}
+        except Exception as error:
+            # A completed task can still fail the inspector. Keep these counts separate.
+            return {'passed': False, 'status': 'succeeded', 'task_id': task_id, 'error_code': 'quality_rejected',
+                'check': str(error) if type(error) is ValueError else type(error).__name__}
     finally:
         # Terminal cancel is harmless; a failed read or deadline must not leave work running.
         client.post(f'/tasks/{task_id}/cancel').raise_for_status()
@@ -120,10 +218,25 @@ def run_case(client, request, transport):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--live-amap', action='store_true', required=True)
+    parser.add_argument('--live-amap', action='store_true')
     parser.add_argument('--date', type=date.fromisoformat, required=True)
+    parser.add_argument('--profile', choices=['smoke', 'expanded'], default='smoke')
+    parser.add_argument('--transport', choices=['direct', 'mcp', 'both'], default='both')
+    parser.add_argument('--max-provider-calls', type=int, default=150, help='Preflight upper limit, 1–150; never an automatic retry budget')
+    parser.add_argument('--dry-run', action='store_true', help='Print the fixed scenarios/bounds without reading credentials or starting services')
     parser.add_argument('--output', type=Path, default=Path('artifacts/live-quality/report.json'))
     args = parser.parse_args()
+    selected = scenarios(args.profile, args.date)
+    transports = ('direct', 'mcp') if args.transport == 'both' else (args.transport,)
+    maximum = sum(case['maximum_provider_calls'] for case in selected) * len(transports)
+    if not 0 < args.max_provider_calls <= 150 or maximum > args.max_provider_calls:
+        parser.error(f'Selected scenarios require an upper budget of {maximum}; refused before starting services')
+    if args.dry_run:
+        print(json.dumps({'dry_run': True, 'profile': args.profile, 'transports': transports,
+            'maximum_provider_calls': maximum, 'scenarios': selected}, ensure_ascii=False, indent=2))
+        return 0
+    if not args.live_amap:
+        parser.error('Actual provider calls require explicit --live-amap')
     output = args.output.resolve()
     if not output.is_relative_to((ROOT / 'artifacts').resolve()):
         parser.error('Report must be inside the ignored artifacts directory')
@@ -139,10 +252,11 @@ def main():
     env.update(AMAP_WEB_KEY=key, AMAP_WEB_BASE_URL='https://restapi.amap.com', TRAVEL_PRODUCTION='1', TRAVEL_AUTH_MODE='local', TRAVEL_COOKIE_SECURE='0',
                TRAVEL_AGENT_ENABLED='0', LLM_INTENT_DISABLE_LLM='1', PYTHONIOENCODING='utf-8',
                TRAVEL_TASK_TIMEOUT='180', TRAVEL_SESSION_TTL='28800', TRAVEL_SESSION_IDLE_TTL='1800')
-    report = {'live_provider': 'amap', 'recorded_at': datetime.now(timezone.utc).isoformat(),
-              'maximum_provider_calls': 52, 'isolated_database': True, 'cases': [], 'services_stopped_gracefully': True}
+    report = {'live_provider': 'amap', 'recorded_at': datetime.now(timezone.utc).isoformat(), 'profile': args.profile,
+              'pass_scope': 'schema_provenance_schedule_not_subjective_relevance', 'expected_cases': len(selected) * len(transports),
+              'maximum_provider_calls': maximum, 'isolated_database': True, 'cases': [], 'services_stopped_gracefully': True}
     (ROOT / '.tmp').mkdir(exist_ok=True)
-    for transport in ('direct', 'mcp'):
+    for transport in transports:
         with tempfile.TemporaryDirectory(prefix='live-quality-', dir=ROOT / '.tmp') as directory:
             directory = Path(directory)
             stop = directory / 'stop'
@@ -168,9 +282,8 @@ def main():
                                 time.sleep(.1)
                         else:
                             raise RuntimeError('service_start_deadline')
-                        for city, mode in (('南京', 'walking'), ('苏州', 'driving')):
-                            request = {'city': city, 'query': '公园', 'start_date': str(args.date), 'days': 2,
-                                       'stops_per_day': 2, 'stay_minutes': 30, 'day_start': '09:00', 'day_end': '22:00', 'mode': mode}
+                        for scenario in selected:
+                            request = scenario['request']
                             try:
                                 result = run_case(client, request, transport)
                             except ValueError as error:
@@ -178,19 +291,21 @@ def main():
                             except Exception as error:
                                 # Never print exception messages containing upstream URLs or credentials.
                                 result = {'passed': False, 'error_code': type(error).__name__}
-                            report['cases'].append({'transport': transport, 'request': request, **result})
-                            print(f"{transport}/{city}/{mode}: {'passed' if result['passed'] else result['error_code']}", flush=True)
+                            report['cases'].append({'transport': transport, **scenario, **result})
+                            print(f"{transport}/{scenario['scenario']}: {'passed' if result['passed'] else result['error_code']}", flush=True)
                 except Exception as error:
                     report['cases'].append({'transport': transport, 'passed': False, 'error_code': type(error).__name__})
                 finally:
                     stop.touch()
                     try:
                         process.wait(timeout=15)
+                        if process.returncode != 0:
+                            report['services_stopped_gracefully'] = False
                     except subprocess.TimeoutExpired:
                         report['services_stopped_gracefully'] = False
                         process.terminate()
                         process.wait(timeout=5)
-    report['passed'] = len(report['cases']) == 4 and all(case['passed'] for case in report['cases']) and report['services_stopped_gracefully']
+    finalize_report(report)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     print(f"Live quality report: {output}")

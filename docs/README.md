@@ -21,6 +21,8 @@ Current multiday overview and opt-in live quality checks: [architecture/MULTIDAY
 
 Time feasibility diagnostics and Web adjustment guidance: [architecture/TIME_CONSTRAINTS.md](architecture/TIME_CONSTRAINTS.md).
 
+Bounded keyword/stop-count matrix and measured live results: [architecture/EXPANDED_QUALITY.md](architecture/EXPANDED_QUALITY.md).
+
 ## Doc Groups
 
 - `architecture/`: orchestration boundaries, coordinator, tool contracts, UI structure.

@@ -3,11 +3,12 @@ from copy import deepcopy
 from pathlib import Path
 import sys
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 sys.path.insert(0, str(ROOT / 'backend'))
-from verify_live_quality import summarize
+from verify_live_quality import summarize, scenarios, provider_call_bound, finalize_report, main
 from test_travel import FixtureProvider
 from travel.planner import plan
 from travel.schemas import PlanRequest, Source
@@ -16,8 +17,11 @@ from travel.schemas import PlanRequest, Source
 class ReportInputProvider(FixtureProvider):
     # Amap labels here are deliberate TEST ONLY inputs to the validator.
     # This provider is never imported by the opt-in live runner or production.
+    def __init__(self, count=4):
+        self.count=count
+
     def search(self, *_):
-        return [self.detail('fixture-' + letter) for letter in 'abcd']
+        return [self.detail('fixture-' + chr(ord('a')+index)) for index in range(self.count)]
 
     def detail(self, poi_id):
         poi = super().detail(poi_id)
@@ -72,6 +76,83 @@ class LiveReportTests(unittest.TestCase):
                 if change == 'request': raw['request']['mode'] = 'driving'
                 with self.assertRaises(ValueError):
                     summarize(raw, self.request)
+
+    def test_single_day_requires_no_grouping_and_does_not_claim_measured_call_count(self):
+        request={**self.request,'days':1,'stops_per_day':3}
+        raw=plan(PlanRequest.model_validate(request),lambda *_:None,provider=ReportInputProvider()).model_dump(mode='json')
+        result=summarize(raw,request)
+        self.assertEqual(result['grouping_reason'],'not_applicable')
+        self.assertIsNone(result['route_queries'])
+        self.assertEqual(result['route_query_upper_bound'],6)
+        self.assertEqual(result['totals']['travel_minutes'],74)
+
+    def test_maximum_12_stops_uses_existing_matrix_bound_and_reports_missing_fields(self):
+        request={**self.request,'days':3,'stops_per_day':4}
+        raw=plan(PlanRequest.model_validate(request),lambda *_:None,provider=ReportInputProvider(12)).model_dump(mode='json')
+        result=summarize(raw,request)
+        self.assertEqual(len(result['poi_evidence']),12)
+        self.assertLessEqual(result['route_queries'],48)
+        self.assertEqual(result['missing_fields']['rating'],12)
+        self.assertEqual(result['route_query_upper_bound'],48)
+
+    def test_missing_source_timestamps_cannot_be_filled_by_schema_defaults(self):
+        for kind in ('poi','route'):
+            with self.subTest(kind=kind):
+                raw=deepcopy(self.raw)
+                source=raw['days'][0]['stops'][0]['poi' if kind=='poi' else 'travel_to_next']['source']
+                source.pop('retrieved_at')
+                with self.assertRaisesRegex(ValueError,'timestamp_missing'):
+                    summarize(raw,self.request)
+
+    def test_keyword_and_reported_city_flags_do_not_fabricate_semantic_scores(self):
+        raw=deepcopy(self.raw)
+        first=raw['days'][0]['stops'][0]['poi']
+        first['name']='TEST ONLY 公园';first['category']='TEST ONLY 公园分类';first['city']='TEST ONLY 其他城市'
+        first['missing_fields']=[field for field in first['missing_fields'] if field not in {'category','city'}]
+        # This sample's original query is TEST ONLY 公园, so only the first name matches.
+        result=summarize(raw,self.request)
+        self.assertEqual(result['keyword_evidence']['matched'],1)
+        self.assertEqual(len(result['keyword_evidence']['unmatched_ids']),3)
+        self.assertEqual(result['different_reported_city_ids'],[first['id']])
+        self.assertEqual(len(result['missing_reported_city_ids']),3)
+        self.assertTrue(result['review_required'])
+        self.assertNotIn('score',result['keyword_evidence'])
+
+    def test_budget_profiles_and_preflight_reject_paid_runs_without_launching_services(self):
+        self.assertEqual(sum(case['maximum_provider_calls'] for case in scenarios('smoke','2026-10-22'))*2,52)
+        self.assertEqual(sum(case['maximum_provider_calls'] for case in scenarios('expanded','2026-10-22'))*2,138)
+        self.assertEqual(provider_call_bound({'days':3,'stops_per_day':1}),1)
+        for flags in (['--profile','expanded','--max-provider-calls','100','--live-amap'], []):
+            with self.subTest(flags=flags),patch.object(sys,'argv',['verify_live_quality.py','--date','2026-10-22',*flags]),patch('verify_live_quality.subprocess.Popen') as start,patch('verify_live_quality.dotenv_values') as credentials,patch('sys.stderr'):
+                with self.assertRaises(SystemExit) as caught:main()
+                self.assertEqual(caught.exception.code,2)
+                start.assert_not_called();credentials.assert_not_called()
+
+    def test_dry_run_reads_no_credentials_and_starts_no_services(self):
+        with patch.object(sys,'argv',['verify_live_quality.py','--date','2026-10-22','--profile','expanded','--dry-run']),patch('verify_live_quality.subprocess.Popen') as start,patch('verify_live_quality.dotenv_values') as credentials,patch('builtins.print'):
+            self.assertEqual(main(),0)
+            start.assert_not_called();credentials.assert_not_called()
+
+    def test_report_preserves_task_failure_unknown_status_and_inspector_rejection(self):
+        report={'expected_cases':4,'services_stopped_gracefully':True,'cases':[
+            {'transport':'direct','status':'succeeded','passed':True},
+            {'transport':'direct','status':'failed','passed':False,'error_code':'time_constraint_exceeded'},
+            {'transport':'direct','status':'succeeded','passed':False,'error_code':'quality_rejected'},
+            {'transport':'direct','passed':False,'error_code':'HTTPError'}]}
+        result=finalize_report(report)
+        self.assertEqual(result['planning_success_count'],2)
+        self.assertEqual(result['planning_failure_count'],1)
+        self.assertEqual(result['planning_unknown_count'],1)
+        self.assertEqual(result['integrity_rejection_count'],1)
+        self.assertFalse(result['passed'])
+
+    def test_transport_comparison_exposes_differences_without_claiming_identical_live_data(self):
+        sample={'scenario':'TEST ONLY','status':'succeeded','passed':True,'days':[{'poi_ids':['TEST ONLY a']}],'totals':{'travel_minutes':10}}
+        result=finalize_report({'expected_cases':2,'services_stopped_gracefully':True,'cases':[
+            {**sample,'transport':'direct'},{**sample,'transport':'mcp','totals':{'travel_minutes':11}}]})
+        self.assertTrue(result['passed'])
+        self.assertTrue(result['transport_comparisons'][0]['same_ordered_poi_ids'])
+        self.assertFalse(result['transport_comparisons'][0]['same_route_totals'])
 
 
 if __name__ == '__main__':
