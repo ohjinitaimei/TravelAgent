@@ -33,7 +33,7 @@ class TaskManager:
         if payload.get("kind", "plan") == "plan" and isinstance(payload.get("request"), dict):
             # Preserve old receipts: absent and null additive options are identical.
             request = dict(payload["request"])
-            for field in ("day_origin_poi_id", "day_destination_poi_id", "max_leg_travel_minutes", "max_daily_travel_minutes"):
+            for field in ("day_origin_poi_id", "day_destination_poi_id", "day_endpoints", "max_leg_travel_minutes", "max_daily_travel_minutes"):
                 if request.get(field) is None:
                     request.pop(field, None)
             payload = {**payload, "request": request}

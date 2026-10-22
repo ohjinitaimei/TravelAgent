@@ -1,3 +1,4 @@
+import { cloneEndpoints, endpointAt, type DayEndpoints } from './endpoints'
 /** Vue number inputs may emit a number even without v-model.number. */
 export function userPrices(ids: string[], values: Record<string,string|number>): Record<string,number> {
   const prices: Record<string,number>={}
@@ -22,7 +23,7 @@ export function travelLimits(value:{max_leg_travel_minutes?:Value;max_daily_trav
 }
 export type EditInput = {
   groups:string[][]; prices:Record<string,Value>; durations:Record<string,Value>
-  constraints:{start_date:string;day_start:string;day_end:string;mode:string;budget:Value;max_leg_travel_minutes?:Value;max_daily_travel_minutes?:Value;day_origin_poi_id?:string|null;day_destination_poi_id?:string|null}
+  constraints:{start_date:string;day_start:string;day_end:string;mode:string;budget:Value;max_leg_travel_minutes?:Value;max_daily_travel_minutes?:Value;day_origin_poi_id?:string|null;day_destination_poi_id?:string|null;day_endpoints?:DayEndpoints[]|null}
   defaultStay:Value; optimize:boolean
 }
 export type EditSnapshot = {
@@ -30,6 +31,7 @@ export type EditSnapshot = {
   start_date:string;day_start:string;day_end:string;mode:string;budget:Value;defaultStay:Value;optimize:boolean
   max_leg_travel_minutes:Value;max_daily_travel_minutes:Value
   day_origin_poi_id:string|null;day_destination_poi_id:string|null
+  day_endpoints:DayEndpoints[]|null
 }
 export type EditChange = {label:string;before:string;after:string}
 
@@ -48,7 +50,7 @@ export function editSnapshot(input:EditInput):EditSnapshot {
     start_date:input.constraints.start_date,day_start:input.constraints.day_start,day_end:input.constraints.day_end,
     mode:input.constraints.mode,budget:numeric(input.constraints.budget),defaultStay:numeric(input.defaultStay),optimize:input.optimize,
     max_leg_travel_minutes:numeric(input.constraints.max_leg_travel_minutes),max_daily_travel_minutes:numeric(input.constraints.max_daily_travel_minutes),
-    day_origin_poi_id:input.constraints.day_origin_poi_id??null,day_destination_poi_id:input.constraints.day_destination_poi_id??null}
+    day_origin_poi_id:input.constraints.day_origin_poi_id??null,day_destination_poi_id:input.constraints.day_destination_poi_id??null,day_endpoints:cloneEndpoints(input.constraints.day_endpoints)}
 }
 
 export function editChanges(before:EditSnapshot,after:EditSnapshot,name:(id:string)=>string):EditChange[] {
@@ -66,7 +68,13 @@ export function editChanges(before:EditSnapshot,after:EditSnapshot,name:(id:stri
     if((previous?before.prices[id]:null)!==after.prices[id]) changes.push({label:`费用 ${name(id)}`,before:text(previous?before.prices[id]:null,' 元'),after:text(after.prices[id],' 元')})
   }
   const labels={max_leg_travel_minutes:'单段交通上限',max_daily_travel_minutes:'每日交通上限',start_date:'出发日期',day_start:'每日开始',day_end:'每日结束',mode:'交通方式',budget:'预算上限',defaultStay:'新增站点默认停留',optimize:'日内重新排序'} as const
-  for(const [key,label] of [['day_origin_poi_id','出发地'],['day_destination_poi_id','返回地']] as const) {
+  if(before.day_endpoints!=null||after.day_endpoints!=null) {
+    if(Boolean(before.day_endpoints)!==Boolean(after.day_endpoints))changes.push({label:'起终点设置方式',before:before.day_endpoints?'逐日独立':'所有日期共用',after:after.day_endpoints?'逐日独立':'所有日期共用'})
+    for(let index=0;index<after.groups.length;index++)for(const [key,label] of [['origin_poi_id','出发地'],['destination_poi_id','返回地']] as const) {
+      const old=endpointAt(before,index)?.[key]??null,current=endpointAt(after,index)?.[key]??null
+      if(old!==current)changes.push({label:`第 ${index+1} 天${label}`,before:old?name(old):'未设置',after:current?name(current):'未设置'})
+    }
+  } else for(const [key,label] of [['day_origin_poi_id','出发地'],['day_destination_poi_id','返回地']] as const) {
     if((before[key]??null)!==(after[key]??null))changes.push({label,before:before[key]?name(before[key]):'未设置',after:after[key]?name(after[key]):'未设置'})
   }
   for(const key of Object.keys(labels) as (keyof typeof labels)[]) if(before[key]!==after[key]) {

@@ -10,7 +10,8 @@ from services import poi_ranker, route_planner
 from travel.provider import AmapProvider, TravelFailure
 from travel.schemas import Budget, Day, GroupingOptimization, Itinerary, PlanningMetrics, PlanRequest, Poi, Stop, TimeConflictDay, TimeConstraintDiagnostics, TravelConstraintDiagnostics
 from travel.tools import TravelTools
-from travel.planning_budget import planning_budget
+from travel.planning_budget import planning_budget, TOOL_CALL_LIMIT
+from travel.endpoints import daily_endpoints, anchor_ids
 from travel.travel_load import travel_load, within_travel_limits
 
 
@@ -51,27 +52,50 @@ def plan(request: PlanRequest, emit: Callable[[str, str], None], *, provider: Am
         chosen = [by_id[item["poi"].id] for item in ranked]
         groups = [chosen[index:index + request.stops_per_day] for index in range(0, required, request.stops_per_day)]
 
-    if request.day_origin_poi_id or request.day_destination_poi_id:
+    if anchor_ids(request):
         emit("anchor_lookup", "正在核对所选出发地与返回地")
-    origin_poi = detail(request.day_origin_poi_id) if request.day_origin_poi_id else None
-    destination_poi = detail(request.day_destination_poi_id) if request.day_destination_poi_id else None
+    anchors = [(detail(day.origin_poi_id) if day.origin_poi_id else None,
+                detail(day.destination_poi_id) if day.destination_poi_id else None) for day in daily_endpoints(request)]
+    has_anchors = any(origin or destination for origin, destination in anchors)
 
     comparison = None
     automatic_grouping = poi_ids_by_day is None and optimize_order and request.days > 1 and request.stops_per_day > 1
     candidates = []
+    candidate_search_limited = budget.candidate_search_limited
     if automatic_grouping:
         emit("grouping", "正在比较每日地点的地理分组；交通结果仍以高德为准")
         proposed = route_planner.propose_day_group_candidates([[legacy(poi, request) for poi in group] for group in groups], max_route_pairs=budget.interstop_routes)
         candidates = [[[by_id[poi.id] for poi in group] for group in partition] for partition in proposed]
+        # Moving a POI to another day can require a new lodging leg. Count the
+        # union of all directed facts before querying any candidate routes.
+        def required_pairs(partition):
+            pairs = set()
+            for group, (origin, destination) in zip(partition, anchors):
+                pairs.update((a.id, b.id) for a in group for b in group if a.id != b.id)
+                if origin: pairs.update((origin.id, poi.id) for poi in group if origin.id != poi.id)
+                if destination: pairs.update((poi.id, destination.id) for poi in group if destination.id != poi.id)
+            return pairs
+        reserved = required_pairs(groups)
+        accepted = []
+        for partition in candidates:
+            combined = reserved | required_pairs(partition)
+            if budget.lookup_calls + len(combined) <= TOOL_CALL_LIMIT:
+                accepted.append(partition)
+                reserved = combined
+            else:
+                candidate_search_limited = True
+        candidates = accepted
 
     warnings = ["未验证预约、闭馆日及出行日期的营业状态；请在出发前确认。",
                 "交通时间为接口查询时的估计，不保证未来出发日的实际耗时。",
                 "关键词用于 POI 召回；每日时段、停留时间、交通模式和预算以表单为准。",
-                "已计入所选出发地与返回地交通；未设置的一侧不包含往返，日内排序不保证全局最优。" if origin_poi or destination_poi else
+                "已计入所选出发地与返回地交通；未设置的一侧不包含往返，日内排序不保证全局最优。" if has_anchors else
                 "未包含住宿或出发点往返交通；日内排序不保证全局最优。"]
+    if request.day_endpoints is not None:
+        warnings.append("每天的起终点独立核验；未自动安排前一天返回地至次日出发地的跨夜接驳。")
     warnings.append("仅比较有限地理交换候选与原分日，不保证跨日全局最优。" if automatic_grouping else
                     "保留用户指定分日，不自动跨日移动地点。" if poi_ids_by_day is not None else "按推荐顺序分日。")
-    if budget.candidate_search_limited:
+    if candidate_search_limited:
         warnings.append("已为每日往返预留工具额度，分日候选查询范围受 64 次调用上限约束。")
     # Request-local reuse only. Directed A->B and B->A remain separate facts.
     segments = {}
@@ -92,6 +116,7 @@ def plan(request: PlanRequest, emit: Callable[[str, str], None], *, provider: Am
         distance = 0.0
         feasible = True
         for index, group in enumerate(day_groups):
+            origin_poi, destination_poi = anchors[index]
             emit("routing", f"{label}第 {index + 1} 天：查询真实交通矩阵")
             day_segments = {}
             pairs = ((a, b) for a in group for b in group if a.id != b.id) if optimize_order else zip(group, group[1:])
@@ -166,11 +191,11 @@ def plan(request: PlanRequest, emit: Callable[[str, str], None], *, provider: Am
             acceptable = metrics.feasible and (not baseline.feasible or no_worse and better)
             if acceptable and (not applied or score(metrics) < score(result)):
                 applied, days, result = True, alternative, metrics
-        reason = "feasible_candidate" if applied and not baseline.feasible else "improved" if applied else "baseline_preferred" if candidates else "tool_budget_limited" if budget.candidate_search_limited else "no_geographic_change"
+        reason = "feasible_candidate" if applied and not baseline.feasible else "improved" if applied else "baseline_preferred" if candidates else "tool_budget_limited" if candidate_search_limited else "no_geographic_change"
         comparison = GroupingOptimization(applied=applied, reason=reason, baseline=baseline,
             candidates=candidate_metrics, result=result, baseline_poi_ids_by_day=baseline_ids,
             route_queries=len(segments), candidate_route_limit=budget.interstop_routes,
-            candidate_search_limited=budget.candidate_search_limited)
+            candidate_search_limited=candidate_search_limited)
     if not result.feasible:
         # Explain the original partition, never present an infeasible candidate
         # as an accepted trip. Reuse the already queried matrix; no extra calls.

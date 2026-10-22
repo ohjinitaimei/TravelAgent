@@ -300,7 +300,7 @@ class EndpointApiTests(unittest.TestCase):
     def test_legacy_receipt_null_equivalence_and_non_null_id_conflict(self):
         with api() as (client, app):
             request = PlanRequest.model_validate(PAYLOAD).model_dump(mode='json')
-            for field in ('day_origin_poi_id', 'day_destination_poi_id', 'max_leg_travel_minutes', 'max_daily_travel_minutes'): request.pop(field)
+            for field in ('day_origin_poi_id', 'day_destination_poi_id', 'day_endpoints', 'max_leg_travel_minutes', 'max_daily_travel_minutes'): request.pop(field)
             payload = {'request': request}
             fingerprint = hashlib.sha256(json.dumps({'payload': payload, 'retry_of': None}, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
             task = Task(id='test-only-old-receipt', status='failed')

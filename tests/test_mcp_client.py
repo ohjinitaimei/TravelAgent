@@ -56,6 +56,20 @@ def fixture_mcp_worker(payload,output):
 
 
 class McpClientTests(unittest.TestCase):
+    def test_daily_boundaries_share_real_stdio_and_keep_default_call_budget(self):
+        daily=[{'origin_poi_id':'home-1','destination_poi_id':'hotel-1'}, {'origin_poi_id':'home-2','destination_poi_id':None}]
+        request=PlanRequest.model_validate({**PAYLOAD,'days':2,'stops_per_day':1,'day_endpoints':daily})
+        with open_mcp_provider(parameters=parameters()) as provider:
+            trip=plan(request,lambda *_:None,provider=provider)
+            self.assertEqual(provider.client.calls,7)
+            self.assertEqual([day.origin_poi.id for day in trip.days],['home-1','home-2'])
+            self.assertEqual([day.stops[0].arrival_time for day in trip.days],['09:37','09:37'])
+            self.assertEqual(trip.days[0].return_arrival_time,'11:14')
+            self.assertIsNone(trip.days[1].destination_poi)
+        with open_mcp_provider(parameters=parameters(),limits=McpLimits(max_calls=6)) as provider:
+            with self.assertRaises(TravelFailure) as caught:plan(request,lambda *_:None,provider=provider)
+            self.assertEqual(caught.exception.code,'tool_budget_exhausted')
+
     def test_shared_cooldown_crosses_real_stdio_and_hint_is_sanitized(self):
         from travel.provider_gate import ProviderGate
         with tempfile.TemporaryDirectory(dir=ROOT/'.tmp') as folder:

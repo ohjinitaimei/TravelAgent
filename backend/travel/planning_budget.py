@@ -6,6 +6,7 @@ can reduce actual calls; it must never be needed to satisfy the default cap.
 from dataclasses import dataclass
 
 from travel.provider import TravelFailure
+from travel.endpoints import daily_endpoints, anchor_ids
 
 TOOL_CALL_LIMIT = 64
 GROUP_ROUTE_LIMIT = 48
@@ -30,10 +31,11 @@ class PlanningBudget:
 def planning_budget(request, poi_ids_by_day=None, optimize_order=True):
     sizes = [len(day) for day in poi_ids_by_day] if poi_ids_by_day is not None else [request.stops_per_day] * request.days
     count = sum(sizes)
-    anchors = {value for value in (request.day_origin_poi_id, request.day_destination_poi_id) if value}
+    anchors = anchor_ids(request)
     selected = {item for day in poi_ids_by_day for item in day} if poi_ids_by_day is not None else set()
     lookups = len(selected | anchors) if poi_ids_by_day is not None else 1 + len(anchors)
-    boundary = (count if optimize_order else len(sizes)) * sum(bool(value) for value in (request.day_origin_poi_id, request.day_destination_poi_id))
+    boundary = sum((size if optimize_order else 1) * sum(bool(value) for value in (day.origin_poi_id, day.destination_poi_id))
+                   for size, day in zip(sizes, daily_endpoints(request)))
     baseline = sum(size * (size - 1) if optimize_order else size - 1 for size in sizes)
     automatic = poi_ids_by_day is None and optimize_order and request.days > 1 and request.stops_per_day > 1
     old_limit = min(GROUP_ROUTE_LIMIT, count * (count - 1))

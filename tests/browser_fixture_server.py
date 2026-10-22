@@ -39,13 +39,13 @@ def browser_worker(payload, output):
     if query=="TEST ONLY shared endpoints":
         from test_journey_endpoints import EndpointProvider
         from travel.planner import plan
-        from travel.schemas import PlanRequest
-        result=plan(PlanRequest.model_validate(payload['request']),
-            lambda stage,message:output.put({'kind':'event','stage':stage,'message':message}),
-            provider=EndpointProvider(),poi_ids_by_day=payload.get('poi_ids_by_day'),
-            optimize_order=payload.get('optimize_order',True),parent_id=payload.get('parent_id'))
-        output.put({'kind':'result','data':result.model_dump(mode='json')})
-        return
+        from travel.worker import run
+        from unittest.mock import patch
+        def test_plan(request,emit,**options):
+            options.pop('gateway',None)
+            return plan(request,emit,provider=EndpointProvider(),**options)
+        # Keep the real worker's domain-error serialization in this TEST ONLY branch.
+        with patch('travel.worker.plan',test_plan):return run(payload,output)
     if query in {"TEST ONLY retry","TEST ONLY provider limit"}:
         marker=Path(os.environ["TRAVEL_TEST_MARKER"]+('.rate' if query.endswith('limit') else ''))
         if not marker.exists():

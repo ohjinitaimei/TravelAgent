@@ -6,10 +6,58 @@ import { travelLimits, editSnapshot, editChanges } from '../apps/web/src/editor'
 import { parseEditDraft } from '../apps/web/src/editDraft'
 import { versionChanges, versionMetrics } from '../apps/web/src/versions'
 import { restoreForm } from '../apps/web/src/session'
+import { endpointAt, parseEndpoints, selectedAnchorIds } from '../apps/web/src/endpoints'
+import { draftForm } from '../apps/web/src/draft'
+import type { Draft } from '../apps/web/src/api'
 
 const source={provider:'user_input' as const,retrieved_at:'2026-10-22T00:00:00Z',coordinate_system:'GCJ-02' as const}
 const poi=(id:string)=>({id,name:'TEST ONLY '+id,longitude:120,latitude:30,source})
 const leg=(a:string,b:string,n:number)=>({origin_id:a,destination_id:b,duration_min:n,distance_km:n/10,mode:'walking' as const,polyline:[{longitude:120,latitude:30}],source})
+
+test('individual endpoints resolve by date and saved totals reject mismatched daily facts',()=>{
+  const value=trip()
+  value.request.days=2;value.request.day_origin_poi_id=null;value.request.day_destination_poi_id=null
+  value.request.day_endpoints=[{origin_poi_id:'home',destination_poi_id:'hotel'},{origin_poi_id:null,destination_poi_id:'hotel-2'}]
+  const second=structuredClone(value.days[0]);second.date='2026-10-24';second.origin_poi=null;second.origin_segment=null
+  second.destination_poi=poi('hotel-2');second.destination_segment=leg('a','hotel-2',9)
+  value.days.push(second)
+  assert.equal(dayTransport(second,value.request).total,9)
+  assert.equal(versionMetrics(value).travel,39)
+  second.destination_poi=poi('hotel')
+  assert.equal(dayTransport(second,value.request).total,null)
+  assert.equal(versionMetrics(value).travel,null)
+})
+
+test('daily edits and version differences show only the affected date with saved names',()=>{
+  const parent=trip();parent.request.day_origin_poi_id=null;parent.request.day_destination_poi_id=null
+  parent.request.day_endpoints=[{origin_poi_id:'home',destination_poi_id:'hotel'}]
+  const child=structuredClone(parent);child.id='child';child.parent_id=parent.id
+  child.request.day_endpoints![0].destination_poi_id=null;child.days[0].destination_poi=null;child.days[0].destination_segment=null
+  const changes=versionChanges(parent,child)
+  assert.ok(changes.some(change=>change.label==='第 1 天返回地'&&change.before==='TEST ONLY hotel'&&change.after==='未设置'))
+  assert.equal(parent.request.day_endpoints![0].destination_poi_id,'hotel')
+})
+
+test('daily drafts normalize old input and reject count conflicts or embedded provider facts',()=>{
+  const value=trip(),baseline=editSnapshot({groups:[['a']],prices:{},durations:{a:60},constraints:{...value.request,day_origin_poi_id:null,day_destination_poi_id:null},defaultStay:60,optimize:false})
+  const old={...baseline};delete (old as Partial<typeof old>).day_endpoints
+  const input={version:1,sourceId:'TEST ONLY',sourceCreatedAt:'',baseline:old,value:{...baseline,day_endpoints:[{origin_poi_id:'home',destination_poi_id:null}]},day:0,updatedAt:Date.now()}
+  const draft=parseEditDraft(JSON.stringify(input))
+  assert.equal(draft.baseline.day_endpoints,null);assert.equal(draft.value.day_endpoints?.[0].origin_poi_id,'home')
+  assert.throws(()=>parseEditDraft(JSON.stringify({...input,value:{...input.value,day_origin_poi_id:'mixed'}})))
+  for(const raw of [[],[{},{}],[{origin_poi_id:' '}],[{origin_poi_id:'home',longitude:120}]])assert.throws(()=>parseEndpoints(raw,1))
+})
+
+test('workspace restoration validates daily IDs and applying natural drafts clears prior daily choices',()=>{
+  const defaults={...trip().request,day_origin_poi_id:null,day_destination_poi_id:null}
+  const daily=[{origin_poi_id:'home',destination_poi_id:null}]
+  const restored=restoreForm(defaults,{...defaults,day_endpoints:daily})
+  assert.deepEqual(restored.day_endpoints,daily)
+  assert.deepEqual(selectedAnchorIds(restored),['home'])
+  assert.equal(endpointAt(restored,1),undefined)
+  assert.equal(draftForm({proposal:{values:{city:'TEST ONLY'}}} as Draft).day_endpoints,null)
+  assert.equal(restoreForm(defaults,{...defaults,day_endpoints:[{origin_poi_id:'home',source:{provider:'amap'}}]}).day_endpoints,undefined)
+})
 function trip():Itinerary{return {id:'root',title:'TEST ONLY',request:{city:'TEST ONLY',query:'TEST ONLY',days:1,stops_per_day:1,start_date:'2026-10-23',day_start:'09:00',day_end:'18:00',stay_minutes:60,mode:'walking',day_origin_poi_id:'home',day_destination_poi_id:'hotel'},days:[{date:'2026-10-23',origin_poi:poi('home'),destination_poi:poi('hotel'),origin_segment:leg('home','a',10),destination_segment:leg('a','hotel',20),origin_departure_time:'09:00',return_arrival_time:'10:30',stops:[{poi:poi('a'),stay_minutes:60,arrival_time:'09:10',departure_time:'10:10',travel_to_next:null}]}],budget:{known_subtotal:0,total:null,unknown_items:['TEST ONLY'],status:'unknown'},warnings:[]}}
 
 test('saved totals include both boundaries and keep missing necessary transport unknown',()=>{

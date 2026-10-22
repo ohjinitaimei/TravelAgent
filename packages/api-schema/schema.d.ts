@@ -473,6 +473,13 @@ export interface components {
             /** Return Arrival Time */
             return_arrival_time?: string | null;
         };
+        /** DayEndpoints */
+        DayEndpoints: {
+            /** Origin Poi Id */
+            origin_poi_id?: string | null;
+            /** Destination Poi Id */
+            destination_poi_id?: string | null;
+        };
         /** Draft */
         Draft: {
             /** Id */
@@ -613,6 +620,8 @@ export interface components {
             day_origin_poi_id?: string | null;
             /** Day Destination Poi Id */
             day_destination_poi_id?: string | null;
+            /** Day Endpoints */
+            day_endpoints?: components["schemas"]["DayEndpoints"][] | null;
         };
         /** Error */
         Error: {
@@ -861,6 +870,11 @@ export interface components {
              * @description 每日共享返回 POI；每日结束约束返回到达
              */
             day_destination_poi_id?: string | null;
+            /**
+             * Day Endpoints
+             * @description 逐日独立起终点，按日期排序且长度等于 days；启用时共享起终点须为空，空侧不计往返
+             */
+            day_endpoints?: components["schemas"]["DayEndpoints"][] | null;
         };
         /** PlanningMetrics */
         PlanningMetrics: {

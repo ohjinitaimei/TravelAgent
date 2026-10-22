@@ -33,7 +33,8 @@ def request_budget(request):
     from types import SimpleNamespace
     from travel.planning_budget import planning_budget
     return planning_budget(SimpleNamespace(days=request['days'], stops_per_day=request['stops_per_day'],
-        day_origin_poi_id=request.get('day_origin_poi_id'), day_destination_poi_id=request.get('day_destination_poi_id')))
+        day_origin_poi_id=request.get('day_origin_poi_id'), day_destination_poi_id=request.get('day_destination_poi_id'),
+        day_endpoints=[SimpleNamespace(**{'origin_poi_id':day.get('origin_poi_id'),'destination_poi_id':day.get('destination_poi_id')}) for day in request['day_endpoints']] if request.get('day_endpoints') is not None else None))
 
 
 def route_call_bound(request):
@@ -101,7 +102,8 @@ def quality_observations(trip, days):
         if measured['travel_minutes'] >= measured['stay_minutes']:
             attention.append({'code': 'travel_at_least_stay', 'day_number': index + 1})
     loads = [day['scheduled_minutes'] for day in observations]
-    anchored = bool(trip.request.day_origin_poi_id or trip.request.day_destination_poi_id)
+    from travel.endpoints import anchor_ids
+    anchored = bool(anchor_ids(trip.request))
     return {'scope': 'saved_routes_including_selected_boundaries' if anchored else 'saved_interstop_facts_only', 'origin_return_included': anchored,
         'future_opening_verified': False, 'subjective_satisfaction': 'not_assessed',
         'day_load_spread_minutes': max(loads) - min(loads), 'days': observations, 'attention': attention}
@@ -135,15 +137,18 @@ def summarize(raw, expected):
         require(segment.mode == request.mode and bool(segment.polyline), 'boundary_route_mode_geometry')
         require(segment.total_cost is None, 'invented_boundary_cost')
         return segment.duration_min, segment.distance_km
+    from travel.endpoints import daily_endpoints
+    endpoints = daily_endpoints(request)
     for index, day in enumerate(trip.days):
+        selected = endpoints[index]
         require(day.date == request.start_date + timedelta(days=index), 'day_date')
         require(len(day.stops) == request.stops_per_day, 'stop_count')
         original_day = raw['days'][index]
-        incoming, incoming_distance = boundary(day.origin_poi, day.origin_segment, request.day_origin_poi_id, day.stops[0].poi,
+        incoming, incoming_distance = boundary(day.origin_poi, day.origin_segment, selected.origin_poi_id, day.stops[0].poi,
             original_day.get('origin_poi'), original_day.get('origin_segment'), True)
-        outgoing, outgoing_distance = boundary(day.destination_poi, day.destination_segment, request.day_destination_poi_id, day.stops[-1].poi,
+        outgoing, outgoing_distance = boundary(day.destination_poi, day.destination_segment, selected.destination_poi_id, day.stops[-1].poi,
             original_day.get('destination_poi'), original_day.get('destination_segment'), False)
-        require(day.origin_departure_time == (request.day_start if request.day_origin_poi_id else None), 'origin_departure')
+        require(day.origin_departure_time == (request.day_start if selected.origin_poi_id else None), 'origin_departure')
         arrival = minute(request.day_start) + incoming
         distance, travel = incoming_distance + outgoing_distance, incoming + outgoing
         for position, stop in enumerate(day.stops):
@@ -188,7 +193,7 @@ def summarize(raw, expected):
         if request.max_leg_travel_minutes is not None:
             require(all(leg.duration_min <= request.max_leg_travel_minutes for leg in factual_legs if leg), 'leg_travel_limit')
         require(arrival + outgoing <= minute(request.day_end), 'return_end_exceeded')
-        require((minute(day.return_arrival_time) == arrival + outgoing) if request.day_destination_poi_id else day.return_arrival_time is None, 'return_arrival')
+        require((minute(day.return_arrival_time) == arrival + outgoing) if selected.destination_poi_id else day.return_arrival_time is None, 'return_arrival')
         days.append({'date': str(day.date), 'poi_ids': [s.poi.id for s in day.stops],
                      'stay_minutes': sum(s.stay_minutes for s in day.stops), 'travel_minutes': travel,
                      'interstop_travel_minutes': travel - incoming - outgoing, 'origin_travel_minutes': incoming, 'destination_travel_minutes': outgoing,

@@ -1,6 +1,7 @@
 import type { PlanRequest } from './api'
 import type { PendingSubmission } from './submissions'
 import { editDraftKey } from './editDraft'
+import { parseEndpoints } from './endpoints'
 
 const KEY = 'travelagent.workspace.v1'
 function key(ownerId:string) {return ownerId==='local'?KEY:`${KEY}.user.${encodeURIComponent(ownerId)}`}
@@ -39,5 +40,9 @@ export function restoreForm(defaults: PlanRequest, stored: unknown): PlanRequest
     const v=value[field]
     if(v===null||typeof v==='number'&&Number.isInteger(v)&&v>=1&&v<=1439)result[field]=v as number|null
   }
+  try {
+    const daily=parseEndpoints(value.day_endpoints,result.days??2)
+    if(daily&&!result.day_origin_poi_id&&!result.day_destination_poi_id)result.day_endpoints=daily
+  } catch { /* Invalid persisted options never become provider requests. */ }
   return result
 }

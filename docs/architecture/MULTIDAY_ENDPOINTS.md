@@ -1,5 +1,7 @@
 # 多日共享出发地与返回地
 
+后续逐日独立起终点已实现，当前契约、兼容与复验见 [DAILY_ENDPOINTS.md](DAILY_ENDPOINTS.md)。本文保留共享模式阶段的记录。
+
 后续已接入路途负担和可选交通时长上限，当前契约及高德限流实测范围见 [TRAVEL_LOAD_LIMITS.md](TRAVEL_LOAD_LIMITS.md)。本文保留共享起终点阶段记录。
 
 日期：2026-10-22。沿用现有 Vue3 Web、FastAPI、Provider/MCP、推荐函数、最近邻排序和时间调度；没有第二套 Agent 或业务算法。原 Flutter 保留，本轮不含真机联调。单日阶段记录见 [SINGLE_DAY_ENDPOINTS.md](SINGLE_DAY_ENDPOINTS.md)。
