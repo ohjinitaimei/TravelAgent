@@ -735,6 +735,7 @@ export interface components {
             algorithm: string;
             optimization?: components["schemas"]["GroupingOptimization"] | null;
             travel_load?: components["schemas"]["TravelLoad"] | null;
+            planning_comparison?: components["schemas"]["PlanningComparison"] | null;
         };
         /** ItineraryList */
         ItineraryList: {
@@ -853,6 +854,12 @@ export interface components {
             /** Budget */
             budget?: number | null;
             /**
+             * Compare Poi Alternatives
+             * @description 新规划可比较同次真实搜索的同类备选地点；编辑不自动替换，最多三个候选且共享工具预算；评分为排序参考，不作为用户未设定的硬下限
+             * @default false
+             */
+            compare_poi_alternatives: boolean;
+            /**
              * User Prices
              * @description 用户提供的每站费用；不使用人均消费代替门票
              */
@@ -896,6 +903,64 @@ export interface components {
              * @description 逐日时段与默认停留，长度等于 days；空值沿用共用设置，逐站停留优先
              */
             day_schedules?: components["schemas"]["DaySchedule"][] | null;
+        };
+        /** PlanningCandidate */
+        PlanningCandidate: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "grouping" | "replacement" | "ordering";
+            /** Poi Ids By Day */
+            poi_ids_by_day: string[][];
+            metrics: components["schemas"]["RouteQualityMetrics"];
+        };
+        /** PlanningComparison */
+        PlanningComparison: {
+            /**
+             * Strategy
+             * @default bounded_real_poi_comparison
+             * @constant
+             */
+            strategy: "bounded_real_poi_comparison";
+            /** Applied */
+            applied: boolean;
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "improved" | "feasible_candidate" | "baseline_preferred" | "no_eligible_candidate" | "tool_budget_limited" | "no_transport_legs";
+            baseline: components["schemas"]["RouteQualityMetrics"];
+            result: components["schemas"]["RouteQualityMetrics"];
+            /**
+             * Baseline Days
+             * @description 同任务真实事实核验的原方案，不是另一已保存版本；可能不可行
+             */
+            baseline_days: components["schemas"]["Day"][];
+            /** Candidates */
+            candidates?: components["schemas"]["PlanningCandidate"][];
+            /** Result Poi Ids By Day */
+            result_poi_ids_by_day: string[][];
+            /** Search Poi Count */
+            search_poi_count: number;
+            /** Proposed Candidate Count */
+            proposed_candidate_count: number;
+            /** Budget Pruned Count */
+            budget_pruned_count: number;
+            /**
+             * Candidate Search Limited
+             * @default false
+             */
+            candidate_search_limited: boolean;
+            /** Route Queries */
+            route_queries: number;
+            /**
+             * Provider Calls
+             * @description 本任务网关逻辑调用数，不是上游计费账单
+             */
+            provider_calls: number;
+            /** Provider Call Upper Bound */
+            provider_call_upper_bound: number;
         };
         /** PlanningMetrics */
         PlanningMetrics: {
@@ -950,6 +1015,24 @@ export interface components {
             longitude: number;
             /** Latitude */
             latitude: number;
+        };
+        /** RouteQualityMetrics */
+        RouteQualityMetrics: {
+            /** Distance Km */
+            distance_km: number;
+            /** Travel Minutes */
+            travel_minutes: number;
+            /**
+             * Busiest Day Minutes
+             * @description 最忙一天的停留与全部已选交通总分钟数，含所选起终点往返
+             */
+            busiest_day_minutes: number;
+            /** Per Day Travel Minutes */
+            per_day_travel_minutes: number[];
+            /** Feasible */
+            feasible: boolean;
+            /** Longest Leg Minutes */
+            longest_leg_minutes?: number | null;
         };
         /** RouteQuery */
         RouteQuery: {

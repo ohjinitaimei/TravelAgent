@@ -10,7 +10,8 @@
 .\.venv\Scripts\python.exe scripts/verify_repository.py
 $env:PLAYWRIGHT_BROWSERS_PATH = "$PWD/.cache/playwright"
 npx playwright install --only-shell chromium firefox webkit
-.\.venv\Scripts\python.exe scripts/verify_browser.py
+.\.venv\Scripts\python.exe scripts/verify_browser.py --run-id local-acceptance
+.\.venv\Scripts\python.exe scripts/summarize_browser_runs.py --run-id local-acceptance
 .\.venv\Scripts\python.exe scripts/update_publish_manifest.py --check
 ```
 
@@ -18,14 +19,20 @@ Linux 浏览器首次安装使用 `npx playwright install --with-deps --only-she
 
 | 检查 | 数量 | 覆盖范围 |
 | --- | ---: | --- |
-| Python | 227 | 旅行 API 13、Agent 6、澄清 4、MCP 服务端 1、任务恢复 3、MCP 客户端 17、鉴权隔离 15、业务限流 8、备份恢复 6、分日算法 13、地图代理 13、健康 4、部署配置 6、定时备份 8、发布包 6、恢复种子保护 3、真实质量报告/预算预检 23、时间不可行诊断 7、保存列表分页/查询 9、单日/多日共享起终点 20、交通上限 12、共享高德节流 8、逐日独立起终点 12、逐日时段/停留 10 |
-| TypeScript 客户端与展示逻辑 | 46 | HTTP 契约、轮询期限/取消、暂时断线、提交收据恢复、编辑差异与还原、工具握手、账号绑定与恢复、配额拒绝、本机草稿校验/冲突/存储失败、版本筛选/关系/缺省与只读差异、分页参数编码与元数据/错误、起终点汇总/缺项、版本/草稿兼容、请求与取消信号、交通上限的严格输入/清除和旧草稿兼容、逐日事实/差异/数组校验与恢复、时段与默认停留优先级/不完整输入/模式切换/差异 |
-| Chromium / Firefox / WebKit | 231 次 | 每引擎旅行工作台 43 项、账号流程 13 项、生产构建弱网/最大行程/连续流程/共享起终点/启动恢复/交通上限/限流恢复/逐日选择/时段停留/模式切换 21 项，三个引擎合计 231 次执行 |
+| Python | 252 | 旅行 API 13、Agent 6、澄清 4、MCP 服务端 1、任务恢复 3、MCP 客户端 18、鉴权隔离 15、业务限流 8、备份恢复 6、分日算法 13、地图代理 13、健康 4、部署配置 6、定时备份 8、发布包 6、恢复种子保护 3、真实质量报告/预算预检 23、时间不可行诊断 7、保存列表分页/查询 9、单日/多日共享起终点 20、交通上限 12、共享高德节流 8、逐日独立起终点 12、逐日时段/停留 10、备选地点/真实收益/兼容 19、浏览器运行与报告隔离 5 |
+| TypeScript 客户端与展示逻辑 | 51 | HTTP 契约、轮询期限/取消、暂时断线、提交收据恢复、编辑差异与还原、工具握手、账号绑定与恢复、配额拒绝、本机草稿校验/冲突/存储失败、版本筛选/关系/缺省与只读差异、分页参数编码与元数据/错误、起终点汇总/缺项、版本/草稿兼容、请求与取消信号、交通上限的严格输入/清除和旧草稿兼容、逐日事实/差异/数组校验与恢复、时段与默认停留优先级/不完整输入/模式切换/差异、备选变化/最长段定位/评分缺失/开关恢复/共享 transport |
+| Chromium / Firefox / WebKit | 246 次 | 每引擎旅行工作台 43 项、账号流程 13 项、生产构建弱网/最大行程/连续流程/共享起终点/启动恢复/交通上限/限流恢复/逐日选择/时段停留/模式切换/备选比较/评分取舍与原方案恢复/带基线十二站 26 项，三个引擎合计 246 次执行 |
 | Web / Schema | — | TypeScript 检查、Vite 构建、OpenAPI 生成文件一致性 |
 
-当前检查集规模为 **350 个逻辑用例、504 次执行**。逐日时段阶段最终 Python 227、客户端 46、类型/无密钥生产构建和 OpenAPI/TS 生成一致性通过；三引擎各 77 项，九份报告合计 231 次全部通过，无失败、跳过或自动重试；报告核对及真实样本范围见 [DAILY_SCHEDULES.md](architecture/DAILY_SCHEDULES.md)。
+当前检查集规模为 **385 个逻辑用例、549 次执行**。A 包最终 Python 252、客户端 51、类型/无密钥生产构建和 OpenAPI/TS 生成一致性通过。三引擎各 82 项，九份完整报告合计 246 次全部通过，零失败/跳过/自动重试，所有测试服务正常退出。原始失败与修正保留，详见 [地点与路线对比](architecture/POI_COMPARISON.md)。
 
-最新逐日模式授权样本：南京两日、每天一站、步行，分别交换南京站/南京南站的起终点。原规划、单日清除、刷新恢复、编辑保存、来源对照及真实 MCP 均通过；页面 8 次 POI 读取成功。预留调用上界 35，按已选 ID 的结构性上界 29，无自动付费重试或模拟结果。费用/营业字段仍保留缺失，地图 SDK/模型/HTTPS/灾备/人工读屏/手机本轮未重跑。证据见 [DAILY_ENDPOINTS.md](architecture/DAILY_ENDPOINTS.md)。
+A 包实际证据：`artifacts/poi-comparison-verified-repository.log`、`artifacts/poi-comparison-schema.json`、`artifacts/poi-comparison-<engine>-verified.log` 和不可覆盖的 `artifacts/browser-runs/poi-comparison-verified-20261022/<engine>/<suite>/`，汇总为同组 `summary.json` 与 `artifacts/poi-comparison-acceptance.json`。执行前发现用例，执行后核对完整 ID 集、每例一次、无跳过/重试及服务优雅退出；此前定向或较早矩阵不会混作最终完整报告。复跑须选择新 run ID。
+
+本轮带基线比较的十二站/三日样本 JSON 为 453074 字节，切日交互 p95 为 Chromium 128.7 ms、Firefox 133 ms、WebKit 250 ms，均低于原 1500 ms 门槛；编辑草稿不含基线事实/折线、低于 32 KiB，保存/刷新及原版本保留通过。这是本机 TEST ONLY、无真实地图 SDK 的条件，三引擎并发、各自单 worker，不是公网指标。
+
+A 包最终三城真实直接 Provider：南京交通 73→37 分钟，杭州 279→224 分钟；苏州候选不改善而保留 30 分钟。南京实际 MCP 也核验 36 分钟收益；各自收益从同任务基线与采用结果计算。含车站 Web 样本来源、逐日调度、编辑/刷新/保存/来源对照通过，但无路途收益，仍如实保留基线。首轮零收益、诊断和最终复验都保留，累计网关调用上界 129，低于整包 141，不是账单计数。详细范围、评分取舍与未知项见 [POI_COMPARISON.md](architecture/POI_COMPARISON.md)。真实 SDK/模型、HTTPS、灾备、人工读屏、真机本轮未重跑；没有上传 GitHub。
+
+此前逐日模式授权样本：南京两日、每天一站、步行，分别交换南京站/南京南站的起终点。原规划、单日清除、刷新恢复、编辑保存、来源对照及真实 MCP 均通过；页面 8 次 POI 读取成功。预留调用上界 35，按已选 ID 的结构性上界 29，无自动付费重试或模拟结果。费用/营业字段仍保留缺失，地图 SDK/模型/HTTPS/灾备/人工读屏/手机本轮未重跑。证据见 [DAILY_ENDPOINTS.md](architecture/DAILY_ENDPOINTS.md)。
 
 共享节流阶段历史真实 Web/MCP 复验通过：原规划、返程超限失败、刷新恢复、清除上限后保存及来源保留；页面 POI 读取 4 次均成功。首次真实脚本文本断言停止与后续手动复验分别保留，两次调用预算累计上界 58，未自动重放。完整结果、数据缺项和未重跑范围见 [AMAP_REQUEST_PACING.md](architecture/AMAP_REQUEST_PACING.md)。
 

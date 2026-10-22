@@ -30,6 +30,7 @@ export function restoreForm(defaults: PlanForm, stored: unknown): PlanForm {
     const number = value[field]
     if (typeof number === 'number' && Number.isInteger(number) && number >= min && number <= max) result[field] = number
   }
+  if(typeof value.compare_poi_alternatives==='boolean')result.compare_poi_alternatives=value.compare_poi_alternatives
   if (value.mode === 'walking' || value.mode === 'driving') result.mode = value.mode
   if (typeof value.budget === 'number' && Number.isFinite(value.budget) && value.budget >= 0) result.budget = value.budget
   for(const field of ['day_origin_poi_id','day_destination_poi_id'] as const) {

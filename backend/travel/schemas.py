@@ -208,6 +208,7 @@ class PlanRequest(Model):
     stay_minutes: int = Field(default=60, ge=10, le=360, description="用户指定停留时长，不代表 POI 官方建议")
     mode: Literal["walking", "driving"] = "walking"
     budget: float | None = Field(default=None, ge=0)
+    compare_poi_alternatives: bool = Field(default=False, strict=True, description="新规划可比较同次真实搜索的同类备选地点；编辑不自动替换，最多三个候选且共享工具预算；评分为排序参考，不作为用户未设定的硬下限")
     user_prices: dict[str, float] = Field(default_factory=dict, description="用户提供的每站费用；不使用人均消费代替门票")
     stay_minutes_by_poi: StayOverrides = Field(default_factory=dict, description="用户指定的逐站停留时长，优先于默认时长", max_length=12)
     max_leg_travel_minutes: int | None = Field(default=None, strict=True, ge=1, le=1439, description="用户设置的每段交通分钟上限，含所选出发及返回，按当前交通模式核验")
@@ -329,6 +330,34 @@ class GroupingOptimization(Model):
     candidate_search_limited: bool = False
 
 
+class RouteQualityMetrics(PlanningMetrics):
+    longest_leg_minutes: int | None = Field(default=None, ge=0)
+
+
+class PlanningCandidate(Model):
+    kind: Literal["grouping", "replacement", "ordering"]
+    poi_ids_by_day: list[list[str]]
+    metrics: RouteQualityMetrics
+
+
+class PlanningComparison(Model):
+    strategy: Literal["bounded_real_poi_comparison"] = "bounded_real_poi_comparison"
+    applied: bool
+    reason: Literal["improved", "feasible_candidate", "baseline_preferred", "no_eligible_candidate", "tool_budget_limited", "no_transport_legs"]
+    baseline: RouteQualityMetrics
+    result: RouteQualityMetrics
+    baseline_days: list[Day] = Field(min_length=1, max_length=3, description="同任务真实事实核验的原方案，不是另一已保存版本；可能不可行")
+    candidates: list[PlanningCandidate] = Field(default_factory=list, max_length=3)
+    result_poi_ids_by_day: list[list[str]]
+    search_poi_count: int = Field(ge=1, le=20)
+    proposed_candidate_count: int = Field(ge=0, le=3)
+    budget_pruned_count: int = Field(ge=0, le=3)
+    candidate_search_limited: bool = False
+    route_queries: int = Field(ge=0, le=63)
+    provider_calls: int = Field(ge=1, le=64, description="本任务网关逻辑调用数，不是上游计费账单")
+    provider_call_upper_bound: int = Field(ge=1, le=64)
+
+
 class Itinerary(Model):
     id: str
     parent_id: str | None = None
@@ -341,6 +370,7 @@ class Itinerary(Model):
     algorithm: str = "ranker_engine + route_planner nearest-neighbor + route_planner scheduler"
     optimization: GroupingOptimization | None = None
     travel_load: TravelLoad | None = None
+    planning_comparison: PlanningComparison | None = None
 
     @classmethod
     def from_saved_json(cls, data: str) -> Itinerary:

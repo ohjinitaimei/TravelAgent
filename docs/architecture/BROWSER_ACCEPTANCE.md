@@ -1,3 +1,5 @@
+> 2026-10-22 更新：当前 `verify_browser.py` 使用不可覆盖的运行命名空间。可指定 `--run-id <id>`，每个引擎/套件的 `run.json`、`report.json`、`results/` 与诊断位于 `artifacts/browser-runs/<id>/<engine>/<suite>/`；同范围不可复用 ID。完成全矩阵后执行 `python scripts/summarize_browser_runs.py --run-id <id>`，核对发现/执行用例、零重试/跳过及服务退出。下文旧报告路径是历史证据；新 A 包记录见 [地点与路线对比](POI_COMPARISON.md)。
+
 # 跨浏览器与断网恢复验收
 
 日期：2026-10-20。环境：Windows、Python 3.12、锁定的 Playwright 1.64.1，Chromium / Firefox / WebKit Headless。本轮只在本地运行，没有推送 GitHub 或触发云端检查；未升级核心依赖。

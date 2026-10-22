@@ -16,6 +16,7 @@ import DiscardChangesDialog from './components/DiscardChangesDialog.vue'
 import RequestAssistant from './components/RequestAssistant.vue'
 import ToolConnection from './components/ToolConnection.vue'
 import OptimizationComparison from './components/OptimizationComparison.vue'
+import PlanningComparison from './components/PlanningComparison.vue'
 import DayOverview from './components/DayOverview.vue'
 import TravelLoadPanel from './components/TravelLoadPanel.vue'
 import TimeConstraintGuide from './components/TimeConstraintGuide.vue'
@@ -39,7 +40,7 @@ const recoverableEdit=ref(editStore.draft), editStorageIssue=ref(editStore.issue
 function persist() {if(!disposed) writeSession(session,props.user.id)}
 const today = new Date()
 const localDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`
-const form = reactive<PlanForm>(restoreForm({ city: '', query: '', start_date: localDate, days: 2, stops_per_day: 3, day_start: '09:00', day_end: '18:00', stay_minutes: 60, mode: 'walking', budget: null, user_prices: {}, day_schedules:null, day_endpoints:null, day_origin_poi_id:null, day_destination_poi_id:null,max_leg_travel_minutes:null,max_daily_travel_minutes:null }, session.form))
+const form = reactive<PlanForm>(restoreForm({ compare_poi_alternatives:false, city: '', query: '', start_date: localDate, days: 2, stops_per_day: 3, day_start: '09:00', day_end: '18:00', stay_minutes: 60, mode: 'walking', budget: null, user_prices: {}, day_schedules:null, day_endpoints:null, day_origin_poi_id:null, day_destination_poi_id:null,max_leg_travel_minutes:null,max_daily_travel_minutes:null }, session.form))
 const capability = ref<Schema<'Capabilities'> | null>(null)
 const error = ref(''), notice = ref(''), busy = ref(false)
 const resultPending = ref(false)
@@ -81,6 +82,21 @@ const travelGuideEditable=computed(()=>{
   const details=task.value?.error?.travel_constraints
   return details?.operation==='adjust'?editing.value&&itinerary.value?.id===details.source_itinerary_id:!editing.value
 })
+function editOriginalPlan(){
+  const original=itinerary.value?.planning_comparison
+  if(!original?.applied||!original.baseline.feasible||busy.value||active.value)return
+  edit()
+  if(!editing.value)return
+  editIds.value=original.baseline_days.map(day=>day.stops.map(stop=>stop.poi.id))
+  for(const day of original.baseline_days)for(const stop of day.stops){
+    addedPois[stop.poi.id]=stop.poi;editDurations[stop.poi.id]=stop.stay_minutes;editPrices[stop.poi.id]=stop.user_cost??''
+  }
+  selectedDay.value=0;addDay.value=0
+  notice.value='已将原方案放入编辑区；保存后重新查询真实路线并生成新版本，尚未提交。'
+}
+async function locatePlanningLeg(index:number,id:string){
+  selectedDay.value=index;await nextTick();await selectStop(id,true)
+}
 async function locateTravelLimits(){
   if(!travelGuideEditable.value)return
   tab.value='plan';await nextTick()
@@ -470,6 +486,7 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
             <label>交通方式<select v-model="form.mode" name="mode"><option value="walking">步行 · 真实步行路线</option><option value="driving">驾车 · 真实驾车路线</option></select></label>
             <fieldset class="travel-limits"><legend>交通时长偏好（可选）</legend><p class="subtle">按当前{{form.mode==='walking'?'步行':'驾车'}}模式核验，含所选出发和返回；留空只提示负担。</p><label>单段交通上限（分钟）<input v-model.number="form.max_leg_travel_minutes" name="max_leg_travel_minutes" type="number" min="1" max="1439" step="1" placeholder="不限制"/></label><label>每日交通上限（分钟）<input v-model.number="form.max_daily_travel_minutes" name="max_daily_travel_minutes" type="number" min="1" max="1439" step="1" placeholder="不限制"/></label></fieldset>
             <label>总预算（可选）<div class="money-input"><span>¥</span><input v-model.number="form.budget" name="budget" step="any" type="number" min="0" placeholder="输入预算上限"/></div></label>
+            <label class="check-label"><input v-model="form.compare_poi_alternatives" name="compare_poi_alternatives" type="checkbox" :disabled="busy||active"/>比较同类备选地点，减少路途</label><small>可在本次真实搜索中比较有限方案；保持站数、时段与交通条件，可能增加路线查询，评分可能降低或缺失，请核对取舍。编辑时保留你选定的地点。</small>
             <JourneyEndpoints class="planner-endpoints" :value="form" :days="form.days??2" :city="form.city" :disabled="busy||active" :known-poi="knownPoi" @change="Object.assign(form,$event)" @loaded="rememberAnchor"/>
             <button class="primary full" type="submit" :disabled="busy||active||Boolean(staleDraft)">{{busy||active ? '任务处理中…' : '开始规划'}}<span aria-hidden="true">↗</span></button>
           </AccessibleForm>
@@ -492,7 +509,8 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
             <p v-if="itinerary&&task&&(task.kind==='draft'||task.status!=='succeeded'||resultPending)" class="saved-version-note">当前地图与时间轴显示原行程；本次任务的结果将在同步后更新。</p>
             <DayOverview v-if="itinerary" :itinerary="itinerary" :selected="selectedDay" :preview-counts="editing?editIds.map(ids=>ids.length):undefined" @select="selectedDay=$event"/>
             <div v-if="editing" class="day-summary"><span>编辑预览 · {{editIds[selectedDay]?.length??0}} 个地点</span><span>路线与时间将在保存后重算</span></div>
-            <OptimizationComparison v-if="itinerary?.optimization&&!editing" :summary="itinerary.optimization"/>
+            <PlanningComparison v-if="itinerary?.planning_comparison&&!editing" :itinerary="itinerary" :disabled="busy||active" @locate="locatePlanningLeg" @baseline="editOriginalPlan"/>
+            <OptimizationComparison v-else-if="itinerary?.optimization&&!editing" :summary="itinerary.optimization"/>
             <EditComparison v-if="editing" :changes="changes"/>
             <div class="route-columns">
               <div ref="timeline" class="timeline">

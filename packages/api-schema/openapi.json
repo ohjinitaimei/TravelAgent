@@ -5195,6 +5195,16 @@
                 "type": "null"
               }
             ]
+          },
+          "planning_comparison": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanningComparison"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -5457,6 +5467,12 @@
             ],
             "title": "Budget"
           },
+          "compare_poi_alternatives": {
+            "type": "boolean",
+            "title": "Compare Poi Alternatives",
+            "description": "新规划可比较同次真实搜索的同类备选地点；编辑不自动替换，最多三个候选且共享工具预算；评分为排序参考，不作为用户未设定的硬下限",
+            "default": false
+          },
           "user_prices": {
             "additionalProperties": {
               "type": "number"
@@ -5575,6 +5591,159 @@
           "start_date"
         ],
         "title": "PlanRequest"
+      },
+      "PlanningCandidate": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "grouping",
+              "replacement",
+              "ordering"
+            ],
+            "title": "Kind"
+          },
+          "poi_ids_by_day": {
+            "items": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Poi Ids By Day"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/RouteQualityMetrics"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "poi_ids_by_day",
+          "metrics"
+        ],
+        "title": "PlanningCandidate"
+      },
+      "PlanningComparison": {
+        "properties": {
+          "strategy": {
+            "type": "string",
+            "const": "bounded_real_poi_comparison",
+            "title": "Strategy",
+            "default": "bounded_real_poi_comparison"
+          },
+          "applied": {
+            "type": "boolean",
+            "title": "Applied"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "improved",
+              "feasible_candidate",
+              "baseline_preferred",
+              "no_eligible_candidate",
+              "tool_budget_limited",
+              "no_transport_legs"
+            ],
+            "title": "Reason"
+          },
+          "baseline": {
+            "$ref": "#/components/schemas/RouteQualityMetrics"
+          },
+          "result": {
+            "$ref": "#/components/schemas/RouteQualityMetrics"
+          },
+          "baseline_days": {
+            "items": {
+              "$ref": "#/components/schemas/Day"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Baseline Days",
+            "description": "同任务真实事实核验的原方案，不是另一已保存版本；可能不可行"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/PlanningCandidate"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "title": "Candidates"
+          },
+          "result_poi_ids_by_day": {
+            "items": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Result Poi Ids By Day"
+          },
+          "search_poi_count": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Search Poi Count"
+          },
+          "proposed_candidate_count": {
+            "type": "integer",
+            "maximum": 3.0,
+            "minimum": 0.0,
+            "title": "Proposed Candidate Count"
+          },
+          "budget_pruned_count": {
+            "type": "integer",
+            "maximum": 3.0,
+            "minimum": 0.0,
+            "title": "Budget Pruned Count"
+          },
+          "candidate_search_limited": {
+            "type": "boolean",
+            "title": "Candidate Search Limited",
+            "default": false
+          },
+          "route_queries": {
+            "type": "integer",
+            "maximum": 63.0,
+            "minimum": 0.0,
+            "title": "Route Queries"
+          },
+          "provider_calls": {
+            "type": "integer",
+            "maximum": 64.0,
+            "minimum": 1.0,
+            "title": "Provider Calls",
+            "description": "本任务网关逻辑调用数，不是上游计费账单"
+          },
+          "provider_call_upper_bound": {
+            "type": "integer",
+            "maximum": 64.0,
+            "minimum": 1.0,
+            "title": "Provider Call Upper Bound"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "applied",
+          "reason",
+          "baseline",
+          "result",
+          "baseline_days",
+          "result_poi_ids_by_day",
+          "search_poi_count",
+          "proposed_candidate_count",
+          "budget_pruned_count",
+          "route_queries",
+          "provider_calls",
+          "provider_call_upper_bound"
+        ],
+        "title": "PlanningComparison"
       },
       "PlanningMetrics": {
         "properties": {
@@ -5766,6 +5935,59 @@
           "latitude"
         ],
         "title": "Point"
+      },
+      "RouteQualityMetrics": {
+        "properties": {
+          "distance_km": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Distance Km"
+          },
+          "travel_minutes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Travel Minutes"
+          },
+          "busiest_day_minutes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Busiest Day Minutes",
+            "description": "最忙一天的停留与全部已选交通总分钟数，含所选起终点往返"
+          },
+          "per_day_travel_minutes": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Per Day Travel Minutes"
+          },
+          "feasible": {
+            "type": "boolean",
+            "title": "Feasible"
+          },
+          "longest_leg_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Longest Leg Minutes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "distance_km",
+          "travel_minutes",
+          "busiest_day_minutes",
+          "per_day_travel_minutes",
+          "feasible"
+        ],
+        "title": "RouteQualityMetrics"
       },
       "RouteQuery": {
         "properties": {

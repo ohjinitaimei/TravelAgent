@@ -1100,6 +1100,72 @@ def propose_day_group_candidates(groups: list[list[POI]], *, max_route_pairs: in
     return candidates
 
 
+def propose_travel_candidates(groups, ranked_pois, *, anchors, protected_ids=(), max_candidates=3):
+    """Bounded proposals only; caller supplies factual matrices and scheduling.
+
+    Use the existing geographic grouping proposal, and same-search POIs with
+    no weaker factual query/category alignment. Geometry orders verification,
+    never supplies transport minutes or final route distances.
+    """
+    original = [list(day) for day in groups]
+    selected = {p.id for day in groups for p in day}
+    protected = set(protected_ids)
+    ranked = {item['poi'].id: item for item in ranked_pois}
+    pool = []
+    def identity(days):
+        # Dates and order matter for daily boundaries and nearest-neighbor seeds.
+        return tuple(tuple(p.id for p in day) for day in days)
+    def geometry(days):
+        total = 0.0
+        for day, (origin, destination) in zip(days, anchors):
+            total += sum(_haversine_distance(a.lat, a.lng, b.lat, b.lng)
+                         for i, a in enumerate(day) for b in day[i + 1:])
+            if origin: total += min(_haversine_distance(origin.lat, origin.lng, p.lat, p.lng) for p in day)
+            if destination: total += min(_haversine_distance(destination.lat, destination.lng, p.lat, p.lng) for p in day)
+        return total
+    for partition in propose_day_group_candidates(original, max_route_pairs=48):
+        pool.append(('grouping', partition))
+    # Date assignments matter even when every date contains only one stop.
+    # Keep the original multi-stop proposal unchanged for legacy callers.
+    if len(original)>1 and all(len(day)==1 for day in original):
+        from itertools import combinations
+        for left,right in combinations(range(len(original)),2):
+            partition=[list(day) for day in original]
+            partition[left][0],partition[right][0]=partition[right][0],partition[left][0]
+            pool.append(('grouping',partition))
+    def eligible(old, candidate):
+        old_item, new_item = ranked[old.id], ranked[candidate.id]
+        a, b = old_item.get('score_breakdown', {}), new_item.get('score_breakdown', {})
+        if any(float(b.get(key, 0)) < float(a.get(key, 0)) for key in ('query_alignment_score', 'category_match_score')):
+            return False
+        # Provider ratings remain in the original ranker; they are not an
+        # unrequested hard minimum. The saved comparison exposes tradeoffs.
+        return True
+    for day_index, day in enumerate(original):
+        for position, old in enumerate(day):
+            if old.id in protected: continue
+            for item in ranked_pois:
+                candidate = item['poi']
+                if candidate.id in selected or not eligible(old, candidate): continue
+                partition = [list(group) for group in original]
+                partition[day_index][position] = candidate
+                pool.append(('replacement', partition))
+    # A new seed uses the same factual full matrix. No replacement of the old
+    # nearest-neighbor algorithm, no request for a second traffic estimate.
+    if len(original) == 1 and anchors[0][0] is None:
+        for position in range(1, len(original[0])):
+            day = original[0]
+            pool.append(('ordering', [[day[position], *day[:position], *day[position + 1:]]]))
+    seen = {identity(original)}
+    result = []
+    for kind, partition in sorted(pool, key=lambda item: (geometry(item[1]), identity(item[1]), item[0])):
+        key = identity(partition)
+        if key in seen: continue
+        seen.add(key);result.append((kind, partition))
+        if len(result) >= max_candidates: break
+    return result
+
+
 def _stage_match_score(poi: POI, stage_kind: str) -> float:
     category = str(getattr(poi, "category", "") or "")
     area_text = " ".join(

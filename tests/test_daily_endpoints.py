@@ -132,7 +132,7 @@ class DailyEndpointTests(unittest.TestCase):
     def test_pre_extension_receipt_accepts_null_without_fingerprint_conflict(self):
         with api() as (client,app):
             request=PlanRequest.model_validate(PAYLOAD).model_dump(mode='json')
-            for field in ('day_origin_poi_id','day_destination_poi_id','day_endpoints','day_schedules','max_leg_travel_minutes','max_daily_travel_minutes'):request.pop(field)
+            for field in ('compare_poi_alternatives','day_origin_poi_id','day_destination_poi_id','day_endpoints','day_schedules','max_leg_travel_minutes','max_daily_travel_minutes'):request.pop(field)
             payload={'request':request}
             fingerprint=hashlib.sha256(json.dumps({'payload':payload,'retry_of':None},sort_keys=True,ensure_ascii=False).encode()).hexdigest()
             app.state.travel.store.register_task(Task(id='TEST ONLY old',status='failed'),payload,'test-only-legacy-daily',fingerprint)

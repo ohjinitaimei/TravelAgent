@@ -49,7 +49,9 @@ jobs:
         env:
           PLAYWRIGHT_BROWSERS_PATH: .cache/playwright
       - name: Verify isolated browser interactions
-        run: python scripts/verify_browser.py
+        run: |
+          python scripts/verify_browser.py --run-id ci
+          python scripts/summarize_browser_runs.py --run-id ci
       - name: Verify source inventory
         run: python scripts/update_publish_manifest.py --check
       - name: Verify release packaging and isolated startup
@@ -65,3 +67,4 @@ jobs:
             artifacts/browser-results
             artifacts/browser-diagnostics
             artifacts/browser-reports
+            artifacts/browser-runs

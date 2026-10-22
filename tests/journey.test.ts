@@ -1,3 +1,4 @@
+import { planningChanges, planningRatings, longestSavedLeg } from '../apps/web/src/planning'
 import { scheduleAt, sharedScheduleReady, cloneSchedules, parseScheduleInputs, validatedSchedules } from '../apps/web/src/schedules'
 import assert from 'node:assert/strict'
 import test from 'node:test'
@@ -187,4 +188,46 @@ test('mode switching requires complete shared fields so invalid fallback values 
   const valid={day_start:'09:00',day_end:'18:00',stay_minutes:60}
   assert.equal(sharedScheduleReady(valid),true)
   for(const input of [{...valid,day_start:''},{...valid,day_end:'08:00'},...['',null,'30',30.5,9,true].map(stay=>({...valid,stay_minutes:stay as number}))])assert.equal(sharedScheduleReady(input),false)
+})
+
+
+test('planning comparison displays removed saved names and new facts without changing versions',()=>{
+  const value=trip(),old=structuredClone(value.days[0]);value.days[0].stops[0].poi=poi('c')
+  value.planning_comparison={baseline_days:[old]} as NonNullable<Itinerary['planning_comparison']>
+  const before=structuredClone(value)
+  assert.deepEqual(planningChanges(value),[{day:1,removed:['TEST ONLY a'],added:['TEST ONLY c'],orderChanged:true}])
+  assert.deepEqual(value,before)
+  delete value.planning_comparison;assert.deepEqual(planningChanges(value),[])
+})
+
+test('longest leg navigation includes directed boundaries and no-leg records remain empty',()=>{
+  const value=trip();assert.deepEqual(longestSavedLeg(value),{day:0,id:'a',minutes:20})
+  value.days[0].origin_segment!.duration_min=30
+  assert.deepEqual(longestSavedLeg(value),{day:0,id:'home',minutes:30})
+  value.days[0].origin_segment=null;value.days[0].destination_segment=null
+  assert.equal(longestSavedLeg(value),null)
+})
+
+test('alternative comparison option restores strict booleans and natural drafts reset it',()=>{
+  const defaults={...trip().request,compare_poi_alternatives:false}
+  assert.equal(restoreForm(defaults,{compare_poi_alternatives:true}).compare_poi_alternatives,true)
+  assert.equal(restoreForm(defaults,{compare_poi_alternatives:'true'}).compare_poi_alternatives,false)
+  assert.equal(draftForm({proposal:{values:{city:'TEST ONLY'}}} as Draft).compare_poi_alternatives,false)
+})
+
+test('shared transport forwards optional comparison without creating a client-side planner',async()=>{
+  const calls:unknown[]=[]
+  const client=new TravelClient(async(path,init)=>{calls.push({path,init});return {id:'TEST ONLY',status:'queued'}})
+  await client.create({...trip().request,compare_poi_alternatives:true},{idempotencyKey:'TEST-ONLY-comparison'})
+  const value=calls[0] as {path:string;init:{body:{compare_poi_alternatives:boolean};headers:Record<string,string>}}
+  assert.equal(value.path,'/tasks');assert.equal(value.init.body.compare_poi_alternatives,true)
+  assert.equal(value.init.headers['Idempotency-Key'],'TEST-ONLY-comparison')
+})
+
+
+test('rating tradeoffs show real values and missing ratings without inventing a score',()=>{
+  const value=trip(),original=structuredClone(value.days[0]);original.stops[0].poi.rating=4.8
+  value.days[0].stops[0].poi=poi('c')
+  value.planning_comparison={baseline_days:[original]} as NonNullable<Itinerary['planning_comparison']>
+  assert.deepEqual(planningRatings(value),[{kind:'原地点',name:'TEST ONLY a',rating:4.8},{kind:'采用地点',name:'TEST ONLY c',rating:null}])
 })

@@ -10,8 +10,8 @@
     },
     {
       "path": ".github/workflows/ci.yml",
-      "bytes": 2277,
-      "sha256": "5f6abbb64dac265059ffdbb53020f0e33c031345272d24ef7086a34378a2f7af"
+      "bytes": 2399,
+      "sha256": "70a9f261157dd47e2916cd5512b9cd263b392bbf8c417714459059c4414a2c73"
     },
     {
       "path": ".gitignore",
@@ -30,8 +30,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 17189,
-      "sha256": "434445ba82f83c5115784b019c4e447a4dcb0bcf1bafc5252673b6377b5c7a67"
+      "bytes": 17808,
+      "sha256": "95f6eea0aab54928075ce2976407637db74abddbcac6c0971cf1a6d1b9e1f872"
     },
     {
       "path": "analysis_options.yaml",
@@ -155,8 +155,8 @@
     },
     {
       "path": "apps/web/src/App.vue",
-      "bytes": 55859,
-      "sha256": "e836219ac0a3446cd4e173e2ebd96165b6ac29689b2c285c45baa6b52578d067"
+      "bytes": 57348,
+      "sha256": "944496a66b4e658627daf6b61c29014b09a4dc7f2a6bbd9461e5920c62c8b24b"
     },
     {
       "path": "apps/web/src/WorkspaceRoot.vue",
@@ -207,6 +207,11 @@
       "path": "apps/web/src/components/OptimizationComparison.vue",
       "bytes": 2834,
       "sha256": "8423e4088c97d4d47593738cc26aa2e2c1859ad57109baf8e5f8e72a30059cff"
+    },
+    {
+      "path": "apps/web/src/components/PlanningComparison.vue",
+      "bytes": 5293,
+      "sha256": "ff66c32fc2d2e561fe08b0b8c66cbe86db6e5857c37a1b176ed742d91945a79c"
     },
     {
       "path": "apps/web/src/components/PoiDialog.vue",
@@ -260,8 +265,8 @@
     },
     {
       "path": "apps/web/src/draft.ts",
-      "bytes": 2690,
-      "sha256": "fd6d07b0ed7b31729359cd96ef1b8bf26ff2fbcd8943b79d0dc4088118dc3993"
+      "bytes": 2721,
+      "sha256": "1d7ae5d9bca898b7dbbb0ad00ed7b08254e1d4fd4b9f6b30c7846debc97c10a7"
     },
     {
       "path": "apps/web/src/editDraft.ts",
@@ -289,14 +294,19 @@
       "sha256": "f7646ce8051a6a97dcacb005c8cc84a82372a12dc9fce4dc9f2810c502424654"
     },
     {
+      "path": "apps/web/src/planning.ts",
+      "bytes": 1742,
+      "sha256": "1b9ace7f4c8389327f19f78603c9e2ddfd84aeabf5955d6c04c42bb52ce732fd"
+    },
+    {
       "path": "apps/web/src/schedules.ts",
       "bytes": 2995,
       "sha256": "fd97ef111aaf956a1a58fbd3ccb2ebc928fd191cedf53f33f3602cb239705b89"
     },
     {
       "path": "apps/web/src/session.ts",
-      "bytes": 3002,
-      "sha256": "755000ec3ab3a28150415f999c3633fcf0b4b8e0f8b5a65c6523631566b3e9c1"
+      "bytes": 3120,
+      "sha256": "542bbd8a2813f42af66e5ffc5cc0c69de00a0d40deafcb1f97f42df1fbbce60a"
     },
     {
       "path": "apps/web/src/style.css",
@@ -685,8 +695,8 @@
     },
     {
       "path": "backend/services/route_planner.py",
-      "bytes": 56682,
-      "sha256": "1a304fb023c2ec8a66e1da4ebc2a990459eb133897c0000d33acd35664be2b1b"
+      "bytes": 60322,
+      "sha256": "3288a4c6d3a4e9c946297f960390e437b48ad8b8d943ca1451893c9419144723"
     },
     {
       "path": "backend/services/route_service.py",
@@ -815,13 +825,13 @@
     },
     {
       "path": "backend/travel/planner.py",
-      "bytes": 17777,
-      "sha256": "9a0ae878fb00409629327d0ba8c96cce9f5cdd073fe135d7603f79ffb6a4f5e5"
+      "bytes": 23240,
+      "sha256": "8a438e42e0751797da25d3ea2a6d8a6bf1655e08b998b3aa3155428522279218"
     },
     {
       "path": "backend/travel/planning_budget.py",
-      "bytes": 2134,
-      "sha256": "6246fa3d3b65b9963149c199256c575658f38322c501fc4bffd4024848c105c3"
+      "bytes": 2845,
+      "sha256": "773cde76bf7d303b7269e5d6cdc669bffd6b4a492c3758a20ce604f4d8fc36d7"
     },
     {
       "path": "backend/travel/provider.py",
@@ -845,8 +855,8 @@
     },
     {
       "path": "backend/travel/schemas.py",
-      "bytes": 20081,
-      "sha256": "30d5cd98c2ee1982fd7662a2562e0ed502414989977c2203bf8cf5b5ef555de2"
+      "bytes": 21737,
+      "sha256": "88ceb3cbab10d82005cff9cb3d0c90d9273abf804f1338b23bbcfd5e5fff34c9"
     },
     {
       "path": "backend/travel/store.py",
@@ -855,8 +865,8 @@
     },
     {
       "path": "backend/travel/tasks.py",
-      "bytes": 8461,
-      "sha256": "df333d02242e1736caea3459eafd270bf91e05f5f10a215af6d5c50fd4d6206b"
+      "bytes": 8582,
+      "sha256": "56999f9951d651698eb6f3aedd4d96202c5d212addabd6c0bfae116434e77b7c"
     },
     {
       "path": "backend/travel/tool_runtime.py",
@@ -915,8 +925,8 @@
     },
     {
       "path": "docs/ACCEPTANCE.md",
-      "bytes": 25491,
-      "sha256": "1a9bdf27e7d589ac81a57317090257c96f5b9cd025ecfec39b74d3f5e4eb8bdf"
+      "bytes": 27456,
+      "sha256": "330f884f1a06ff940d3205c7b38a3bcfc122edb900a2b52ae86f00c4caab13fe"
     },
     {
       "path": "docs/README.md",
@@ -925,8 +935,8 @@
     },
     {
       "path": "docs/RELEASE_STATUS.md",
-      "bytes": 17931,
-      "sha256": "8749408da86b83cd76b0ff6778f906b85a52ca75b399621f7adb2c452c6dc1eb"
+      "bytes": 18545,
+      "sha256": "8de68d090f1a005e4982aae0e9db99b17a217cd9986456f9acd0bc0d3677b9d5"
     },
     {
       "path": "docs/TECHNICAL_REPORT.md",
@@ -940,8 +950,13 @@
     },
     {
       "path": "docs/USER_GUIDE.md",
-      "bytes": 14410,
-      "sha256": "bb17407d27a4e2b31e845e03255ee7a98ff99573ee6b2f3e4dec846269a98e1f"
+      "bytes": 15381,
+      "sha256": "5350dc9d12b712d8c9e979ea4d44812d8a9eeaa24d65066122a9f22b637cc63e"
+    },
+    {
+      "path": "docs/acceptance/POI_REVIEW_TEMPLATE.md",
+      "bytes": 1274,
+      "sha256": "cc1ec9a101432640c7a01670b6eeebc55906596ba4ffd94e1d96365190a2bf98"
     },
     {
       "path": "docs/architecture/AGENT_COORDINATOR_SPEC.md",
@@ -970,8 +985,8 @@
     },
     {
       "path": "docs/architecture/BROWSER_ACCEPTANCE.md",
-      "bytes": 10938,
-      "sha256": "3f753f9231ae62390f782d8991617e99d30cc47b061111784d97e50c3d5d1bd3"
+      "bytes": 11464,
+      "sha256": "cda3300b7e0b907747a283edf664ce5a5afe21dcd223a2de1ad6c58d71f95ed6"
     },
     {
       "path": "docs/architecture/DAILY_ENDPOINTS.md",
@@ -1060,8 +1075,13 @@
     },
     {
       "path": "docs/architecture/OPTIMIZATION_PROGRAM.md",
-      "bytes": 18524,
-      "sha256": "1769e4b3cf0ca67a98e1762fe7dbb187372f6c76c68390593ca1a128983db91b"
+      "bytes": 19305,
+      "sha256": "fe1c55554ba4048caca73feda71d2b711361618b2b97ab99b43d50242d8e83b4"
+    },
+    {
+      "path": "docs/architecture/POI_COMPARISON.md",
+      "bytes": 12469,
+      "sha256": "483509e714bc8e95dcb4275f96102ddc35d01ef5e01a8eb4ab53ec011619abdd"
     },
     {
       "path": "docs/architecture/README.md",
@@ -1265,8 +1285,8 @@
     },
     {
       "path": "packages/api-schema/README.md",
-      "bytes": 1390,
-      "sha256": "484e91bb6014aeb4755b87183b82a7d696719a3970b8a069cd21fd28276f25ac"
+      "bytes": 2040,
+      "sha256": "4f09e2f1853f8f0b7f3facb11a8499cad2ef45ea7093bb0f0ac43e783673f694"
     },
     {
       "path": "packages/api-schema/client.ts",
@@ -1275,18 +1295,18 @@
     },
     {
       "path": "packages/api-schema/openapi.json",
-      "bytes": 174350,
-      "sha256": "8234d5617ae89a1d087f52cb05f7ca074f86fc0e410678e74f62cf3a6e1ecee7"
+      "bytes": 180854,
+      "sha256": "de7247816c38faa0add2efdc0ec788d147c86c0fe5cfa37b3ef0f18a5c659cdf"
     },
     {
       "path": "packages/api-schema/schema.d.ts",
-      "bytes": 118849,
-      "sha256": "489313a1528bc75d0044280b19a26192d46cd445820dd48a4b84b991d66a7675"
+      "bytes": 122166,
+      "sha256": "1f6b05f44a05394aed6f1af867d41513dc669894ed10e76c36d1b0d7ccd3a9a7"
     },
     {
       "path": "playwright.config.ts",
-      "bytes": 838,
-      "sha256": "2bb9f37f1c9bfb6bfdc98b0c44894b512a0fb27b3de8207334f17507df1564de"
+      "bytes": 1211,
+      "sha256": "b6e81c93eb1844174be3bbcf786349380cab38f3325a0fafd4994a80ae8f064c"
     },
     {
       "path": "pubspec.lock",
@@ -1297,6 +1317,11 @@
       "path": "pubspec.yaml",
       "bytes": 3754,
       "sha256": "c12163b7727f1a929b53f2858acd8d56312187f4b59edd9b222e38773da119f5"
+    },
+    {
+      "path": "scripts/browser_runs.py",
+      "bytes": 2120,
+      "sha256": "94249e9604cf9f46886c03a28bfd917c382c0bd422dd0247ac9761eec3b3679d"
     },
     {
       "path": "scripts/browser_test_web.mjs",
@@ -1329,6 +1354,11 @@
       "sha256": "665031965f3787c610cab5660b6ec9eb1fec5b7a789f4758eb6cd050f8cb42b9"
     },
     {
+      "path": "scripts/summarize_browser_runs.py",
+      "bytes": 1767,
+      "sha256": "cb8c072a65fba3748c9b80e90c68c8964062aacb3973fa3efa16d9c3f54b93c0"
+    },
+    {
       "path": "scripts/update_publish_manifest.py",
       "bytes": 1784,
       "sha256": "438b041e332e21919cb5cf5abd7503aab1147dd969b53476901a728917b83e0a"
@@ -1340,8 +1370,8 @@
     },
     {
       "path": "scripts/verify_browser.py",
-      "bytes": 4525,
-      "sha256": "772aad85698d3d349fc0411387ebd569080d8da234a6bc40ee77e8a4359e1ad0"
+      "bytes": 6527,
+      "sha256": "ad1800b5bc4d3c15fe8f93a1e5da2129a9744da2e43ec2efca30f03d9b5ea923"
     },
     {
       "path": "scripts/verify_deployment.py",
@@ -1360,8 +1390,8 @@
     },
     {
       "path": "scripts/verify_live_quality.py",
-      "bytes": 28541,
-      "sha256": "5c1d3c9eab5127af0a29d9bd1c55f319da490409cd48652a0c31641c666d7d96"
+      "bytes": 35474,
+      "sha256": "6380a38e29da970184d2854d76a3e7c0fc5d7aea9eede463ae98b8b2e2ec49a1"
     },
     {
       "path": "scripts/verify_live_travel.py",
@@ -1380,8 +1410,8 @@
     },
     {
       "path": "scripts/verify_repository.py",
-      "bytes": 3625,
-      "sha256": "7faa7553373ecde9a281563ad795c73b1eec58f2ccb661f67861f82540dbb9ad"
+      "bytes": 3673,
+      "sha256": "c560776da13adacc8e11c4846da915f1841b230d12405a1f0ceae62d4dbe592b"
     },
     {
       "path": "test/widget_test.dart",
@@ -1400,8 +1430,8 @@
     },
     {
       "path": "tests/browser/resilience.spec.ts",
-      "bytes": 49891,
-      "sha256": "34a2d4b2afa40540aea3dd0f2ee1027c0824bf21dfadede14fee004560754840"
+      "bytes": 58941,
+      "sha256": "28caa5b948c9c4826924e31e2d7676807014b7ff954e9401dd71d269edd97ee3"
     },
     {
       "path": "tests/browser/workspace.spec.ts",
@@ -1410,8 +1440,8 @@
     },
     {
       "path": "tests/browser_fixture_server.py",
-      "bytes": 6661,
-      "sha256": "ff169a0076233f624867e3ab9226e866c14e6dd16e8a7c65cc2bf5ca17b32ebd"
+      "bytes": 6892,
+      "sha256": "a10040ac08bad4920fad7c6491f74596c1bd3d7e5f91bf3b474c7a230198c022"
     },
     {
       "path": "tests/client.integration.test.ts",
@@ -1430,8 +1460,8 @@
     },
     {
       "path": "tests/journey.test.ts",
-      "bytes": 14584,
-      "sha256": "5726a0bc2f09fc33d318f7e5699547fcba80967d7face7c2c350450ad6056ef0"
+      "bytes": 17282,
+      "sha256": "2a02434f4941dd143de86e540260ed2adc52254dec2308525cbfe1c47176fb0a"
     },
     {
       "path": "tests/listing_client.test.ts",
@@ -1445,8 +1475,8 @@
     },
     {
       "path": "tests/mcp_fixture_server.py",
-      "bytes": 4864,
-      "sha256": "dca27167cde2877367471d34719226c38eb5866cf264edc3335440c1b1f0b9f6"
+      "bytes": 5082,
+      "sha256": "65831d66a4780a7d238c57060f3412a90eab22607dfa0fa691a596cf9772a789"
     },
     {
       "path": "tests/pagination_fixture.py",
@@ -1479,14 +1509,19 @@
       "sha256": "0f096e985cea488741dd905d766165ef633e41c73aca8958d2a8ed5e5b3f5955"
     },
     {
+      "path": "tests/test_browser_runs.py",
+      "bytes": 4087,
+      "sha256": "3fe2ed7937aed6bd47c859152ee8f680daa0fc877d20c56c4f269170eea4be60"
+    },
+    {
       "path": "tests/test_business_limits.py",
       "bytes": 12622,
       "sha256": "6ca8b347a124a0865bbb744c13e4a6d85991ef43e30d0589c30b29dfa046ed0a"
     },
     {
       "path": "tests/test_daily_endpoints.py",
-      "bytes": 10236,
-      "sha256": "bb2aaf526a5785fe4ac16e0755c76e622e1ac93b5eb781dc87ea096d84b74aad"
+      "bytes": 10263,
+      "sha256": "0a0f30e68e9294d6b7af7107885fac63ac77c86f9f90b01f6bd9278a6252d704"
     },
     {
       "path": "tests/test_daily_schedules.py",
@@ -1520,8 +1555,8 @@
     },
     {
       "path": "tests/test_journey_endpoints.py",
-      "bytes": 19927,
-      "sha256": "f6194336a725f39be2965d0e93ab5cfcec6a90344a8f6773b0c6fcc4eb7b6026"
+      "bytes": 19955,
+      "sha256": "58e30689713c59f9da96208d4b43c37ad092d4beab372a3c87c41304e3335b14"
     },
     {
       "path": "tests/test_live_quality.py",
@@ -1540,8 +1575,13 @@
     },
     {
       "path": "tests/test_mcp_client.py",
-      "bytes": 18355,
-      "sha256": "1c0a7604514cc4143256630eac1c00465b4bdfd421b678e6754c7e173a0330af"
+      "bytes": 19451,
+      "sha256": "f936d08868ee893827c9367b873af6c2b734f58a8b7183ba82fffde273a71f5c"
+    },
+    {
+      "path": "tests/test_poi_comparison.py",
+      "bytes": 16211,
+      "sha256": "9952cda061a146a67070203224bdd6efde7defbe11348968ab8fec9e45e072ac"
     },
     {
       "path": "tests/test_provider_gate.py",

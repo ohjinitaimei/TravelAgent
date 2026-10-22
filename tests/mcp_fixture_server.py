@@ -15,7 +15,7 @@ sys.path.insert(0,str(ROOT/"backend"))
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument("--test-fixtures-only",action="store_true",required=True)
-    parser.add_argument("--scenario",choices=["good","malformed","error","unknown_error","hang","slow_start","missing","exit","text_only","invalid_route","mismatched_poi","maximum_endpoints","paced","rate_hint","rate_bool","rate_large","rate_text"],default="good")
+    parser.add_argument("--scenario",choices=["good","malformed","error","unknown_error","hang","slow_start","missing","exit","text_only","invalid_route","mismatched_poi","maximum_endpoints","alternatives","paced","rate_hint","rate_bool","rate_large","rate_text"],default="good")
     parser.add_argument("--record",type=Path)
     args=parser.parse_args()
     if args.record and not args.record.resolve().is_relative_to((ROOT/".tmp").resolve()):
@@ -30,7 +30,7 @@ def main():
     from mcp.types import CallToolResult, TextContent
     from test_travel import FixtureProvider
     from travel.tools import TravelTools
-    if args.scenario in {"good", "maximum_endpoints", "paced"}:
+    if args.scenario in {"good", "maximum_endpoints", "alternatives", "paced"}:
         # Exercise the production server's actual registered output schemas.
         # Only the test process replaces its provider; production has no switch.
         from travel import mcp_server
@@ -44,6 +44,9 @@ def main():
                 raise AssertionError('TEST ONLY: cooldown must prevent HTTP')
             client.poi_detail.side_effect=forbidden
             mcp_server.TravelTools=lambda:TravelTools(AmapProvider(client,gate=ProviderGate(args.record.with_suffix('.sqlite3'))))
+        elif args.scenario == 'alternatives':
+            from test_poi_comparison import AlternativeProvider
+            mcp_server.TravelTools=lambda:TravelTools(AlternativeProvider())
         elif args.scenario == 'maximum_endpoints':
             from test_journey_endpoints import LargeEndpointProvider
             mcp_server.TravelTools=lambda:TravelTools(LargeEndpointProvider())

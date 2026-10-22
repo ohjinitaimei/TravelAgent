@@ -30,6 +30,9 @@ def browser_worker(payload, output):
             return
         return draft_fixture_worker(payload,output)
     query=payload["request"]["query"]
+    if query=="TEST ONLY alternatives" or query=="公园" and payload["request"].get("compare_poi_alternatives") is True:
+        from test_poi_comparison import alternative_worker
+        return alternative_worker(payload,output)
     if query=="TEST ONLY maximum":
         from maximum_fixture import maximum_fixture_worker
         return maximum_fixture_worker(payload,output)

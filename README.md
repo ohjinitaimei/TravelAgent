@@ -23,6 +23,8 @@ TravelAgent 将自然语言旅行需求整理为可核对草案，再由统一 F
 
 多日新规划会比较有限地理交换候选与原分日，仅采用通过真实交通和每日时段检查的方案。上海实测样例总交通从 108 降为 96 分钟，杭州样例因每日负担未改善而保留原分日；规则、调用上限与验证边界见 [分日优化说明](docs/architecture/DAY_GROUPING.md)。
 
+新规划可选择“比较同类备选地点，减少路途”：在同次真实搜索中有限替换/分日，用真实路线核验，展示交通收益与评分取舍，并可显式编辑原方案。南京、杭州样本分别减少总交通 36、55 分钟；苏州和含车站的南京 Web 样本无收益时保留基线，不改用户条件。实现及验收边界见 [地点与路线对比](docs/architecture/POI_COMPARISON.md)。
+
 地图编号与时间轴支持双向定位。编辑时显示地点预览与修改前后对照，切换工作台页面保留当前编辑，退出或打开其他行程前提示未保存修改；保存后由后端重算并生成新版本。操作与验证边界见 [地图与编辑说明](docs/architecture/WEB_EDITING.md)。
 
 已保存行程支持当前账号全库搜索、版本类型筛选、时间排序、50 条分页、来源跳转及全部直接调整计数。翻页沿用查询快照，刷新纳入新记录；可只读对照来源与调整版本的地点、停留、交通和费用，区分未知费用与用户录入 0 元，保留编辑草稿。操作与验证见 [全库查询与分页](docs/architecture/SAVED_PAGINATION.md)、[版本对照](docs/architecture/SAVED_VERSIONS.md)。
@@ -161,10 +163,11 @@ Web 使用 HttpOnly 会话 Cookie 和 CSRF 校验，密码与会话 Token 不进
 ```powershell
 $env:PLAYWRIGHT_BROWSERS_PATH = "$PWD/.cache/playwright"
 npx playwright install --only-shell chromium firefox webkit
-.\.venv\Scripts\python.exe scripts/verify_browser.py
+.\.venv\Scripts\python.exe scripts/verify_browser.py --run-id local-acceptance
+.\.venv\Scripts\python.exe scripts/summarize_browser_runs.py --run-id local-acceptance
 ```
 
-可用 `--browser chromium|firefox|webkit` 单独运行，或用 `--suite resilience` 只验收生产构建的弱网和最大行程场景；Linux 首次安装增加 `--with-deps`。脚本为每个引擎的 local / auth / resilience 套件创建独立库。网络场景、平台限制和报告路径见 [跨浏览器验收](docs/architecture/BROWSER_ACCEPTANCE.md)。
+每次复跑请使用新的 `--run-id`，避免覆盖已有报告。可用 `--browser chromium|firefox|webkit` 单独运行，或用 `--suite resilience` 只验收生产构建的弱网和最大行程场景；Linux 首次安装增加 `--with-deps`。脚本为每个引擎的 local / auth / resilience 套件创建独立库。网络场景、平台限制和报告路径见 [跨浏览器验收](docs/architecture/BROWSER_ACCEPTANCE.md)。
 
 契约变更后运行并提交生成文件：
 

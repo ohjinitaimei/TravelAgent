@@ -1,5 +1,8 @@
 """Isolated browser acceptance against the explicit TEST ONLY API, never production."""
 import os
+import json
+from datetime import datetime, timezone
+from browser_runs import run_id, reserve, case_keys, verify_report
 import argparse
 from pathlib import Path
 import shutil
@@ -14,11 +17,17 @@ import urllib.request
 ROOT=Path(__file__).resolve().parents[1]
 
 
-def verify(suite,browser,grep=None):
+def verify(suite,browser,grep=None,identifier=None):
+    identifier=run_id(identifier)
+    destination=reserve(ROOT,identifier,browser,suite)
+    metadata={"run_id":identifier,"browser":browser,"suite":suite,"grep":grep,"complete_suite":not bool(grep),"started_at":datetime.now(timezone.utc).isoformat(),"passed":False}
+    metadata_path=destination/"run.json"
+    metadata_path.write_text(json.dumps(metadata,indent=2)+"\n",encoding="utf-8")
     (ROOT/".tmp").mkdir(exist_ok=True)
     env=dict(os.environ,PYTHONIOENCODING="utf-8",E2E_AUTH_TESTS="1" if suite=='auth' else '0',E2E_BROWSER=browser,E2E_SUITE=suite)
     for name in ('AMAP_KEY','AMAP_WEB_KEY','AMAP_JS_KEY','AMAP_JS_SECURITY_CODE','DASHSCOPE_API_KEY','OPENAI_API_KEY','TRAVEL_LLM_API_KEY','VITE_AMAP_JS_KEY','VITE_AMAP_SECURITY_CODE'):
         env[name]=''
+    env['E2E_OUTPUT_DIR']=str(destination)
     env.update(TRAVEL_SESSION_TTL='28800',TRAVEL_SESSION_IDLE_TTL='1800',VITE_API_BASE_URL='/api/v1/travel')
     env.setdefault("PLAYWRIGHT_BROWSERS_PATH",str(ROOT/".cache/playwright"))
     npm=shutil.which("npm.cmd" if os.name=="nt" else "npm")
@@ -47,32 +56,52 @@ def verify(suite,browser,grep=None):
                             with urllib.request.urlopen(url,timeout=1): break
                         except (urllib.error.URLError,TimeoutError): time.sleep(.1)
                     else: raise RuntimeError("Acceptance service did not become ready")
+                discover=[node,str(ROOT/'node_modules/@playwright/test/cli.js'),'test','--project',browser,'--list','--reporter=json']
+                if grep:discover.extend(['--grep',grep])
+                listing=subprocess.run(discover,cwd=ROOT,env=env,capture_output=True,text=True,encoding='utf-8',check=True)
+                planned,_=case_keys(json.loads(listing.stdout))
+                metadata['planned_cases']=planned
+                metadata_path.write_text(json.dumps(metadata,indent=2)+'\n',encoding='utf-8')
                 command=[npm,"run","test:browser","--","--project",browser]
                 if grep: command.extend(['--grep',grep])
                 subprocess.run(command,cwd=ROOT,env=env,check=True)
+                report=json.loads((destination/'report.json').read_text(encoding='utf-8'))
+                metadata['passed_count']=verify_report(report,planned)
+                metadata['passed']=True
             except Exception:
-                destination=ROOT/"artifacts/browser-diagnostics"/browser/suite
-                destination.mkdir(parents=True,exist_ok=True)
                 api_log.flush();web_log.flush()
                 shutil.copyfile(folder/"api.log",destination/"api.log");shutil.copyfile(folder/"web.log",destination/"web.log")
                 raise
             finally:
                 stop.touch()
+                graceful=True
                 for process in processes:
-                    try: process.wait(timeout=10)
+                    try:
+                        process.wait(timeout=10)
+                        graceful=graceful and process.returncode==0
                     except subprocess.TimeoutExpired:
-                        process.terminate();process.wait(timeout=5)
-    print(f"Browser acceptance passed: {browser}/{suite}, isolated TEST ONLY records.")
+                        graceful=False;process.terminate();process.wait(timeout=5)
+                metadata["services_stopped_gracefully"]=graceful
+                metadata["passed"]=bool(metadata["passed"] and graceful)
+                metadata["completed_at"]=datetime.now(timezone.utc).isoformat()
+                metadata_path.write_text(json.dumps(metadata,indent=2)+"\n",encoding="utf-8")
+    if not metadata['passed']:raise RuntimeError('Browser verification or graceful shutdown failed')
+    print(f"Browser acceptance passed: {identifier}/{browser}/{suite}, isolated TEST ONLY records.")
+    return metadata
 
 
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--suite',choices=['all','local','auth','resilience'],default='all')
     parser.add_argument('--browser',choices=['all','chromium','firefox','webkit'],default='all')
+    parser.add_argument('--run-id',help='Immutable evidence group; same engine/suite cannot reuse an ID')
     parser.add_argument('--grep',help='Run matching test names only; omit for full acceptance')
     args=parser.parse_args()
+    try:identifier=run_id(args.run_id)
+    except ValueError as error:parser.error(str(error))
+    print(f"Browser run ID: {identifier}",flush=True)
     for browser in (['chromium','firefox','webkit'] if args.browser=='all' else [args.browser]):
-        for suite in (['local','auth','resilience'] if args.suite=='all' else [args.suite]): verify(suite,browser,args.grep)
+        for suite in (['local','auth','resilience'] if args.suite=='all' else [args.suite]): verify(suite,browser,args.grep,identifier)
 
 
 if __name__=="__main__": main()

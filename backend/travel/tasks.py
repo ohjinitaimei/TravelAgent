@@ -36,6 +36,8 @@ class TaskManager:
             for field in ("day_origin_poi_id", "day_destination_poi_id", "day_endpoints", "day_schedules", "max_leg_travel_minutes", "max_daily_travel_minutes"):
                 if request.get(field) is None:
                     request.pop(field, None)
+            if request.get("compare_poi_alternatives") is False:
+                request.pop("compare_poi_alternatives")
             payload = {**payload, "request": request}
         fingerprint = hashlib.sha256(json.dumps({"payload":payload,"retry_of":retry_of},sort_keys=True,ensure_ascii=False).encode()).hexdigest()
         existing = self.store.submission(idempotency_key, fingerprint,owner_id=owner_id) if idempotency_key else None

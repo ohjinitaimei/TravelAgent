@@ -56,6 +56,21 @@ def fixture_mcp_worker(payload,output):
 
 
 class McpClientTests(unittest.TestCase):
+    def test_real_stdio_alternative_selection_matches_direct_and_enforces_same_budget(self):
+        from test_poi_comparison import AlternativeProvider, REQUEST
+        request=PlanRequest(**REQUEST)
+        direct=plan(request,lambda *_:None,provider=AlternativeProvider())
+        with open_mcp_provider(parameters=parameters('alternatives')) as provider:
+            trip=plan(request,lambda *_:None,provider=provider)
+            calls=provider.client.calls
+        self.assertEqual(trip.planning_comparison.result,direct.planning_comparison.result)
+        self.assertEqual(trip.planning_comparison.result_poi_ids_by_day,[['a','c']])
+        self.assertEqual(calls,trip.planning_comparison.provider_calls)
+        self.assertLessEqual(calls,trip.planning_comparison.provider_call_upper_bound)
+        with open_mcp_provider(parameters=parameters('alternatives'),limits=McpLimits(max_calls=2)) as provider:
+            with self.assertRaises(TravelFailure) as caught:plan(request,lambda *_:None,provider=provider)
+            self.assertEqual(caught.exception.code,'tool_budget_exhausted')
+
     def test_daily_windows_and_stop_priority_share_real_stdio_without_more_calls(self):
         from test_daily_schedules import SCHEDULES
         request=PlanRequest.model_validate({**PAYLOAD,'days':2,'stops_per_day':1,'day_schedules':SCHEDULES,

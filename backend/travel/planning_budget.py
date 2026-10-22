@@ -42,4 +42,14 @@ def planning_budget(request, poi_ids_by_day=None, optimize_order=True):
     interstop = min(old_limit, TOOL_CALL_LIMIT - lookups - boundary) if automatic else baseline
     if interstop < baseline or lookups + boundary + interstop > TOOL_CALL_LIMIT:
         raise TravelFailure('planning_budget_exceeded', '本次重新排序超出 64 次工具调用上限；请保留原顺序、减少站点或清除一侧起终点后重试', status=422)
+    if (getattr(request, 'compare_poi_alternatives', False) and poi_ids_by_day is None and optimize_order
+            and (baseline or boundary)):
+        # At most baseline + 3 complete candidates of the same shape. Search
+        # already supplies alternative POIs, so no additional detail calls.
+        available = TOOL_CALL_LIMIT - lookups
+        internal_upper = min(GROUP_ROUTE_LIMIT, 4 * baseline)
+        interstop = min(internal_upper, available - boundary)
+        boundary_upper = min(4 * boundary, available - interstop)
+        return PlanningBudget(lookups, boundary_upper, interstop,
+                              internal_upper + 4 * boundary > available or 4 * baseline > GROUP_ROUTE_LIMIT)
     return PlanningBudget(lookups, boundary, interstop, automatic and interstop < old_limit)

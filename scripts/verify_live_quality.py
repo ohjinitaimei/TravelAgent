@@ -33,7 +33,7 @@ def request_budget(request):
     from types import SimpleNamespace
     from travel.planning_budget import planning_budget
     return planning_budget(SimpleNamespace(days=request['days'], stops_per_day=request['stops_per_day'],
-        day_origin_poi_id=request.get('day_origin_poi_id'), day_destination_poi_id=request.get('day_destination_poi_id'),
+        compare_poi_alternatives=request.get('compare_poi_alternatives',False), day_origin_poi_id=request.get('day_origin_poi_id'), day_destination_poi_id=request.get('day_destination_poi_id'),
         day_endpoints=[SimpleNamespace(**{'origin_poi_id':day.get('origin_poi_id'),'destination_poi_id':day.get('destination_poi_id')}) for day in request['day_endpoints']] if request.get('day_endpoints') is not None else None))
 
 
@@ -53,6 +53,9 @@ def scenarios(profile, travel_date):
         'expanded': [('nanjing-museums-3', '南京', '博物馆', 1, 3, 'walking'),
                      ('suzhou-coffee-4', '苏州', '咖啡', 1, 4, 'driving'),
                      ('suzhou-parks-12', '苏州', '公园', 3, 4, 'driving')],
+        'practical': [('nanjing-parks-compact', '南京', '公园', 2, 2, 'walking'),
+                      ('hangzhou-parks-compact', '杭州', '公园', 2, 3, 'walking'),
+                      ('suzhou-museums-compact', '苏州', '博物馆', 1, 3, 'driving')],
         'diverse': [('hangzhou-parks-6', '杭州', '公园', 2, 3, 'walking'),
                     ('beijing-museums-3', '北京', '博物馆', 1, 3, 'driving'),
                     ('chengdu-coffee-4', '成都', '咖啡', 1, 4, 'walking')],
@@ -60,7 +63,7 @@ def scenarios(profile, travel_date):
     cases = []
     for identifier, city, keyword, days, stops, mode in definitions[profile]:
         request = PlanRequest(city=city, query=keyword, start_date=travel_date, days=days,
-            stops_per_day=stops, stay_minutes=30, day_start='09:00', day_end='22:00', mode=mode).model_dump(mode='json')
+            stops_per_day=stops, stay_minutes=30, day_start='09:00', day_end='22:00', mode=mode,compare_poi_alternatives=profile=='practical').model_dump(mode='json')
         cases.append({'scenario': identifier, 'request': request, 'maximum_provider_calls': provider_call_bound(request)})
     return cases
 
@@ -111,9 +114,13 @@ def quality_observations(trip, days):
         'day_load_spread_minutes': max(loads) - min(loads), 'days': observations, 'attention': attention}
 
 
-def summarize(raw, expected):
+def summarize(raw, expected, *, _baseline=False):
     """Reject invalid provenance/schedules before recording a passing sample."""
     from travel.schemas import Itinerary, PlanRequest
+    def clock(value):
+        if not _baseline: return minute(value)
+        require(isinstance(value,str) and re.fullmatch(r'\d{2,3}:[0-5]\d',value), 'invalid_baseline_clock')
+        hour,part=map(int,value.split(':'));return hour*60+part
     trip = Itinerary.model_validate(raw)
     request = PlanRequest.model_validate(expected)
     require(trip.request == request, 'request_mismatch')
@@ -156,7 +163,7 @@ def summarize(raw, expected):
         outgoing, outgoing_distance = boundary(day.destination_poi, day.destination_segment, selected.destination_poi_id, day.stops[-1].poi,
             original_day.get('destination_poi'), original_day.get('destination_segment'), False)
         require(day.origin_departure_time == (schedule.day_start if selected.origin_poi_id else None), 'origin_departure')
-        arrival = minute(schedule.day_start) + incoming
+        arrival = clock(schedule.day_start) + incoming
         distance, travel = incoming_distance + outgoing_distance, incoming + outgoing
         for position, stop in enumerate(day.stops):
             ids.append(stop.poi.id)
@@ -172,13 +179,13 @@ def summarize(raw, expected):
                     missing[field] += 1
             require(stop.stay_minutes == stay_minutes(request,stop.poi.id,index), 'stay_duration')
             require(stop.stay_source == 'user_input', 'stay_provenance')
-            require(minute(stop.arrival_time) == arrival, 'arrival_schedule')
+            require(clock(stop.arrival_time) == arrival, 'arrival_schedule')
             arrival += stop.stay_minutes
-            require(minute(stop.departure_time) == arrival, 'departure_schedule')
-            require(arrival <= minute(schedule.day_end), 'day_end_exceeded')
+            require(clock(stop.departure_time) == arrival, 'departure_schedule')
+            require(_baseline or arrival <= clock(schedule.day_end), 'day_end_exceeded')
             require(stop.user_cost is None and stop.cost_source is None, 'invented_station_cost')
             evidence.append({'id': stop.poi.id, 'name': stop.poi.name, 'city': stop.poi.city,
-                'category': stop.poi.category, 'name_contains_keyword': request.query in stop.poi.name,
+                'category': stop.poi.category, 'rating':stop.poi.rating,'source':stop.poi.source.model_dump(mode='json'), 'name_contains_keyword': request.query in stop.poi.name,
                 'category_contains_keyword': request.query in (stop.poi.category or '')})
             segment = stop.travel_to_next
             if position == len(day.stops) - 1:
@@ -194,13 +201,13 @@ def summarize(raw, expected):
                 travel += segment.duration_min
                 distance += segment.distance_km
                 arrival += segment.duration_min
-        if request.max_daily_travel_minutes is not None:
+        if not _baseline and request.max_daily_travel_minutes is not None:
             require(travel <= request.max_daily_travel_minutes, 'daily_travel_limit')
         factual_legs = [day.origin_segment, *[stop.travel_to_next for stop in day.stops], day.destination_segment]
-        if request.max_leg_travel_minutes is not None:
+        if not _baseline and request.max_leg_travel_minutes is not None:
             require(all(leg.duration_min <= request.max_leg_travel_minutes for leg in factual_legs if leg), 'leg_travel_limit')
-        require(arrival + outgoing <= minute(schedule.day_end), 'return_end_exceeded')
-        require((minute(day.return_arrival_time) == arrival + outgoing) if selected.destination_poi_id else day.return_arrival_time is None, 'return_arrival')
+        require(_baseline or arrival + outgoing <= clock(schedule.day_end), 'return_end_exceeded')
+        require((clock(day.return_arrival_time) == arrival + outgoing) if selected.destination_poi_id else day.return_arrival_time is None, 'return_arrival')
         days.append({'date': str(day.date), 'poi_ids': [s.poi.id for s in day.stops],
                      'stay_minutes': sum(s.stay_minutes for s in day.stops), 'travel_minutes': travel,
                      'interstop_travel_minutes': travel - incoming - outgoing, 'origin_travel_minutes': incoming, 'destination_travel_minutes': outgoing,
@@ -220,7 +227,7 @@ def summarize(raw, expected):
             require(not saved.over_daily_minutes and not saved.violating_legs, 'load_violations')
     require(len(ids) == len(set(ids)), 'duplicate_poi')
     require(trip.budget.total is None and trip.budget.known_subtotal == 0 and bool(trip.budget.unknown_items), 'unknown_budget_lost')
-    automatic_grouping = request.days > 1 and request.stops_per_day > 1
+    automatic_grouping = not _baseline and not trip.parent_id and not request.compare_poi_alternatives and request.days > 1 and request.stops_per_day > 1
     require(bool(trip.optimization) == automatic_grouping, 'comparison_presence')
     route_bound = route_call_bound(expected)
     totals = {'distance_km': round(sum(d['distance_km'] for d in days), 6),
@@ -242,10 +249,70 @@ def summarize(raw, expected):
     other_cities = [item['id'] for item in evidence if item['city'] and item['city'].removesuffix('市') != request.city.removesuffix('市')]
     missing_cities = [item['id'] for item in evidence if not item['city']]
     observations = quality_observations(trip, days)
+    planning = trip.planning_comparison
+    require(bool(planning)==bool(request.compare_poi_alternatives and not trip.parent_id and not _baseline), 'planning_comparison_presence')
+    if planning:
+        from copy import deepcopy
+        baseline_raw=deepcopy(raw)
+        baseline_raw.update(days=deepcopy(raw['planning_comparison']['baseline_days']),optimization=None,planning_comparison=None,travel_load=None)
+        before=summarize(baseline_raw,expected,_baseline=True)
+        def check_metrics(metrics,report):
+            measured=report['totals'];obs=report['quality_observations']['days']
+            require(abs(metrics.distance_km-measured['distance_km'])<1e-5 and metrics.travel_minutes==measured['travel_minutes']
+                and metrics.busiest_day_minutes==measured['busiest_day_minutes'], 'planning_metrics_totals')
+            require(metrics.per_day_travel_minutes==[d['travel_minutes'] for d in report['days']], 'planning_metrics_days')
+            longest=max((d['longest_leg_minutes'] for d in obs if d['longest_leg_minutes'] is not None),default=None)
+            require(metrics.longest_leg_minutes==longest,'planning_metrics_longest')
+            feasible=all(d['scheduled_minutes']<=d['available_minutes'] and
+                (request.max_daily_travel_minutes is None or d['travel_minutes']<=request.max_daily_travel_minutes) and
+                (request.max_leg_travel_minutes is None or (d['longest_leg_minutes'] or 0)<=request.max_leg_travel_minutes) for d in obs)
+            require(metrics.feasible==feasible,'planning_metrics_feasibility')
+        after={'totals':totals,'days':days,'quality_observations':observations}
+        check_metrics(planning.baseline,before);check_metrics(planning.result,after)
+        result_ids=[d['poi_ids'] for d in days]
+        require(planning.result_poi_ids_by_day==result_ids,'planning_result_ids')
+        require(planning.proposed_candidate_count==len(planning.candidates)+planning.budget_pruned_count,'planning_candidate_counts')
+        require(planning.route_queries<=route_bound and planning.route_queries<planning.provider_calls<=planning.provider_call_upper_bound
+            and planning.provider_call_upper_bound==provider_call_bound(expected),'planning_call_bound')
+        baseline_ids=[d['poi_ids'] for d in before['days']]
+        protected=(set(request.user_prices)|set(request.stay_minutes_by_poi))&set(x for day in baseline_ids for x in day)
+        for candidate in planning.candidates:
+            flat=[x for day in candidate.poi_ids_by_day for x in day]
+            require(len(candidate.poi_ids_by_day)==request.days and all(len(d)==request.stops_per_day for d in candidate.poi_ids_by_day)
+                and len(set(flat))==len(flat) and protected<=set(flat),'planning_candidate_shape')
+        if planning.applied:
+            require(any(c.poi_ids_by_day==result_ids and c.metrics==planning.result for c in planning.candidates),'planning_adopted_candidate')
+            if planning.baseline.feasible:
+                a,b=planning.baseline,planning.result
+                require(planning.reason=='improved' and b.distance_km<=a.distance_km+1e-6 and
+                    b.travel_minutes<=a.travel_minutes and b.busiest_day_minutes<=a.busiest_day_minutes and
+                    (b.longest_leg_minutes or 0)<=(a.longest_leg_minutes or 0) and
+                    (b.travel_minutes<a.travel_minutes or b.busiest_day_minutes<a.busiest_day_minutes or
+                     (b.longest_leg_minutes or 0)<(a.longest_leg_minutes or 0)), 'planning_false_improvement')
+            else: require(planning.reason=='feasible_candidate','planning_feasibility_reason')
+        else:
+            require(result_ids==baseline_ids and planning.result==planning.baseline and planning.reason not in {'improved','feasible_candidate'},'planning_false_retention')
+        improvement={'baseline_feasible':planning.baseline.feasible,
+            'travel_minutes_saved':planning.baseline.travel_minutes-planning.result.travel_minutes,
+            'distance_km_saved':round(planning.baseline.distance_km-planning.result.distance_km,6),
+            'busiest_day_minutes_saved':planning.baseline.busiest_day_minutes-planning.result.busiest_day_minutes,
+            'longest_leg_minutes_saved':(planning.baseline.longest_leg_minutes or 0)-(planning.result.longest_leg_minutes or 0)}
+    planning_audit = None
+    if planning:
+        old_ids={p['id'] for p in before['poi_evidence']};new_ids={p['id'] for p in evidence}
+        planning_audit={'audit_version':1,'search_poi_count':planning.search_poi_count,'verified_candidates':len(planning.candidates),
+            'budget_pruned':planning.budget_pruned_count,'provider_calls':planning.provider_calls,'upper_bound':planning.provider_call_upper_bound,
+            'baseline_metrics':planning.baseline.model_dump(mode='json'),'adopted_metrics':planning.result.model_dump(mode='json'),
+            'baseline_pois':before['poi_evidence'],
+            'removed_pois':[p for p in before['poi_evidence'] if p['id'] not in new_ids],
+            'added_pois':[p for p in evidence if p['id'] not in old_ids],
+            'rating_is_hard_constraint':False,'subjective_quality_assessment':'not_assessed'}
     return {'itinerary_id': trip.id, 'days': days, 'missing_fields': dict(sorted(missing.items())),
             'budget_total': trip.budget.total, 'unknown_budget_items': len(trip.budget.unknown_items),
-            'route_queries': comparison.route_queries if comparison else None,
-            'route_query_upper_bound': route_bound, 'route_count_basis': 'backend_matrix_count' if comparison else 'upper_bound_only',
+            'route_queries': planning.route_queries if planning else comparison.route_queries if comparison else None,
+            'planning_applied':planning.applied if planning else False,'planning_reason':planning.reason if planning else 'not_applicable',
+            'planning_evidence':planning_audit,
+            'route_query_upper_bound': route_bound, 'route_count_basis': 'backend_matrix_count' if comparison or planning else 'upper_bound_only',
             'grouping_applied': comparison.applied if comparison else False,
             'grouping_reason': comparison.reason if comparison else 'not_applicable',
             'totals': totals, 'improvement': improvement, 'poi_evidence': evidence,
@@ -280,6 +347,8 @@ def finalize_report(report):
     report['integrity_rejection_count'] = sum(case.get('status') == 'succeeded' and not case['passed'] for case in cases)
     report['failure_counts'] = dict(Counter(case.get('error_code', 'unknown') for case in cases if not case['passed']))
     report['review_required'] = any(case.get('review_required') for case in cases)
+    report['route_improvement_count']=sum(case.get('planning_reason')=='improved' for case in cases)
+    report['feasibility_recovery_count']=sum(case.get('planning_reason')=='feasible_candidate' for case in cases)
     report['subjective_quality_assessment'] = 'not_assessed'
     report['travel_attention_case_count'] = sum(bool(case.get('quality_observations', {}).get('attention')) for case in cases)
     report['transport_comparisons'] = compare_transports(cases)
@@ -334,13 +403,17 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--live-amap', action='store_true')
     parser.add_argument('--date', type=date.fromisoformat, required=True)
-    parser.add_argument('--profile', choices=['smoke', 'expanded', 'diverse'], default='smoke')
+    parser.add_argument('--profile', choices=['smoke', 'expanded', 'diverse', 'practical'], default='smoke')
+    parser.add_argument('--scenario',action='append',help='Select fixed scenario IDs within a profile; no repeat selection')
     parser.add_argument('--transport', choices=['direct', 'mcp', 'both'], default='both')
     parser.add_argument('--max-provider-calls', type=int, default=150, help='Preflight upper limit, 1–150; never an automatic retry budget')
     parser.add_argument('--dry-run', action='store_true', help='Print the fixed scenarios/bounds without reading credentials or starting services')
     parser.add_argument('--output', type=Path, default=Path('artifacts/live-quality/report.json'))
     args = parser.parse_args()
     selected = scenarios(args.profile, args.date)
+    if args.scenario:
+        if len(set(args.scenario))!=len(args.scenario) or set(args.scenario)-{case['scenario'] for case in selected}:parser.error('Unknown or repeated scenario ID')
+        selected=[case for case in selected if case['scenario'] in args.scenario]
     transports = ('direct', 'mcp') if args.transport == 'both' else (args.transport,)
     maximum = sum(case['maximum_provider_calls'] for case in selected) * len(transports)
     if not 0 < args.max_provider_calls <= 150 or maximum > args.max_provider_calls:
