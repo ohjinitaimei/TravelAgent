@@ -1,6 +1,7 @@
 import { editSnapshot, type EditSnapshot } from './editor'
 import type { Itinerary } from './api'
 import { parseEndpoints } from './endpoints'
+import { parseScheduleInputs } from './schedules'
 
 const MAX_AGE=7*24*60*60*1000
 const MAX_SIZE=32_768
@@ -23,7 +24,7 @@ function snapshot(v:unknown):EditSnapshot {
   const anchor=(key:string)=>{const value=v[key];if(value==null)return null;if(!id(value)||value.length>100||!value.trim())throw Error('invalid');return value}
   const daily=parseEndpoints(v.day_endpoints,groups.length),origin=anchor('day_origin_poi_id'),destination=anchor('day_destination_poi_id')
   if(daily&&(origin||destination))throw Error('invalid')
-  return {groups,prices:fields(v.prices),durations:fields(v.durations),start_date:text('start_date'),day_start:text('day_start'),day_end:text('day_end'),mode:String(v.mode),budget:scalar(v.budget),defaultStay:scalar(v.defaultStay),optimize:v.optimize,max_leg_travel_minutes:scalar(v.max_leg_travel_minutes??null),max_daily_travel_minutes:scalar(v.max_daily_travel_minutes??null),day_origin_poi_id:origin,day_destination_poi_id:destination,day_endpoints:daily}
+  return {groups,prices:fields(v.prices),durations:fields(v.durations),start_date:text('start_date'),day_start:text('day_start'),day_end:text('day_end'),mode:String(v.mode),budget:scalar(v.budget),defaultStay:scalar(v.defaultStay),optimize:v.optimize,max_leg_travel_minutes:scalar(v.max_leg_travel_minutes??null),max_daily_travel_minutes:scalar(v.max_daily_travel_minutes??null),day_origin_poi_id:origin,day_destination_poi_id:destination,day_endpoints:daily,day_schedules:parseScheduleInputs(v.day_schedules,groups.length)}
 }
 export function parseEditDraft(raw:string,now=Date.now()):EditDraft {
   if(raw.length>MAX_SIZE)throw Error('草稿过大，无法恢复；可放弃本机草稿后重新编辑。')

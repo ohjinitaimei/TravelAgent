@@ -22,6 +22,9 @@ class TimeConflictDay(Model):
     destination_travel_minutes: int = Field(default=0, ge=0)
     required_minutes: int = Field(ge=0)
     overrun_minutes: int = Field(gt=0)
+    day_start: str | None = None
+    day_end: str | None = None
+    available_minutes: int | None = Field(default=None, gt=0, le=1439)
 
 
 class TimeConstraintDiagnostics(Model):
@@ -182,6 +185,18 @@ class DayEndpoints(Model):
         return self
 
 
+class DaySchedule(Model):
+    day_start: str = Field(pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    day_end: str = Field(pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    stay_minutes: int = Field(strict=True, ge=10, le=360, description="当日默认停留；逐站用户设置优先")
+
+    @model_validator(mode="after")
+    def validate_window(self):
+        if self.day_end <= self.day_start:
+            raise ValueError("当日结束时间必须晚于开始时间，不支持跨夜时段")
+        return self
+
+
 class PlanRequest(Model):
     city: str = Field(min_length=1, max_length=60)
     query: str = Field(min_length=1, max_length=240, description="POI 搜索关键词与偏好；硬约束以结构化字段为准")
@@ -200,6 +215,7 @@ class PlanRequest(Model):
     day_origin_poi_id: str | None = Field(default=None, min_length=1, max_length=100, description="每日共享出发 POI；每日开始表示离开该地点")
     day_destination_poi_id: str | None = Field(default=None, min_length=1, max_length=100, description="每日共享返回 POI；每日结束约束返回到达")
     day_endpoints: list[DayEndpoints] | None = Field(default=None, min_length=1, max_length=3, description="逐日独立起终点，按日期排序且长度等于 days；启用时共享起终点须为空，空侧不计往返")
+    day_schedules: list[DaySchedule] | None = Field(default=None, min_length=1, max_length=3, description="逐日时段与默认停留，长度等于 days；空值沿用共用设置，逐站停留优先")
 
     @model_validator(mode="after")
     def validate_constraints(self):
@@ -207,6 +223,8 @@ class PlanRequest(Model):
             raise ValueError("城市与关键词不得为空")
         if self.day_end <= self.day_start:
             raise ValueError("每日结束时间必须晚于开始时间")
+        if self.day_schedules is not None and len(self.day_schedules) != self.days:
+            raise ValueError("逐日时段须与天数一致")
         if any(value is not None and not value.strip() for value in (self.day_origin_poi_id, self.day_destination_poi_id)):
             raise ValueError("出发地与返回地 ID 不得为空白")
         if self.day_endpoints is not None:
@@ -233,10 +251,13 @@ class EditRequest(Model):
     day_origin_poi_id: str | None = Field(default=None, min_length=1, max_length=100)
     day_destination_poi_id: str | None = Field(default=None, min_length=1, max_length=100)
     day_endpoints: list[DayEndpoints] | None = Field(default=None, min_length=1, max_length=3)
+    day_schedules: list[DaySchedule] | None = Field(default=None, min_length=1, max_length=3)
 
     @model_validator(mode="after")
     def validate_ids(self):
         ids = [item for day in self.poi_ids_by_day for item in day]
+        if self.day_schedules is not None and len(self.day_schedules) != len(self.poi_ids_by_day):
+            raise ValueError("逐日时段须与天数一致")
         if self.day_endpoints is not None and len(self.day_endpoints) != len(self.poi_ids_by_day):
             raise ValueError("逐日起终点须与天数一致")
         if any(not day or len(day) > 4 for day in self.poi_ids_by_day):
@@ -275,6 +296,7 @@ class Day(Model):
     destination_segment: Segment | None = None
     origin_departure_time: str | None = None
     return_arrival_time: str | None = None
+    schedule: DaySchedule | None = Field(default=None, description="本次核验实际采用的用户时段与当日默认停留；旧记录为空")
 
 
 class Budget(Model):

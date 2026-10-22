@@ -2,11 +2,13 @@
 import { computed } from 'vue'
 import type { Itinerary } from '../api'
 import { dayTransport } from '../journey'
+import { scheduleAt } from '../schedules'
 
 const props = defineProps<{ itinerary: Itinerary; selected: number; previewCounts?: number[] }>()
 const emit = defineEmits<{ select: [index: number] }>()
 // Summarize saved API facts only. Scheduling and route calculation stay on the server.
-const days = computed(() => props.itinerary.days.map(day => ({
+const days = computed(() => props.itinerary.days.map((day,index) => ({
+  schedule:day.schedule??scheduleAt(props.itinerary.request,index),
   date: day.date,
   stops: day.stops.length,
   stay: day.stops.reduce((sum, stop) => sum + stop.stay_minutes, 0),
@@ -40,6 +42,7 @@ function navigate(event: KeyboardEvent, index: number) {
           <span class="overview-muted">路线、时间与费用待保存核算</span>
         </template>
         <template v-else>
+          <span v-if="day.schedule">时段 {{day.schedule.day_start}}–{{day.schedule.day_end}}</span>
           <span class="overview-stations">{{day.stops}} 站 · 停留 {{day.stay}} 分钟</span>
           <span>站间交通 {{day.transport.interstop??'未知'}} 分钟 · 总道路 {{day.transport.distance?.toFixed(2)??'未知'}} km</span>
           <span v-if="day.hasBoundary">出发/返回 {{day.transport.boundary??'未知'}} 分钟 · 总交通 {{day.transport.total??'未知'}} 分钟</span>

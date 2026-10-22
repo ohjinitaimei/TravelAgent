@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue'
-import { useTravelApi, apiBase, type Draft, type Itinerary, type PlanRequest, type Poi, type Schema, type Task, type TravelEvent } from './api'
+import { useTravelApi, apiBase, type Draft, type Itinerary, type Poi, type Schema, type Task, type TravelEvent } from './api'
 import RouteMap from './components/RouteMap.vue'
 import JourneyEndpoints from './components/JourneyEndpoints.vue'
+import JourneySchedule from './components/JourneySchedule.vue'
+import { checkedStay, cloneSchedules, scheduleAt, validatedSchedules, type PlanForm, type ScheduleInput, type ScheduleOptions } from './schedules'
 import { cloneEndpoints, endpointAt, selectedAnchorIds, type DayEndpoints } from './endpoints'
 import AccessibleForm from './components/AccessibleForm.vue'
 import PoiDialog from './components/PoiDialog.vue'
@@ -37,7 +39,7 @@ const recoverableEdit=ref(editStore.draft), editStorageIssue=ref(editStore.issue
 function persist() {if(!disposed) writeSession(session,props.user.id)}
 const today = new Date()
 const localDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`
-const form = reactive<PlanRequest>(restoreForm({ city: '', query: '', start_date: localDate, days: 2, stops_per_day: 3, day_start: '09:00', day_end: '18:00', stay_minutes: 60, mode: 'walking', budget: null, user_prices: {}, day_endpoints:null, day_origin_poi_id:null, day_destination_poi_id:null,max_leg_travel_minutes:null,max_daily_travel_minutes:null }, session.form))
+const form = reactive<PlanForm>(restoreForm({ city: '', query: '', start_date: localDate, days: 2, stops_per_day: 3, day_start: '09:00', day_end: '18:00', stay_minutes: 60, mode: 'walking', budget: null, user_prices: {}, day_schedules:null, day_endpoints:null, day_origin_poi_id:null, day_destination_poi_id:null,max_leg_travel_minutes:null,max_daily_travel_minutes:null }, session.form))
 const capability = ref<Schema<'Capabilities'> | null>(null)
 const error = ref(''), notice = ref(''), busy = ref(false)
 const resultPending = ref(false)
@@ -63,7 +65,7 @@ function knownPoi(id?:string|null){return id?(anchorPois[id]??addedPois[id]??iti
 const editBaseline=ref<EditSnapshot|null>(null)
 const discardIntent=shallowRef<{action:string;run:()=>void|Promise<void>;returnFocus:HTMLElement|null}|null>(null)
 const selectedStopId=ref<string|null>(null), timeline=ref<HTMLElement>()
-const editConstraints = reactive({start_date:localDate, day_start:'09:00', day_end:'18:00', mode:'walking' as 'walking'|'driving', budget:null as number|string|null,max_leg_travel_minutes:null as number|string|null,max_daily_travel_minutes:null as number|string|null,day_origin_poi_id:null as string|null,day_destination_poi_id:null as string|null,day_endpoints:null as DayEndpoints[]|null})
+const editConstraints = reactive({start_date:localDate, day_start:'09:00', day_end:'18:00', mode:'walking' as 'walking'|'driving', budget:null as number|string|null,max_leg_travel_minutes:null as number|string|null,max_daily_travel_minutes:null as number|string|null,day_origin_poi_id:null as string|null,day_destination_poi_id:null as string|null,day_endpoints:null as DayEndpoints[]|null,day_schedules:null as ScheduleInput[]|null})
 const restoring = ref(false)
 let stream: EventSource | null = null, controller: AbortController | null = null
 const taskActive=computed(()=>['queued','running'].includes(task.value?.status||''))
@@ -107,14 +109,15 @@ async function focusEditField(field:HTMLElement){const index=field.closest<HTMLE
 async function locateTimeConstraint(field:'window'|'stops'|'stay',dayNumber:number) {
   if(!timeGuideEditable.value)return
   tab.value='plan'
-  const index=Math.max(0,Math.min(dayNumber-1,editIds.value.length-1))
+  const index=Math.max(0,Math.min(dayNumber-1,(editing.value?editIds.value.length:form.days??2)-1))
   if(editing.value)selectedDay.value=index
   await nextTick()
   const formElement=editing.value?timeline.value?.querySelector<HTMLFormElement>('form'):mainContent.value?.querySelector<HTMLFormElement>('.planner-form form')
   if(editing.value&&field==='window'){const details=formElement?.querySelector<HTMLDetailsElement>('.edit-constraints');if(details)details.open=true}
-  const selector=editing.value
-    ? field==='window'?'[name="day_end"]':`[data-edit-day="${index}"] ${field==='stay'?'input[type="number"]':'button.edit-select'}`
-    : `[name="${field==='window'?'day_end':field==='stay'?'stay_minutes':'stops_per_day'}"]`
+  const custom=(editing.value?editConstraints:form).day_schedules!=null
+  const selector=field==='window'?`[name="${custom?`day_end_${index}`:'day_end'}"]`:editing.value
+    ? `[data-edit-day="${index}"] ${field==='stay'?'input[type="number"]':'button.edit-select'}`
+    : `[name="${field==='stay'?(custom?`day_stay_${index}`:'stay_minutes'):'stops_per_day'}"]`
   const target=formElement?.querySelector<HTMLElement>(selector)
   target?.focus();target?.scrollIntoView({block:'center'})
 }
@@ -164,7 +167,7 @@ async function restoreEdit() {
     for(const key of Object.keys(editPrices))delete editPrices[key]
     for(const key of Object.keys(editDurations))delete editDurations[key]
     for(const id of value.value.groups.flat()) {editPrices[id]=value.value.prices[id]??'';editDurations[id]=value.value.durations[id]??''}
-    Object.assign(editConstraints,{start_date:value.value.start_date,day_start:value.value.day_start,day_end:value.value.day_end,mode:value.value.mode,budget:value.value.budget??null,max_leg_travel_minutes:value.value.max_leg_travel_minutes??null,max_daily_travel_minutes:value.value.max_daily_travel_minutes??null,day_origin_poi_id:value.value.day_origin_poi_id,day_destination_poi_id:value.value.day_destination_poi_id,day_endpoints:cloneEndpoints(value.value.day_endpoints)})
+    Object.assign(editConstraints,{start_date:value.value.start_date,day_start:value.value.day_start,day_end:value.value.day_end,mode:value.value.mode,budget:value.value.budget??null,max_leg_travel_minutes:value.value.max_leg_travel_minutes??null,max_daily_travel_minutes:value.value.max_daily_travel_minutes??null,day_origin_poi_id:value.value.day_origin_poi_id,day_destination_poi_id:value.value.day_destination_poi_id,day_endpoints:cloneEndpoints(value.value.day_endpoints),day_schedules:cloneSchedules(value.value.day_schedules)})
     for(const poi of extras)addedPois[poi.id]=poi
     addDay.value=value.day;editBaseline.value=value.baseline;editing.value=true
     notice.value='已恢复本机编辑草稿，尚未提交。保存时会重新查询真实路线。'
@@ -269,7 +272,7 @@ async function generate(event?:SubmitEvent) {
   if(staleDraft.value) {error.value='草案已更新，请先填入最新草案，或选择保留当前表单。';return}
   error.value = ''
   const budget = typeof form.budget === 'number' && Number.isFinite(form.budget) ? form.budget : null
-  try {await submitOperation({kind:'plan',request:{...form,...travelLimits(form),budget,user_prices:{}}},event?.submitter)}catch(e){report(e)}
+  try {await submitOperation({kind:'plan',request:{...form,...validatedSchedules(form,form.days??2),...travelLimits(form),budget,user_prices:{}}},event?.submitter)}catch(e){report(e)}
 }
 async function parseDescription(text:string) {
   if(busy.value||active.value) return
@@ -323,7 +326,7 @@ function edit() {
   for (const key of Object.keys(editPrices)) delete editPrices[key]
   for (const d of itinerary.value.days) for (const stop of d.stops) editPrices[stop.poi.id] = stop.user_cost == null ? '' : String(stop.user_cost)
   addDay.value=selectedDay.value
-  Object.assign(editConstraints, {start_date:itinerary.value.request.start_date, day_start:itinerary.value.request.day_start, day_end:itinerary.value.request.day_end, mode:itinerary.value.request.mode, budget:itinerary.value.request.budget??null,max_leg_travel_minutes:itinerary.value.request.max_leg_travel_minutes??null,max_daily_travel_minutes:itinerary.value.request.max_daily_travel_minutes??null,day_origin_poi_id:itinerary.value.request.day_origin_poi_id??null,day_destination_poi_id:itinerary.value.request.day_destination_poi_id??null,day_endpoints:cloneEndpoints(itinerary.value.request.day_endpoints)})
+  Object.assign(editConstraints, {start_date:itinerary.value.request.start_date, day_start:itinerary.value.request.day_start, day_end:itinerary.value.request.day_end, mode:itinerary.value.request.mode, budget:itinerary.value.request.budget??null,max_leg_travel_minutes:itinerary.value.request.max_leg_travel_minutes??null,max_daily_travel_minutes:itinerary.value.request.max_daily_travel_minutes??null,day_origin_poi_id:itinerary.value.request.day_origin_poi_id??null,day_destination_poi_id:itinerary.value.request.day_destination_poi_id??null,day_endpoints:cloneEndpoints(itinerary.value.request.day_endpoints),day_schedules:cloneSchedules(itinerary.value.request.day_schedules)})
   for(const key of Object.keys(editDurations)) delete editDurations[key]
   for(const d of itinerary.value.days) for(const stop of d.stops) editDurations[stop.poi.id]=stop.stay_minutes
   editBaseline.value=itineraryBaseline(itinerary.value);editing.value=true
@@ -356,8 +359,23 @@ function add(poi:Poi) {
   if (!editing.value) { error.value='请先在工作台点击编辑行程'; return }
   if(editIds.value.some(d=>d.includes(poi.id))) { error.value='该地点已在行程中'; return }
   if(editIds.value[addDay.value].length>=4) { error.value='每天最多 4 站'; return }
-  addedPois[poi.id]=poi; editDurations[poi.id]=editStay.value
+  let stay:number
+  try {stay=checkedStay(scheduleAt({...editConstraints,stay_minutes:editStay.value},addDay.value)?.stay_minutes)}catch(e){report(e);return}
+  addedPois[poi.id]=poi; editDurations[poi.id]=stay
   editIds.value[addDay.value].push(poi.id); notice.value=`已加入第 ${addDay.value+1} 天，保存后重新查询路线`
+}
+function updateEditSchedule(value:ScheduleOptions){
+  const {stay_minutes,...constraints}=value
+  Object.assign(editConstraints,constraints)
+  if('stay_minutes' in value)editStay.value=stay_minutes??''
+}
+function applyDayStay(index:number){
+  if(busy.value||active.value)return
+  try {
+    const stay=checkedStay(scheduleAt({...editConstraints,stay_minutes:editStay.value},index)?.stay_minutes)
+    for(const id of editIds.value[index]??[])editDurations[id]=stay
+    notice.value=`已将第 ${index+1} 天站点停留设为 ${stay} 分钟；保存后重新核验时段。`;error.value=''
+  }catch(e){report(e)}
 }
 async function saveEdit() {
   if (!itinerary.value || busy.value || active.value) return
@@ -365,8 +383,8 @@ async function saveEdit() {
   if(editIds.value.some(ids=>!ids.length||ids.length>4)) {error.value='每天须保留 1 至 4 个地点';return}
   if(!editConstraints.start_date||editConstraints.day_end<=editConstraints.day_start) {error.value='请填写日期，每日结束时间须晚于开始时间';return}
   const durations: Record<string,number>={}
-  for(const id of editIds.value.flat()) {
-    const value=editDurations[id]??editStay.value
+  for(const [index,ids] of editIds.value.entries()) for(const id of ids) {
+    const value=editDurations[id]??scheduleAt({...editConstraints,stay_minutes:editStay.value},index)?.stay_minutes
     if(typeof value!=='number'||!Number.isInteger(value)||value<10||value>360) {error.value='各站停留须为 10 至 360 分钟的整数';return}
     durations[id]=value
   }
@@ -378,7 +396,7 @@ async function saveEdit() {
   persistEdit()
   if(editStorageConflict.value){error.value=editStorageIssue.value;return}
   let limits
-  try {limits=travelLimits(editConstraints)}catch(e){report(e);return}
+  try {limits={...travelLimits(editConstraints),...validatedSchedules(editConstraints,editIds.value.length)}}catch(e){report(e);return}
   await submitOperation({kind:'adjust',itineraryId:itinerary.value.id,request:{...editConstraints,...limits, budget, poi_ids_by_day:editIds.value, user_prices:prices, stay_minutes:editStay.value, stay_minutes_by_poi:durations, optimize_order:optimize.value}})
 }
 function openTrip(id:string,event?:MouseEvent) {
@@ -448,8 +466,7 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
             <label class="planner-wide">地点关键词<textarea v-model="form.query" name="query" required maxlength="240" rows="3" placeholder="例如：博物馆、公园、咖啡" :disabled="busy||active"/><small>用于真实地点搜索，硬约束请在下方填写</small></label>
             <label>出发日期<input v-model="form.start_date" name="start_date" type="date" required :disabled="busy||active"/></label>
             <div class="field-row"><label>旅行天数<select v-model.number="form.days" name="days"><option v-for="n in 3" :value="n">{{n}} 天</option></select></label><label>每天站数<select v-model.number="form.stops_per_day" name="stops_per_day"><option v-for="n in 4" :value="n">{{n}} 站</option></select></label></div>
-            <div class="field-row"><label>每日开始<input v-model="form.day_start" name="day_start" type="time" required/></label><label>每日结束<input v-model="form.day_end" name="day_end" data-after="day_start" type="time" required/></label></div>
-            <label>每站停留（分钟）<input v-model.number="form.stay_minutes" name="stay_minutes" type="number" min="10" max="360" required/><small>这是你设定的时间，可在生成后调整</small></label>
+            <JourneySchedule :value="form" :days="form.days??2" :disabled="busy||active" @change="Object.assign(form,$event)"/>
             <label>交通方式<select v-model="form.mode" name="mode"><option value="walking">步行 · 真实步行路线</option><option value="driving">驾车 · 真实驾车路线</option></select></label>
             <fieldset class="travel-limits"><legend>交通时长偏好（可选）</legend><p class="subtle">按当前{{form.mode==='walking'?'步行':'驾车'}}模式核验，含所选出发和返回；留空只提示负担。</p><label>单段交通上限（分钟）<input v-model.number="form.max_leg_travel_minutes" name="max_leg_travel_minutes" type="number" min="1" max="1439" step="1" placeholder="不限制"/></label><label>每日交通上限（分钟）<input v-model.number="form.max_daily_travel_minutes" name="max_daily_travel_minutes" type="number" min="1" max="1439" step="1" placeholder="不限制"/></label></fieldset>
             <label>总预算（可选）<div class="money-input"><span>¥</span><input v-model.number="form.budget" name="budget" step="any" type="number" min="0" placeholder="输入预算上限"/></div></label>
@@ -487,7 +504,7 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
                   <div v-for="(dayIds,dayIndex) in editIds" :key="dayIndex" v-show="dayIndex===selectedDay" class="edit-day" :data-edit-day="dayIndex">
                   <div v-for="(id,i) in dayIds" :key="id" class="edit-stop" role="group" :aria-label="`第 ${dayIndex+1} 天 ${editName(id)}`" :class="{'selected-stop':selectedStopId===id}" :data-stop-id="id"><button type="button" class="edit-select" :aria-label="`地图定位 ${editName(id)}`" :aria-pressed="selectedStopId===id" @click="selectStop(id)">{{i+1}}. {{editName(id)}}</button><div class="edit-actions"><button type="button" :disabled="i===0" :aria-label="`上移 ${editName(id)}`" @click="move(i,-1)">↑</button><button type="button" :disabled="i===dayIds.length-1" :aria-label="`下移 ${editName(id)}`" @click="move(i,1)">↓</button><button type="button" :aria-label="`移除 ${editName(id)}`" @click="removeStop(i)">移除</button></div><div class="field-row"><label>停留（分钟）<input v-model.number="editDurations[id]" :data-label="`第 ${dayIndex+1} 天 ${editName(id)} 停留`" type="number" required min="10" max="360" step="1"/></label><label>用户录入费用<input v-model="editPrices[id]" :data-label="`第 ${dayIndex+1} 天 ${editName(id)} 费用`" type="number" min="0" step="any" placeholder="未知"/></label></div><div v-if="editIds.length>1" class="transfer-row"><select v-model.number="moveDays[id]" :aria-label="`移动 ${editName(id)} 到哪一天`"><option :value="undefined" disabled>选择目标日</option><option v-for="(_,index) in editIds" :value="index" :disabled="index===selectedDay">第 {{index+1}} 天</option></select><button type="button" class="text-button" @click="transfer(id)">移动</button></div></div>
                   <p v-if="!dayIds.length" class="edit-note">此日尚无地点，请从其他日期移动或搜索添加。</p></div>
-                  <details class="edit-constraints" open><summary>日期与行程约束</summary><label>出发日期<input v-model="editConstraints.start_date" name="start_date" type="date" required/></label><div class="field-row"><label>每日开始<input v-model="editConstraints.day_start" name="day_start" type="time" required/></label><label>每日结束<input v-model="editConstraints.day_end" name="day_end" data-after="day_start" type="time" required/></label></div><label>交通方式<select v-model="editConstraints.mode" name="mode"><option value="walking">步行</option><option value="driving">驾车</option></select></label><label>单段交通上限（分钟）<input v-model.number="editConstraints.max_leg_travel_minutes" name="max_leg_travel_minutes" type="number" min="1" max="1439" step="1" placeholder="不限制"/></label><label>每日交通上限（分钟）<input v-model.number="editConstraints.max_daily_travel_minutes" name="max_daily_travel_minutes" type="number" min="1" max="1439" step="1" placeholder="不限制"/></label><p class="edit-note">交通上限按当前模式核验，包含出发和返回。留空可明确清除。</p><label>总预算上限<input v-model.number="editConstraints.budget" name="budget" step="any" type="number" min="0" placeholder="留空取消上限"/></label><label>新增站点默认停留（分钟）<input v-model.number="editStay" type="number" required min="10" max="360" step="1"/></label></details><label class="check-label"><input v-model="optimize" type="checkbox"/>按真实距离重新排序</label>
+                  <details class="edit-constraints" open><summary>日期与行程约束</summary><label>出发日期<input v-model="editConstraints.start_date" name="start_date" type="date" required/></label><JourneySchedule :value="{...editConstraints,stay_minutes:editStay}" :days="editIds.length" :disabled="busy||active" editing @change="updateEditSchedule" @apply="applyDayStay"/><label>交通方式<select v-model="editConstraints.mode" name="mode"><option value="walking">步行</option><option value="driving">驾车</option></select></label><label>单段交通上限（分钟）<input v-model.number="editConstraints.max_leg_travel_minutes" name="max_leg_travel_minutes" type="number" min="1" max="1439" step="1" placeholder="不限制"/></label><label>每日交通上限（分钟）<input v-model.number="editConstraints.max_daily_travel_minutes" name="max_daily_travel_minutes" type="number" min="1" max="1439" step="1" placeholder="不限制"/></label><p class="edit-note">交通上限按当前模式核验，包含出发和返回。留空可明确清除。</p><label>总预算上限<input v-model.number="editConstraints.budget" name="budget" step="any" type="number" min="0" placeholder="留空取消上限"/></label></details><label class="check-label"><input v-model="optimize" type="checkbox"/>按真实距离重新排序</label>
                   <JourneyEndpoints class="edit-endpoints" :value="editConstraints" :days="editIds.length" :city="itinerary.request.city" :disabled="busy||active" :known-poi="knownPoi" @change="Object.assign(editConstraints,$event)" @loaded="rememberAnchor"/>
                   </fieldset>
                   <div class="edit-actions"><button class="primary" type="submit" :disabled="busy||active">保存并重算</button><button class="secondary" type="button" :disabled="busy||active" @click="exitEdit">退出编辑</button></div></AccessibleForm><button class="text-button" @click="tab='explore';searchCity=itinerary.request.city">探索并添加地点 ↗</button>

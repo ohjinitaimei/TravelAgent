@@ -72,10 +72,12 @@ def minute(value):
 
 def quality_observations(trip, days):
     """Describe validated saved facts; never infer satisfaction or new constraints."""
-    available = minute(trip.request.day_end) - minute(trip.request.day_start)
+    from travel.schedules import daily_schedules
+    schedules=daily_schedules(trip.request)
     observations, attention = [], []
     for index, day in enumerate(trip.days):
         measured = days[index]
+        available = minute(schedules[index].day_end)-minute(schedules[index].day_start)
         elapsed = measured['stay_minutes'] + measured['travel_minutes']
         legs = []
         for position, stop in enumerate(day.stops):
@@ -139,8 +141,13 @@ def summarize(raw, expected):
         return segment.duration_min, segment.distance_km
     from travel.endpoints import daily_endpoints
     endpoints = daily_endpoints(request)
+    from travel.schedules import daily_schedules, stay_minutes
+    schedules = daily_schedules(request)
     for index, day in enumerate(trip.days):
         selected = endpoints[index]
+        schedule = schedules[index]
+        if request.day_schedules is not None or day.schedule is not None:
+            require(day.schedule == schedule, 'day_schedule_mismatch')
         require(day.date == request.start_date + timedelta(days=index), 'day_date')
         require(len(day.stops) == request.stops_per_day, 'stop_count')
         original_day = raw['days'][index]
@@ -148,8 +155,8 @@ def summarize(raw, expected):
             original_day.get('origin_poi'), original_day.get('origin_segment'), True)
         outgoing, outgoing_distance = boundary(day.destination_poi, day.destination_segment, selected.destination_poi_id, day.stops[-1].poi,
             original_day.get('destination_poi'), original_day.get('destination_segment'), False)
-        require(day.origin_departure_time == (request.day_start if selected.origin_poi_id else None), 'origin_departure')
-        arrival = minute(request.day_start) + incoming
+        require(day.origin_departure_time == (schedule.day_start if selected.origin_poi_id else None), 'origin_departure')
+        arrival = minute(schedule.day_start) + incoming
         distance, travel = incoming_distance + outgoing_distance, incoming + outgoing
         for position, stop in enumerate(day.stops):
             ids.append(stop.poi.id)
@@ -163,12 +170,12 @@ def summarize(raw, expected):
                 require(absent == (field in stop.poi.missing_fields), 'missing_field_marker')
                 if absent:
                     missing[field] += 1
-            require(stop.stay_minutes == request.stay_minutes, 'stay_duration')
+            require(stop.stay_minutes == stay_minutes(request,stop.poi.id,index), 'stay_duration')
             require(stop.stay_source == 'user_input', 'stay_provenance')
             require(minute(stop.arrival_time) == arrival, 'arrival_schedule')
             arrival += stop.stay_minutes
             require(minute(stop.departure_time) == arrival, 'departure_schedule')
-            require(arrival <= minute(request.day_end), 'day_end_exceeded')
+            require(arrival <= minute(schedule.day_end), 'day_end_exceeded')
             require(stop.user_cost is None and stop.cost_source is None, 'invented_station_cost')
             evidence.append({'id': stop.poi.id, 'name': stop.poi.name, 'city': stop.poi.city,
                 'category': stop.poi.category, 'name_contains_keyword': request.query in stop.poi.name,
@@ -192,7 +199,7 @@ def summarize(raw, expected):
         factual_legs = [day.origin_segment, *[stop.travel_to_next for stop in day.stops], day.destination_segment]
         if request.max_leg_travel_minutes is not None:
             require(all(leg.duration_min <= request.max_leg_travel_minutes for leg in factual_legs if leg), 'leg_travel_limit')
-        require(arrival + outgoing <= minute(request.day_end), 'return_end_exceeded')
+        require(arrival + outgoing <= minute(schedule.day_end), 'return_end_exceeded')
         require((minute(day.return_arrival_time) == arrival + outgoing) if selected.destination_poi_id else day.return_arrival_time is None, 'return_arrival')
         days.append({'date': str(day.date), 'poi_ids': [s.poi.id for s in day.stops],
                      'stay_minutes': sum(s.stay_minutes for s in day.stops), 'travel_minutes': travel,

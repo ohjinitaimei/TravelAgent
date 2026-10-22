@@ -1,3 +1,4 @@
+import { scheduleAt, sharedScheduleReady, cloneSchedules, parseScheduleInputs, validatedSchedules } from '../apps/web/src/schedules'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { TravelClient, type Itinerary } from '../packages/api-schema/client'
@@ -122,4 +123,68 @@ test('travel limits persist as user inputs and old draft baselines normalize abs
   assert.equal(restoreForm(original.request,{...original.request,max_leg_travel_minutes:1.5}).max_leg_travel_minutes,undefined)
   assert.ok(editChanges(restored.baseline,restored.value,id=>id).some(c=>c.label==='单段交通上限'&&c.after==='20 分钟'))
   assert.ok(editChanges(restored.value,restored.baseline,id=>id).some(c=>c.label==='单段交通上限'&&c.after==='未设置'))
+})
+
+
+test('daily schedules validate complete same-day inputs with strict integer defaults',()=>{
+  const daily=[{day_start:'08:00',day_end:'12:00',stay_minutes:30},{day_start:'14:00',day_end:'18:00',stay_minutes:45}]
+  assert.deepEqual(validatedSchedules({day_schedules:daily},2).day_schedules,daily)
+  assert.equal(scheduleAt({day_schedules:daily,stay_minutes:60},1)?.stay_minutes,45)
+  assert.equal(scheduleAt({day_schedules:daily},2),undefined)
+  assert.equal(validatedSchedules({},2).day_schedules,null)
+  for(const stay of ['30',null,9,361,30.5,true])assert.throws(()=>validatedSchedules({day_schedules:[{...daily[0],stay_minutes:stay as number}]},1))
+  for(const day of [{...daily[0],day_end:'07:00'},{...daily[0],day_start:''},{...daily[0],day_start:'8:00'}])assert.throws(()=>validatedSchedules({day_schedules:[day]},1))
+  assert.throws(()=>parseScheduleInputs(daily,1))
+  assert.throws(()=>parseScheduleInputs([{...daily[0],source:{provider:'amap'}}],1))
+})
+
+test('daily schedule drafts preserve incomplete inputs and normalize legacy absence',()=>{
+  const value=trip(),baseline=editSnapshot({groups:[['a']],prices:{},durations:{a:60},constraints:value.request,defaultStay:60,optimize:false})
+  const old={...baseline};delete (old as Partial<typeof old>).day_schedules
+  const input={version:1,sourceId:'TEST ONLY',sourceCreatedAt:'',baseline:old,value:{...baseline,day_schedules:[{day_start:'',day_end:'08:00',stay_minutes:null}]},day:0,updatedAt:Date.now()}
+  const result=parseEditDraft(JSON.stringify(input))
+  assert.equal(result.baseline.day_schedules,null)
+  assert.deepEqual(result.value.day_schedules,input.value.day_schedules)
+  assert.throws(()=>validatedSchedules(result.value,1))
+  assert.throws(()=>parseEditDraft(JSON.stringify({...input,value:{...input.value,day_schedules:[{...input.value.day_schedules[0],price:1}]}})))
+  assert.throws(()=>parseEditDraft(JSON.stringify({...input,value:{...input.value,day_schedules:[]}})))
+})
+
+test('daily defaults do not override explicit stops and new stops use their target day',()=>{
+  const constraints={...trip().request,day_schedules:[{day_start:'08:00',day_end:'12:00',stay_minutes:30},{day_start:'14:00',day_end:'18:00',stay_minutes:45}]}
+  const original=editSnapshot({groups:[['a'],['b']],prices:{},durations:{a:60},constraints,defaultStay:90,optimize:false})
+  assert.deepEqual(original.durations,{a:60,b:45})
+  const moved=editSnapshot({groups:[['b'],['a']],prices:{},durations:original.durations,constraints,defaultStay:90,optimize:false})
+  assert.deepEqual(moved.durations,original.durations)
+  const copy=cloneSchedules(constraints.day_schedules)!
+  copy[0].stay_minutes=120
+  assert.equal(constraints.day_schedules[0].stay_minutes,30)
+})
+
+test('schedule and stop changes appear separately in edit and saved version comparisons',()=>{
+  const parent=trip();parent.request.day_schedules=[{day_start:'08:00',day_end:'12:00',stay_minutes:30}]
+  const child=structuredClone(parent);child.id='child';child.parent_id=parent.id
+  child.request.day_schedules![0]={day_start:'10:00',day_end:'16:00',stay_minutes:45}
+  const changes=versionChanges(parent,child)
+  assert.ok(changes.some(c=>c.label==='第 1 天开始'&&c.after==='10:00'))
+  assert.ok(changes.some(c=>c.label==='第 1 天默认停留'&&c.after==='45 分钟'))
+  assert.ok(!changes.some(c=>c.label.startsWith('停留 ')))
+  assert.equal(parent.request.day_schedules[0].day_start,'08:00')
+  child.request.day_schedules=null
+  assert.ok(versionChanges(parent,child).some(c=>c.label==='时段设置方式'&&c.after==='所有日期共用'))
+})
+
+test('workspace restores incomplete daily fields while rejecting injected facts',()=>{
+  const defaults={...trip().request,day_schedules:null}
+  const daily=[{day_start:'',day_end:'07:00',stay_minutes:''}]
+  assert.deepEqual(restoreForm(defaults,{...defaults,day_schedules:daily}).day_schedules,[{...daily[0],stay_minutes:null}])
+  assert.equal(restoreForm(defaults,{...defaults,day_schedules:[{...daily[0],longitude:120}]}).day_schedules,null)
+  assert.equal(draftForm({proposal:{values:{city:'TEST ONLY'}}} as Draft).day_schedules,null)
+})
+
+
+test('mode switching requires complete shared fields so invalid fallback values remain editable',()=>{
+  const valid={day_start:'09:00',day_end:'18:00',stay_minutes:60}
+  assert.equal(sharedScheduleReady(valid),true)
+  for(const input of [{...valid,day_start:''},{...valid,day_end:'08:00'},...['',null,'30',30.5,9,true].map(stay=>({...valid,stay_minutes:stay as number}))])assert.equal(sharedScheduleReady(input),false)
 })

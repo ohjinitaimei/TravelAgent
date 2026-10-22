@@ -1,3 +1,4 @@
+import { cloneSchedules, scheduleAt, type ScheduleInput } from './schedules'
 import { cloneEndpoints, endpointAt, type DayEndpoints } from './endpoints'
 /** Vue number inputs may emit a number even without v-model.number. */
 export function userPrices(ids: string[], values: Record<string,string|number>): Record<string,number> {
@@ -23,7 +24,7 @@ export function travelLimits(value:{max_leg_travel_minutes?:Value;max_daily_trav
 }
 export type EditInput = {
   groups:string[][]; prices:Record<string,Value>; durations:Record<string,Value>
-  constraints:{start_date:string;day_start:string;day_end:string;mode:string;budget:Value;max_leg_travel_minutes?:Value;max_daily_travel_minutes?:Value;day_origin_poi_id?:string|null;day_destination_poi_id?:string|null;day_endpoints?:DayEndpoints[]|null}
+  constraints:{start_date:string;day_start:string;day_end:string;mode:string;budget:Value;max_leg_travel_minutes?:Value;max_daily_travel_minutes?:Value;day_origin_poi_id?:string|null;day_destination_poi_id?:string|null;day_endpoints?:DayEndpoints[]|null;day_schedules?:ScheduleInput[]|null}
   defaultStay:Value; optimize:boolean
 }
 export type EditSnapshot = {
@@ -31,6 +32,7 @@ export type EditSnapshot = {
   start_date:string;day_start:string;day_end:string;mode:string;budget:Value;defaultStay:Value;optimize:boolean
   max_leg_travel_minutes:Value;max_daily_travel_minutes:Value
   day_origin_poi_id:string|null;day_destination_poi_id:string|null
+  day_schedules:ScheduleInput[]|null
   day_endpoints:DayEndpoints[]|null
 }
 export type EditChange = {label:string;before:string;after:string}
@@ -46,11 +48,11 @@ export function editSnapshot(input:EditInput):EditSnapshot {
   const ids=[...new Set(input.groups.flat())].sort()
   return {groups:input.groups.map(day=>[...day]),
     prices:Object.fromEntries(ids.map(id=>[id,numeric(input.prices[id])])),
-    durations:Object.fromEntries(ids.map(id=>[id,numeric(input.durations[id]??input.defaultStay)])),
+    durations:Object.fromEntries(ids.map(id=>[id,numeric(input.durations[id]??scheduleAt({...input.constraints,stay_minutes:input.defaultStay},input.groups.findIndex(day=>day.includes(id)))?.stay_minutes)])),
     start_date:input.constraints.start_date,day_start:input.constraints.day_start,day_end:input.constraints.day_end,
     mode:input.constraints.mode,budget:numeric(input.constraints.budget),defaultStay:numeric(input.defaultStay),optimize:input.optimize,
     max_leg_travel_minutes:numeric(input.constraints.max_leg_travel_minutes),max_daily_travel_minutes:numeric(input.constraints.max_daily_travel_minutes),
-    day_origin_poi_id:input.constraints.day_origin_poi_id??null,day_destination_poi_id:input.constraints.day_destination_poi_id??null,day_endpoints:cloneEndpoints(input.constraints.day_endpoints)}
+    day_origin_poi_id:input.constraints.day_origin_poi_id??null,day_destination_poi_id:input.constraints.day_destination_poi_id??null,day_endpoints:cloneEndpoints(input.constraints.day_endpoints),day_schedules:cloneSchedules(input.constraints.day_schedules)}
 }
 
 export function editChanges(before:EditSnapshot,after:EditSnapshot,name:(id:string)=>string):EditChange[] {
@@ -76,6 +78,13 @@ export function editChanges(before:EditSnapshot,after:EditSnapshot,name:(id:stri
     }
   } else for(const [key,label] of [['day_origin_poi_id','出发地'],['day_destination_poi_id','返回地']] as const) {
     if((before[key]??null)!==(after[key]??null))changes.push({label,before:before[key]?name(before[key]):'未设置',after:after[key]?name(after[key]):'未设置'})
+  }
+  if(before.day_schedules!=null||after.day_schedules!=null) {
+    if(Boolean(before.day_schedules)!==Boolean(after.day_schedules))changes.push({label:'时段设置方式',before:before.day_schedules?'逐日独立':'所有日期共用',after:after.day_schedules?'逐日独立':'所有日期共用'})
+    for(let index=0;index<after.groups.length;index++)for(const [key,label] of [['day_start','开始'],['day_end','结束'],['stay_minutes','默认停留']] as const) {
+      const old=scheduleAt({...before,stay_minutes:before.defaultStay},index)?.[key],current=scheduleAt({...after,stay_minutes:after.defaultStay},index)?.[key]
+      if(old!==current)changes.push({label:`第 ${index+1} 天${label}`,before:text(old,key==='stay_minutes'?' 分钟':''),after:text(current,key==='stay_minutes'?' 分钟':'')})
+    }
   }
   for(const key of Object.keys(labels) as (keyof typeof labels)[]) if(before[key]!==after[key]) {
     const show=(snapshot:EditSnapshot)=>{

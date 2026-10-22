@@ -56,6 +56,6 @@
 
 新增 `backend/travel/endpoints.py`、`apps/web/src/endpoints.ts`、`apps/web/src/components/JourneyEndpoints.vue`、`tests/test_daily_endpoints.py` 及本文。修改 Schema、规划/预算/调整/任务指纹、Web 表单/地图预览/差异/草稿/会话/统计、生成契约、质量与验证脚本及相关测试文档。启动方式不变，见 [使用手册](../USER_GUIDE.md)。
 
-后续按真实使用反馈完善逐日时段和停留分配；如需营业/预约时间窗，先补合法可靠的数据来源和明确缺失处理。移动端继续复用当前契约，不另建 Agent 或路线算法。
+逐日时段和停留分配已在后续阶段实现并核验，见 [DAILY_SCHEDULES.md](DAILY_SCHEDULES.md)；如需营业/预约时间窗，先补合法可靠的数据来源和明确缺失处理。移动端继续复用当前契约，不另建 Agent 或路线算法。
 
 最终完整检查：Python 216、TS 40、类型/生产构建及生成契约一致性通过；三浏览器每引擎 73 项（工作台 43、账号 13、生产构建 17），共 219 次全部通过，零失败/跳过/自动重试。逻辑用例 329，总执行 475，汇总与日志见 [ACCEPTANCE.md](../ACCEPTANCE.md)。

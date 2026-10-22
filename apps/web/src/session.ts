@@ -1,11 +1,11 @@
-import type { PlanRequest } from './api'
+import { parseScheduleInputs, type PlanForm } from './schedules'
 import type { PendingSubmission } from './submissions'
 import { editDraftKey } from './editDraft'
 import { parseEndpoints } from './endpoints'
 
 const KEY = 'travelagent.workspace.v1'
 function key(ownerId:string) {return ownerId==='local'?KEY:`${KEY}.user.${encodeURIComponent(ownerId)}`}
-export type WorkspaceSession = { form?: PlanRequest; taskId?: string; itineraryId?: string; draftId?: string; pendingSubmission?:PendingSubmission; appliedDraft?:{id:string;revision:number} }
+export type WorkspaceSession = { form?: PlanForm; taskId?: string; itineraryId?: string; draftId?: string; pendingSubmission?:PendingSubmission; appliedDraft?:{id:string;revision:number} }
 
 /** Persist user inputs, pending submissions and server IDs, never provider datasets or credentials. */
 export function readSession(ownerId='local'): WorkspaceSession {
@@ -19,7 +19,7 @@ export function writeSession(value: WorkspaceSession,ownerId='local') {
 
 export function clearSession(ownerId:string) {try {localStorage.removeItem(key(ownerId));localStorage.removeItem(editDraftKey(ownerId))} catch {}}
 
-export function restoreForm(defaults: PlanRequest, stored: unknown): PlanRequest {
+export function restoreForm(defaults: PlanForm, stored: unknown): PlanForm {
   if (!stored || typeof stored !== 'object') return defaults
   const value = stored as Record<string, unknown>
   const result = { ...defaults }
@@ -44,5 +44,8 @@ export function restoreForm(defaults: PlanRequest, stored: unknown): PlanRequest
     const daily=parseEndpoints(value.day_endpoints,result.days??2)
     if(daily&&!result.day_origin_poi_id&&!result.day_destination_poi_id)result.day_endpoints=daily
   } catch { /* Invalid persisted options never become provider requests. */ }
+  try {
+    if(value.day_schedules!==undefined)result.day_schedules=parseScheduleInputs(value.day_schedules,result.days??2)
+  } catch { /* Reject provider facts and malformed daily options. */ }
   return result
 }

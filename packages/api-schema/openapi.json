@@ -4202,6 +4202,17 @@
               }
             ],
             "title": "Return Arrival Time"
+          },
+          "schedule": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DaySchedule"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "本次核验实际采用的用户时段与当日默认停留；旧记录为空"
           }
         },
         "additionalProperties": false,
@@ -4244,6 +4255,35 @@
         "additionalProperties": false,
         "type": "object",
         "title": "DayEndpoints"
+      },
+      "DaySchedule": {
+        "properties": {
+          "day_start": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "title": "Day Start"
+          },
+          "day_end": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "title": "Day End"
+          },
+          "stay_minutes": {
+            "type": "integer",
+            "maximum": 360.0,
+            "minimum": 10.0,
+            "title": "Stay Minutes",
+            "description": "当日默认停留；逐站用户设置优先"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "day_start",
+          "day_end",
+          "stay_minutes"
+        ],
+        "title": "DaySchedule"
       },
       "Draft": {
         "properties": {
@@ -4860,6 +4900,22 @@
               }
             ],
             "title": "Day Endpoints"
+          },
+          "day_schedules": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/DaySchedule"
+                },
+                "type": "array",
+                "maxItems": 3,
+                "minItems": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day Schedules"
           }
         },
         "additionalProperties": false,
@@ -5492,6 +5548,23 @@
             ],
             "title": "Day Endpoints",
             "description": "逐日独立起终点，按日期排序且长度等于 days；启用时共享起终点须为空，空侧不计往返"
+          },
+          "day_schedules": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/DaySchedule"
+                },
+                "type": "array",
+                "maxItems": 3,
+                "minItems": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day Schedules",
+            "description": "逐日时段与默认停留，长度等于 days；空值沿用共用设置，逐站停留优先"
           }
         },
         "additionalProperties": false,
@@ -6020,6 +6093,41 @@
             "type": "integer",
             "exclusiveMinimum": 0.0,
             "title": "Overrun Minutes"
+          },
+          "day_start": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day Start"
+          },
+          "day_end": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day End"
+          },
+          "available_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1439.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available Minutes"
           }
         },
         "additionalProperties": false,

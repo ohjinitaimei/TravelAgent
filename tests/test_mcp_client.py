@@ -56,6 +56,17 @@ def fixture_mcp_worker(payload,output):
 
 
 class McpClientTests(unittest.TestCase):
+    def test_daily_windows_and_stop_priority_share_real_stdio_without_more_calls(self):
+        from test_daily_schedules import SCHEDULES
+        request=PlanRequest.model_validate({**PAYLOAD,'days':2,'stops_per_day':1,'day_schedules':SCHEDULES,
+            'stay_minutes_by_poi':{'fixture-b':20},'day_origin_poi_id':'home'})
+        with open_mcp_provider(parameters=parameters()) as provider:
+            trip=plan(request,lambda *_:None,provider=provider)
+            self.assertEqual(provider.client.calls,4)
+            self.assertEqual([day.origin_departure_time for day in trip.days],['08:00','14:00'])
+            self.assertEqual([day.stops[0].arrival_time for day in trip.days],['08:37','14:37'])
+            self.assertEqual([day.stops[0].stay_minutes for day in trip.days],[30,20])
+
     def test_daily_boundaries_share_real_stdio_and_keep_default_call_budget(self):
         daily=[{'origin_poi_id':'home-1','destination_poi_id':'hotel-1'}, {'origin_poi_id':'home-2','destination_poi_id':None}]
         request=PlanRequest.model_validate({**PAYLOAD,'days':2,'stops_per_day':1,'day_endpoints':daily})

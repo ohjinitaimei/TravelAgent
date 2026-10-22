@@ -472,6 +472,8 @@ export interface components {
             origin_departure_time?: string | null;
             /** Return Arrival Time */
             return_arrival_time?: string | null;
+            /** @description 本次核验实际采用的用户时段与当日默认停留；旧记录为空 */
+            schedule?: components["schemas"]["DaySchedule"] | null;
         };
         /** DayEndpoints */
         DayEndpoints: {
@@ -479,6 +481,18 @@ export interface components {
             origin_poi_id?: string | null;
             /** Destination Poi Id */
             destination_poi_id?: string | null;
+        };
+        /** DaySchedule */
+        DaySchedule: {
+            /** Day Start */
+            day_start: string;
+            /** Day End */
+            day_end: string;
+            /**
+             * Stay Minutes
+             * @description 当日默认停留；逐站用户设置优先
+             */
+            stay_minutes: number;
         };
         /** Draft */
         Draft: {
@@ -622,6 +636,8 @@ export interface components {
             day_destination_poi_id?: string | null;
             /** Day Endpoints */
             day_endpoints?: components["schemas"]["DayEndpoints"][] | null;
+            /** Day Schedules */
+            day_schedules?: components["schemas"]["DaySchedule"][] | null;
         };
         /** Error */
         Error: {
@@ -875,6 +891,11 @@ export interface components {
              * @description 逐日独立起终点，按日期排序且长度等于 days；启用时共享起终点须为空，空侧不计往返
              */
             day_endpoints?: components["schemas"]["DayEndpoints"][] | null;
+            /**
+             * Day Schedules
+             * @description 逐日时段与默认停留，长度等于 days；空值沿用共用设置，逐站停留优先
+             */
+            day_schedules?: components["schemas"]["DaySchedule"][] | null;
         };
         /** PlanningMetrics */
         PlanningMetrics: {
@@ -1055,6 +1076,12 @@ export interface components {
             required_minutes: number;
             /** Overrun Minutes */
             overrun_minutes: number;
+            /** Day Start */
+            day_start?: string | null;
+            /** Day End */
+            day_end?: string | null;
+            /** Available Minutes */
+            available_minutes?: number | null;
         };
         /** TimeConstraintDiagnostics */
         TimeConstraintDiagnostics: {

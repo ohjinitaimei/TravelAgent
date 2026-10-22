@@ -12,16 +12,17 @@ from travel.schemas import Budget, Day, GroupingOptimization, Itinerary, Plannin
 from travel.tools import TravelTools
 from travel.planning_budget import planning_budget, TOOL_CALL_LIMIT
 from travel.endpoints import daily_endpoints, anchor_ids
+from travel.schedules import daily_schedules, stay_minutes
 from travel.travel_load import travel_load, within_travel_limits
 
 
-def legacy(poi: Poi, request: PlanRequest) -> POI:
+def legacy(poi: Poi, request: PlanRequest, day_index: int | None = None) -> POI:
     # Numeric compatibility placeholders stay internal. Factual-only ranking
     # explicitly excludes unknown fields; no legacy POI is serialized to clients.
     return POI(id=poi.id, name=poi.name, city=request.city,
                category=poi.category or "", address=poi.address,
                latitude=poi.latitude, longitude=poi.longitude, rating=poi.rating or 0,
-               visit_duration=request.stay_minutes_by_poi.get(poi.id, request.stay_minutes), provider="amap",
+               visit_duration=stay_minutes(request, poi.id, day_index) if day_index is not None else request.stay_minutes_by_poi.get(poi.id, request.stay_minutes), provider="amap",
                factual_fields=["rating"] if poi.rating is not None else [])
 
 
@@ -57,6 +58,7 @@ def plan(request: PlanRequest, emit: Callable[[str, str], None], *, provider: Am
     anchors = [(detail(day.origin_poi_id) if day.origin_poi_id else None,
                 detail(day.destination_poi_id) if day.destination_poi_id else None) for day in daily_endpoints(request)]
     has_anchors = any(origin or destination for origin, destination in anchors)
+    schedules = daily_schedules(request)
 
     comparison = None
     automatic_grouping = poi_ids_by_day is None and optimize_order and request.days > 1 and request.stops_per_day > 1
@@ -64,7 +66,7 @@ def plan(request: PlanRequest, emit: Callable[[str, str], None], *, provider: Am
     candidate_search_limited = budget.candidate_search_limited
     if automatic_grouping:
         emit("grouping", "正在比较每日地点的地理分组；交通结果仍以高德为准")
-        proposed = route_planner.propose_day_group_candidates([[legacy(poi, request) for poi in group] for group in groups], max_route_pairs=budget.interstop_routes)
+        proposed = route_planner.propose_day_group_candidates([[legacy(poi, request, index) for poi in group] for index, group in enumerate(groups)], max_route_pairs=budget.interstop_routes)
         candidates = [[[by_id[poi.id] for poi in group] for group in partition] for partition in proposed]
         # Moving a POI to another day can require a new lodging leg. Count the
         # union of all directed facts before querying any candidate routes.
@@ -117,6 +119,9 @@ def plan(request: PlanRequest, emit: Callable[[str, str], None], *, provider: Am
         feasible = True
         for index, group in enumerate(day_groups):
             origin_poi, destination_poi = anchors[index]
+            schedule = schedules[index]
+            start_time = route_planner._time_to_minutes(schedule.day_start)
+            end_limit = route_planner._time_to_minutes(schedule.day_end)
             emit("routing", f"{label}第 {index + 1} 天：查询真实交通矩阵")
             day_segments = {}
             pairs = ((a, b) for a in group for b in group if a.id != b.id) if optimize_order else zip(group, group[1:])
@@ -128,7 +133,7 @@ def plan(request: PlanRequest, emit: Callable[[str, str], None], *, provider: Am
                 for poi in group:
                     if origin_poi: route(origin_poi, poi)
                     if destination_poi: route(poi, destination_poi)
-            internal = [legacy(poi, request) for poi in group]
+            internal = [legacy(poi, request, index) for poi in group]
             emit("optimizing", f"{label}第 {index + 1} 天：" + ("复用现有最近邻排序" if optimize_order else "保留用户指定顺序"))
             ordered = route_planner._optimize_order_by_distance(internal,
                 distance_fn=lambda a, b: day_segments[(a.id, b.id)].distance_km,
@@ -164,8 +169,8 @@ def plan(request: PlanRequest, emit: Callable[[str, str], None], *, provider: Am
             travel_minutes.append(duration)
             days.append(Day(date=request.start_date + timedelta(days=index), stops=stops,
                 origin_poi=origin_poi, destination_poi=destination_poi, origin_segment=incoming, destination_segment=outgoing,
-                origin_departure_time=request.day_start if origin_poi else None,
-                return_arrival_time=clock(last_end) if destination_poi else None))
+                origin_departure_time=schedule.day_start if origin_poi else None,
+                return_arrival_time=clock(last_end) if destination_poi else None, schedule=schedule.model_copy()))
         feasible = feasible and within_travel_limits(travel_load(days, request))
         return days, PlanningMetrics(distance_km=round(distance, 6), travel_minutes=sum(travel_minutes),
             busiest_day_minutes=max(day_minutes, default=0), per_day_travel_minutes=travel_minutes, feasible=feasible)
@@ -199,10 +204,11 @@ def plan(request: PlanRequest, emit: Callable[[str, str], None], *, provider: Am
     if not result.feasible:
         # Explain the original partition, never present an infeasible candidate
         # as an accepted trip. Reuse the already queried matrix; no extra calls.
-        available = end_limit - start_time
         conflicts = []
         for index, group in enumerate(groups):
-            stay = sum(request.stay_minutes_by_poi.get(poi.id, request.stay_minutes) for poi in group)
+            schedule = schedules[index]
+            available = route_planner._time_to_minutes(schedule.day_end) - route_planner._time_to_minutes(schedule.day_start)
+            stay = sum(stay_minutes(request, poi.id, index) for poi in group)
             total_travel = baseline.per_day_travel_minutes[index]
             incoming = days[index].origin_segment.duration_min if days[index].origin_segment else 0
             outgoing = days[index].destination_segment.duration_min if days[index].destination_segment else 0
@@ -211,11 +217,12 @@ def plan(request: PlanRequest, emit: Callable[[str, str], None], *, provider: Am
             if required > available:
                 conflicts.append(TimeConflictDay(day_number=index + 1, stay_minutes=stay,
                     travel_minutes=travel, origin_travel_minutes=incoming, destination_travel_minutes=outgoing,
-                    required_minutes=required, overrun_minutes=required - available))
+                    required_minutes=required, overrun_minutes=required - available,
+                    **({'day_start':schedule.day_start,'day_end':schedule.day_end,'available_minutes':available} if request.day_schedules is not None else {})))
         if conflicts:
             diagnostics = TimeConstraintDiagnostics(operation="adjust" if parent_id else "plan",
                 source_itinerary_id=parent_id, day_start=request.day_start, day_end=request.day_end,
-                available_minutes=available, days=conflicts)
+                available_minutes=end_limit - start_time, days=conflicts)
             raise TravelFailure("time_constraint_exceeded", "行程超过每日结束时间；请调整每日时段、站数或停留时长", status=422, time_constraints=diagnostics)
         load = travel_load(days, request)
         diagnostics = TravelConstraintDiagnostics(**load.model_dump(), operation="adjust" if parent_id else "plan", source_itinerary_id=parent_id)
