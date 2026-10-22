@@ -2,6 +2,8 @@
 
 TravelAgent 将自然语言旅行需求整理为可核对草案，再由统一 FastAPI 后端查询授权数据，复用已有推荐、排序和时间调度算法生成行程。模型不负责计算真实交通时间或路线成本，缺失数据不以模拟地点、价格、评论或交通降级补齐。
 
+从启动到规划、编辑保存与故障恢复，按 [使用手册](docs/USER_GUIDE.md) 操作；连续流程及本轮真实数据验证见 [完整用户流程验收](docs/architecture/WEB_USER_JOURNEY.md)。
+
 ## 当前可用范围
 
 | 模块 | 状态 |
@@ -70,10 +72,10 @@ cd TravelAgent
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r backend/requirements.travel.lock.txt
 npm ci
-Copy-Item backend/.env.example backend/.env
+if (-not (Test-Path backend/.env)) { Copy-Item backend/.env.example backend/.env }
 ```
 
-Linux/macOS 使用 `python3 -m venv .venv`、`.venv/bin/python` 和 `cp backend/.env.example backend/.env`。
+Linux/macOS 使用 `python3 -m venv .venv`、`.venv/bin/python` 和 `test -f backend/.env || cp backend/.env.example backend/.env`。
 
 ### 启动 Web 与后端
 
@@ -86,7 +88,7 @@ npm run dev
 
 访问 <http://127.0.0.1:5173/>；接口文档 <http://127.0.0.1:8000/docs>，统一前缀 `/api/v1/travel`。如 8000 被占用，可改后端端口，并在启动 Web 前设置 `$env:TRAVEL_BACKEND_URL='http://127.0.0.1:18000'`。
 
-示例默认 `TRAVEL_PRODUCTION=1`，关闭旧 `/api/route/`、`/api/map/`、`/api/eval/`、`/api/context/` 数据入口。仍须自行完成鉴权等部署改造，不能把该开关当成生产安全保证。
+示例默认 `TRAVEL_PRODUCTION=1`，关闭旧 `/api/route/`、`/api/map/`、`/api/eval/`、`/api/context/` 数据入口。该开关仅关闭旧入口；个人空间启用下文会话登录。公网部署还须启用 HTTPS、明确来源与权限，并执行部署检查。
 
 ### 可选：模型需求整理
 
@@ -166,7 +168,7 @@ npm run build
 
 ## 发布边界与后续优化
 
-本次只发布整理后的源码快照，不带入原 Git 历史、机器配置、缓存、密钥、运行数据库、个人行程和未核验的旧 POI 数据。原本地工程及历史保持不变。原接口和 Flutter 源码作为历史实现保留，依赖旧 POI 的功能不承诺在此快照可运行。
+本地发布包包含整理后的源码快照与 Web 构建，不带入原 Git 历史、机器配置、缓存、密钥、运行数据库、个人行程和未核验的旧 POI 数据。原本地工程及历史保持不变。原接口和 Flutter 源码作为历史实现保留，依赖旧 POI 的功能不承诺在此快照可运行。
 
 后续顺序：部署环境的 HTTPS、域名授权与备份验收 → 更多城市/交通模式的推荐质量评估 → App 接入 → 高级优化与 Memory。
 
@@ -176,4 +178,4 @@ npm run build
 - [需求澄清实现记录](docs/architecture/DRAFT_CLARIFICATION.md)
 - [原工程说明（历史）](docs/legacy/MUSE_README.md)
 
-历史文档中的本机路径、任务 ID、截图及 artifacts 不随仓库上传，不代表克隆后已有验收产物。当前仓库为私有，尚未指定新的开源许可证；公开前需确认原始代码和第三方数据的来源与授权。
+历史文档中的本机路径、任务 ID、截图及 artifacts 不随仓库上传，不代表克隆后已有验收产物。本地发布包不决定 GitHub 仓库可见性，以 GitHub 仓库设置为准。项目尚未指定新的开源许可证；公开前需确认原始代码和第三方数据的来源与授权。

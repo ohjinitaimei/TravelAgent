@@ -1,6 +1,6 @@
 # Web 验收记录
 
-验收环境：2026-10-19 至 2026-10-21，Python 3.12、Node.js、Windows、Chromium / Firefox / WebKit Headless。本轮仅在本地运行，未上传至 GitHub 或运行云端检查；仓库保留可在 Ubuntu / Node.js 22 上执行的 CI 配置。
+验收环境：2026-10-19 至 2026-10-22，Python 3.12、Node.js、Windows、Chromium / Firefox / WebKit Headless。本轮仅在本地运行，未上传至 GitHub 或运行云端检查；仓库保留可在 Ubuntu / Node.js 22 上执行的 CI 配置。
 
 ## 可复现检查
 
@@ -20,10 +20,12 @@ Linux 浏览器首次安装使用 `npx playwright install --with-deps --only-she
 | --- | ---: | --- |
 | Python | 146 | 旅行 API 13、Agent 6、澄清 4、MCP 服务端 1、任务恢复 3、MCP 客户端 11、鉴权隔离 14、业务限流 8、备份恢复 6、分日算法 13、地图代理 13、健康 4、部署配置 5、定时备份 8、发布包 6、恢复种子保护 3、真实质量报告/预算预检 12、时间不可行诊断 7、保存列表分页/查询 9 |
 | TypeScript 客户端与展示逻辑 | 30 | HTTP 契约、轮询期限/取消、暂时断线、提交收据恢复、编辑差异与还原、工具握手、账号绑定与恢复、配额拒绝、本机草稿校验/冲突/存储失败、版本筛选/关系/缺省与只读差异、分页参数编码与元数据/错误 |
-| Chromium / Firefox / WebKit | 183 次 | 每引擎旅行工作台 43 项、账号流程 13 项、弱网与最大行程 5 项，三个引擎合计 183 次执行 |
+| Chromium / Firefox / WebKit | 186 次 | 每引擎旅行工作台 43 项、账号流程 13 项、生产构建弱网/最大行程/连续用户流程 6 项，三个引擎合计 186 次执行 |
 | Web / Schema | — | TypeScript 检查、Vite 构建、OpenAPI 生成文件一致性 |
 
-完整检查集规模为 237 个逻辑用例、359 次执行（包含相同页面场景在不同引擎中的重复）。分页交互恢复阶段重跑 Python 146、共享客户端/展示逻辑 30、类型/生产构建及三引擎 183 个引擎场景；重新生成的 OpenAPI 与 TypeScript 契约无差异。首次全跑在 WebKit 账号第 12 项的 beforeEach 期间遇系统休眠约 63 分钟，触发 30 秒准备超时；电源事件核对为上海时间 17:01–18:04。唤醒后保持代码与测试时限不变，重新运行 WebKit 账号 13 项及尚未执行的生产构建 5 项，最终各套件通过，无失败或跳过，配置始终为 `retries=0`。359 是完整检查集的执行规模，不重复计入定向复查和休眠后复跑。焦点、原页保留、并发插入、换号迟到响应及首个定向失败记录见 [SAVED_PAGE_RECOVERY.md](architecture/SAVED_PAGE_RECOVERY.md)。本轮未调用高德或模型接口，`224a597` 的南京真实规划→调整→搜索→对照记录保留在 [SAVED_PAGINATION.md](architecture/SAVED_PAGINATION.md)，不冒充本轮重测。历史扩展质量矩阵、时间约束、字体阻塞及 Windows WebKit 的 SameSite 元数据边界分别保留在 [EXPANDED_QUALITY.md](architecture/EXPANDED_QUALITY.md)、[TIME_CONSTRAINTS.md](architecture/TIME_CONSTRAINTS.md)、[MULTIDAY_QUALITY.md](architecture/MULTIDAY_QUALITY.md) 和 [BROWSER_ACCEPTANCE.md](architecture/BROWSER_ACCEPTANCE.md)，本轮未重跑真实 SDK、HTTPS、恢复演练或人工辅助技术听读。
+完整检查集规模为 238 个逻辑用例、362 次执行（包含相同页面场景在不同引擎中的重复）。2026-10-22 新增连续用户流程，实际重跑三引擎生产套件 18 次全部通过；类型/构建和 Schema 一致性通过。其余 Python、客户端、工作台与账号用例沿用前一日未变业务代码的通过记录，未称为本轮全跑。新增场景首次因预算标签完全匹配错误超时，定位后修正测试再通过；超时与零自动重试设置未变，详见 [WEB_USER_JOURNEY.md](architecture/WEB_USER_JOURNEY.md)。同日另以授权高德、生产 API/Web 和临时库通过时间失败修正、草稿刷新、离线提交恢复及新旧版本对照，查询上限 10；未加载真实 SDK/模型/MCP，单列真实样本，不计入无凭证自动用例。
+
+以下保留 2026-10-21 分页交互恢复基线：分页交互恢复阶段重跑 Python 146、共享客户端/展示逻辑 30、类型/生产构建及三引擎 183 个引擎场景；重新生成的 OpenAPI 与 TypeScript 契约无差异。首次全跑在 WebKit 账号第 12 项的 beforeEach 期间遇系统休眠约 63 分钟，触发 30 秒准备超时；电源事件核对为上海时间 17:01–18:04。唤醒后保持代码与测试时限不变，重新运行 WebKit 账号 13 项及尚未执行的生产构建 5 项，最终各套件通过，无失败或跳过，配置始终为 `retries=0`。当时 359 是完整检查集的执行规模，不重复计入定向复查和休眠后复跑。焦点、原页保留、并发插入、换号迟到响应及首个定向失败记录见 [SAVED_PAGE_RECOVERY.md](architecture/SAVED_PAGE_RECOVERY.md)。该分页恢复阶段未调用高德或模型接口，`224a597` 的南京真实规划→调整→搜索→对照记录保留在 [SAVED_PAGINATION.md](architecture/SAVED_PAGINATION.md)，不冒充本轮重测。历史扩展质量矩阵、时间约束、字体阻塞及 Windows WebKit 的 SameSite 元数据边界分别保留在 [EXPANDED_QUALITY.md](architecture/EXPANDED_QUALITY.md)、[TIME_CONSTRAINTS.md](architecture/TIME_CONSTRAINTS.md)、[MULTIDAY_QUALITY.md](architecture/MULTIDAY_QUALITY.md) 和 [BROWSER_ACCEPTANCE.md](architecture/BROWSER_ACCEPTANCE.md)，本轮未重跑真实 SDK、HTTPS、恢复演练或人工辅助技术听读。
 
 扩展矩阵阶段的博物馆 3 站、咖啡 4 站、公园 12 站各走直接 Provider/MCP，共六任务全部通过来源/调度检查；调用上限 138，单日保留上限与实测的区别，十二站任务各返回 48 条矩阵路段计数。详细结果、人工复核范围与非主观评分的判定见 [EXPANDED_QUALITY.md](architecture/EXPANDED_QUALITY.md)，不计入无密钥检查集。
 

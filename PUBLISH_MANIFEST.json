@@ -30,8 +30,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 14559,
-      "sha256": "22d3505747ae337d467e368d4eb819022b13ebf00d3c93038efd6645bc02f2b2"
+      "bytes": 14981,
+      "sha256": "301155f1352ba106c3120f4a361c20a438f36c21445c7405d15beb5019c9b28d"
     },
     {
       "path": "analysis_options.yaml",
@@ -855,18 +855,18 @@
     },
     {
       "path": "docs/ACCEPTANCE.md",
-      "bytes": 19874,
-      "sha256": "5193e63d23f0bea54291812421109ed3ec142a21cf1d6bce45fd891087336035"
+      "bytes": 20680,
+      "sha256": "8d64267e9e11517ed85463e00a87192fd57b25dc3371ce5d9f3a7bc47d8ad06d"
     },
     {
       "path": "docs/README.md",
-      "bytes": 2151,
-      "sha256": "7037300144753ae0ad87d34007566ec0513ddc8683e8140acee26285f1fc13c3"
+      "bytes": 2329,
+      "sha256": "df92606bb6e396bd27126e555b7995fa671d0500d2e72fe5e3ab71973819caf8"
     },
     {
       "path": "docs/RELEASE_STATUS.md",
-      "bytes": 11549,
-      "sha256": "242756f5b4d4e52af98f5cfbfdc3b692b15abc72c0a621bc479c731fc7f76fea"
+      "bytes": 12097,
+      "sha256": "994c8f5f1291be33d2895e35dccc96c6b61ea3dd591ea988b641ea9ec6ed2933"
     },
     {
       "path": "docs/TECHNICAL_REPORT.md",
@@ -877,6 +877,11 @@
       "path": "docs/TECHNICAL_REPORT_DETAILED.md",
       "bytes": 9327,
       "sha256": "599f1b923d707bff9cbf7da556b1fdeda29deac760e82089856085d59d4e9a13"
+    },
+    {
+      "path": "docs/USER_GUIDE.md",
+      "bytes": 10888,
+      "sha256": "2e9cbe5c62ed0e74c729d8784e8f5a271ed4ca1b61955870267d66fad9c77730"
     },
     {
       "path": "docs/architecture/AGENT_COORDINATOR_SPEC.md",
@@ -1027,6 +1032,11 @@
       "path": "docs/architecture/WEB_EDITING.md",
       "bytes": 5608,
       "sha256": "0d1531b32ff22366984c53455068597ccd8e8a5bf2221ead36749dc1b027f695"
+    },
+    {
+      "path": "docs/architecture/WEB_USER_JOURNEY.md",
+      "bytes": 7418,
+      "sha256": "7f5a153816b88545fe25a965e48dad331189b4d7fe08ff3cd3134d812ef83181"
     },
     {
       "path": "docs/legacy/MUSE_README.md",
@@ -1285,8 +1295,8 @@
     },
     {
       "path": "tests/browser/resilience.spec.ts",
-      "bytes": 11192,
-      "sha256": "ce1c8b6fd1ed8fbae4bbee9ea5b8b88bea7faebe47b77c421cf9fc4ee28cd628"
+      "bytes": 17197,
+      "sha256": "ae9a2c93b6743b844d674ae88f26d99e6a4a484129ed4295fa6ff9ea1b199235"
     },
     {
       "path": "tests/browser/workspace.spec.ts",

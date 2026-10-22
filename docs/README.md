@@ -1,6 +1,6 @@
 # Docs Index
 
-Start with the root README, ACCEPTANCE.md and RELEASE_STATUS.md for TravelAgent.
+Start with the root README and [Web 使用手册](USER_GUIDE.md), then ACCEPTANCE.md and RELEASE_STATUS.md for TravelAgent.
 Most backend/spec/setup documents below
 describe the preserved MT/Muse implementation and may require excluded legacy
 POI data; they are not a claim that every historical feature is complete.
@@ -28,6 +28,8 @@ Saved itinerary filters, direct parent relationships and read-only version compa
 Owner-scoped full-history search, snapshot pagination and direct-child counts: [architecture/SAVED_PAGINATION.md](architecture/SAVED_PAGINATION.md).
 
 Pagination keyboard focus, status announcements and retained-page recovery: [architecture/SAVED_PAGE_RECOVERY.md](architecture/SAVED_PAGE_RECOVERY.md).
+
+完整用户操作、源码/API 对应及连续验收结果：[architecture/WEB_USER_JOURNEY.md](architecture/WEB_USER_JOURNEY.md)。
 
 ## Doc Groups
 
