@@ -4,6 +4,7 @@ from pathlib import Path
 import sys,tempfile,unittest
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'scripts'))
 from browser_runs import run_id,reserve,case_keys,verify_report
+from verification_context import digest
 class BrowserRunTests(unittest.TestCase):
     def report(self):return {'errors':[],'stats':{'unexpected':0,'flaky':0,'skipped':0},'suites':[{'specs':[{'id':'TEST ONLY','tests':[{'projectName':'chromium','status':'expected','results':[{'status':'passed','retry':0}]}]}]}]}
     def test_discovery_and_exactly_once_report_match(self):
@@ -44,12 +45,19 @@ class BrowserRunTests(unittest.TestCase):
                     path=reserve(root,'TEST-MATRIX',browser,suite);report=self.report()
                     report['suites'][0]['specs'][0]['tests'][0]['projectName']=browser
                     planned,_=case_keys(report)
-                    meta={'run_id':'TEST-MATRIX','browser':browser,'suite':suite,'complete_suite':True,'passed':True,'services_stopped_gracefully':True,'planned_cases':planned,'passed_count':1}
+                    context={'fingerprint':'TEST ONLY','files':[]}
+                    meta={'run_id':'TEST-MATRIX','browser':browser,'suite':suite,'complete_suite':True,'passed':True,'services_stopped_gracefully':True,'planned_cases':planned,'passed_count':1,'context':context,'report_sha256':digest(json.dumps(report).encode())}
                     (path/'run.json').write_text(json.dumps(meta),encoding='utf-8');(path/'report.json').write_text(json.dumps(report),encoding='utf-8')
-            with patch.object(matrix,'ROOT',root):
+            with patch.object(matrix,'ROOT',root),patch.object(matrix,'capture',return_value=context):
                 self.assertEqual(matrix.summarize('TEST-MATRIX')['executions'],9)
                 meta['services_stopped_gracefully']=False;(path/'run.json').write_text(json.dumps(meta),encoding='utf-8')
                 with self.assertRaises(ValueError):matrix.summarize('TEST-MATRIX')
                 meta['services_stopped_gracefully']=True;meta['complete_suite']=False;(path/'run.json').write_text(json.dumps(meta),encoding='utf-8')
+                with self.assertRaises(ValueError):matrix.summarize('TEST-MATRIX')
+                meta['complete_suite']=True;meta.pop('context');(path/'run.json').write_text(json.dumps(meta),encoding='utf-8')
+                with self.assertRaises(ValueError):matrix.summarize('TEST-MATRIX')
+                meta['context']={'fingerprint':'OLD SOURCE','files':[]};(path/'run.json').write_text(json.dumps(meta),encoding='utf-8')
+                with self.assertRaises(ValueError):matrix.summarize('TEST-MATRIX')
+                meta['context']=context;meta['report_sha256']='OLD REPORT';(path/'run.json').write_text(json.dumps(meta),encoding='utf-8')
                 with self.assertRaises(ValueError):matrix.summarize('TEST-MATRIX')
 if __name__=='__main__':unittest.main()

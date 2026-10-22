@@ -1,8 +1,12 @@
 # 发布包与定时备份
 
+2026-10-23 更新：当前源码/构建绑定和不可覆盖的同组本地发布验收入口见 [LOCAL_RELEASE_CANDIDATE.md](LOCAL_RELEASE_CANDIDATE.md)。下文保留原阶段结果；新演练结果写入 `artifacts/drill-runs/<run-id>/<deployment或recovery>/`，不覆盖历史报告。
+
 日期：2026-10-20。本轮在本地完成打包、归档启动与备份轮换/恢复演练；没有上传 GitHub、安装定时器或操作个人业务库。生产业务仍通过同一后端、Provider/MCP 和既有算法运行。
 
 ## 发布包
+
+当前打包要求源码绑定的构建记录：`verify_repository.py` 会生成它；仅重建使用 `python scripts/verify_web_build.py`。`--web-dist` 的实际字节也必须与记录一致。普通 `npm run build` 可用于开发，但不能单独作为发布证明。`RELEASE.json.verification` 记录源文件/Web摘要，签名库与常见私钥也明确拒绝。
 
 `scripts/package_release.py` 从当前 `PUBLISH_MANIFEST.json` 收录源码，再单列已经构建的 Web 文件。它不复制 Git 历史、环境配置、依赖目录、数据库、备份或运行记录。空值 `.env.example` 保留；环境变量及指定凭证文件中的已配置后端密钥须不出现在源码/构建中，浏览器 JS Key 仍按公开构建参数处理。
 

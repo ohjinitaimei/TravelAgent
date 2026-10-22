@@ -1,10 +1,12 @@
 # 功能范围与后续计划
 
-更新日期：2026-10-22。本文记录可运行范围、可复现验收和后续交付条件；逐项验收步骤见 [ACCEPTANCE.md](ACCEPTANCE.md)。
+更新日期：2026-10-23。本文记录可运行范围、可复现验收和后续交付条件；逐项验收步骤见 [ACCEPTANCE.md](ACCEPTANCE.md)。
 
 使用入口：[Web 使用手册](USER_GUIDE.md)。完整用户流程见 [WEB_USER_JOURNEY.md](architecture/WEB_USER_JOURNEY.md)，路途负担及交通上限见 [TRAVEL_LOAD_LIMITS.md](architecture/TRAVEL_LOAD_LIMITS.md)，共享节流见 [AMAP_REQUEST_PACING.md](architecture/AMAP_REQUEST_PACING.md)，逐日选择见 [DAILY_ENDPOINTS.md](architecture/DAILY_ENDPOINTS.md)，最新逐日时段和真实 Web/MCP 复验见 [DAILY_SCHEDULES.md](architecture/DAILY_SCHEDULES.md)。
 
 ## 已实现
+
+- 本地发布候选的源码/构建/报告/归档绑定、严格通过统计及不可覆盖的HTTPS/恢复演练；完整A/B行程、草案、收据恢复比较，正常清理后才通过。发布包拒绝旧Web和签名私钥，见 [LOCAL_RELEASE_CANDIDATE.md](architecture/LOCAL_RELEASE_CANDIDATE.md)。
 
 - 需求草案支持逐日时段/停留、交通上限与起终点原文，保持证据、来源、确认、修订和部分空值；真实选点或明确按表单规划后显式提交。PC 分组表单及流程定位贯通生成、编辑、刷新/离线恢复和来源对照，新草案或上下文缺失不会跳过核对。见 [REQUIREMENTS_WORKFLOW.md](architecture/REQUIREMENTS_WORKFLOW.md)。
 
@@ -49,7 +51,7 @@
 
 历史环境已验证真实模型需求提取及 Web 代理到后端的草案补充 HTTP 链路。自动验收中的成功行程使用 tests 中隔离的 FixtureProvider。2026-10-19 另以用户授权的高德 Web 服务 Key 完成直接 Provider 与 MCP 的真实 POI/路线/异步规划，以及多日调整版本、Web 保存重开与刷新复查；未使用 FixtureProvider、模拟交通或模型补事实。同日配置独立 JS API 授权后，Chromium 实测通过真实底图、编号标记、道路折线、跨天切换和刷新恢复，详细边界见 [LIVE_AMAP.md](architecture/LIVE_AMAP.md)。
 
-当前检查集规模为 407 个逻辑用例、579 次执行：Python 259、共享客户端/展示逻辑 62、页面 86 个场景 × 3 引擎 = 258。B 包完整后端、客户端/类型构建及 Schema 一致性通过；三引擎九份报告合计 258 次全部通过，零最终失败/跳过/自动重试，服务正常退出。B 包新增需求确认/选点/恢复完整流程，验收见 [REQUIREMENTS_WORKFLOW.md](architecture/REQUIREMENTS_WORKFLOW.md)、[ACCEPTANCE.md](ACCEPTANCE.md)。本轮无外部API/模型调用；A 包真实收益、未改善样本及评分取舍仍见 [POI_COMPARISON.md](architecture/POI_COMPARISON.md)。无核心依赖升级，原 Flutter 保留。
+当前检查集规模为 443 个逻辑用例、615 次执行：Python 295、共享客户端/展示逻辑 62、页面 86 个场景 × 3 引擎 = 258。C 包完整仓库、类型/生产构建、Schema 及三引擎九份报告通过；本地 HTTPS、同一干净发布归档启动、完整记录备份恢复/回退另行核验，由候选入口统一检查源码/Web/归档 SHA 及服务退出。预备源码变动的报告明确拒绝，不混作最终证据。实际范围见 [LOCAL_RELEASE_CANDIDATE.md](architecture/LOCAL_RELEASE_CANDIDATE.md)。没有核心依赖升级、真实模型/高德新调用或GitHub上传，原 Flutter 保留。
 
 2026-10-22 交通上限阶段历史记录：两次真实尝试，第一次验证脚本在任务仍运行时结束；第二次单日原规划、路途负担、返程超限与刷新恢复通过，清除后保存遇高德 10021 限流而失败，真实 MCP 后续复验未执行。两次预算上界 71，不是账单计数，没有继续追加外部调用。详情见 [TRAVEL_LOAD_LIMITS.md](architecture/TRAVEL_LOAD_LIMITS.md)。该交通上限阶段未重跑真实 SDK/模型、HTTPS、灾备、人工读屏或真机，未上传 GitHub。 同日共享节流阶段已手动通过原规划、超限诊断、草稿恢复、清除后新版本保存与真实 MCP，页面 POI 读取 4 次均成功，来源版本保持；详情与脚本文字断言首次失败见 [AMAP_REQUEST_PACING.md](architecture/AMAP_REQUEST_PACING.md)。
 
@@ -65,7 +67,7 @@
 
 ## 优先级与验收标准
 
-后续实施以 [成组优化与验收计划](architecture/OPTIMIZATION_PROGRAM.md) 为准：A 包已将质量基线、真实备选 POI、预算内路线核验、契约/Web 解释、自动回归及真实联调成组交付，验收见 [POI_COMPARISON.md](architecture/POI_COMPARISON.md)；B 包已整合需求确认与 Web 连续使用，见 [REQUIREMENTS_WORKFLOW.md](architecture/REQUIREMENTS_WORKFLOW.md)；下一包 C 做综合验收。内部可分提交，按完整工作包汇报成果，继续只在本地开发。下列能力清单作为既有范围及长期方向。
+后续实施以 [成组优化与验收计划](architecture/OPTIMIZATION_PROGRAM.md) 为准：A 包已将质量基线、真实备选 POI、预算内路线核验、契约/Web 解释、自动回归及真实联调成组交付，验收见 [POI_COMPARISON.md](architecture/POI_COMPARISON.md)；B 包已整合需求确认与 Web 连续使用，见 [REQUIREMENTS_WORKFLOW.md](architecture/REQUIREMENTS_WORKFLOW.md)；C 包已提供本地发布候选综合验收与恢复交付，见 [LOCAL_RELEASE_CANDIDATE.md](architecture/LOCAL_RELEASE_CANDIDATE.md)。公网和移动端分别按具备环境后的独立里程碑推进。内部可分提交，按完整工作包汇报成果，继续只在本地开发。下列能力清单作为既有范围及长期方向。
 
 1. **Web 持续验收**：现已覆盖需求补全/确认/冲突/刷新、失败重试、断线恢复、取消、地图联动、编辑差异、离开保护、编辑版本与本机草稿恢复；已验证主要键盘路径、模态焦点/Escape、跨日期错误定位及地点列表。三引擎另完成生产构建的连续读取失败恢复、取消迟到响应及最多 12 站行程读写和交互门槛验收。时间诊断、版本关系与对照、全库查询/分页、分页焦点与状态提示、跨页离线/刷新失败和并发插入均已实现；65 条历史及双账号通过，既有真实高德 Web 链路记录保持。完整操作手册与连续流程验收已补齐，南京真实失败修正、草稿和离线保存链路通过。已补共享/逐日起终点、逐日时段与停留分配和启动同步恢复，后续补 NVDA/VoiceOver 人工朗读，按真实使用反馈完善推荐质量。目标环境具备后核验正式 HTTPS、域名授权和配额，Safari 真机、随机丢包及长时间压力按实际条件补验。
 2. **地图与推荐质量验收**：真实地图、双向定位、编辑预览及原分日与有限地理候选比较已完成；上海样例交通减少 12 分钟，杭州样例保持基线以避免最忙一天恶化。JS 安全密钥代理已实现并通过本地/账号实测；南京步行、苏州驾车的直接 Provider/MCP 四项样本已增加来源、缺失字段和调度验收。已补三类关键词和三/四/十二站的六个真实任务，报告明确任务成功、字段缺失、字面复核、原分日收益与调用上限。新增杭州/北京/成都三场景，报告真实路途负担与待核对证据。单日起终点已实现并通过真实 Web/MCP 核验，见 [SINGLE_DAY_ENDPOINTS.md](architecture/SINGLE_DAY_ENDPOINTS.md)；每日共享起终点和默认 64 次总预算内的候选裁剪已实现，南京两日真实 Web/MCP 通过，见 [MULTIDAY_ENDPOINTS.md](architecture/MULTIDAY_ENDPOINTS.md)；路途负担及用户指定交通上限已实现；统一高德请求节流、限流提示与受控真实 Web/MCP 复验已通过，逐日不同起终点及来源对照已实现，逐日时段与停留分配已完成并验收，A 包已增加真实备选和路线实用性核验，B 包已整合需求确认和 Web 使用流程，后续按 C 包综合验收；主观推荐评估需真实用户反馈及事先定义的标准，正式域名验收另行推进。

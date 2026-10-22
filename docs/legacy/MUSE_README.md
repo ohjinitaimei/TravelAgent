@@ -8,16 +8,16 @@ planning uses authorized Amap data and reuses the existing recommendation,
 ordering and scheduling functions. Unknown facts remain unknown; provider
 failures never produce synthetic itineraries.
 
-See [architecture audit](docs/architecture/TRAVEL_ARCHITECTURE_AUDIT.md) and
-[delivery, API contract, setup and verification](docs/architecture/TRAVEL_DELIVERY.md).
+See [architecture audit](../architecture/TRAVEL_ARCHITECTURE_AUDIT.md) and
+[delivery, API contract, setup and verification](../architecture/TRAVEL_DELIVERY.md).
 The existing client is Flutter; uni-app is reserved for a later phase.
 
-The optional [HelloAgents intake adapter](docs/architecture/HELLOAGENTS_INTAKE.md)
+The optional [HelloAgents intake adapter](../architecture/HELLOAGENTS_INTAKE.md)
 extracts a reviewable requirement draft with user-text evidence. It shares the
 existing coordinator and task service; planning still uses the existing algorithms.
 Its live model and Web integration have been verified separately from Amap.
 
-User [clarification and confirmation](docs/architecture/DRAFT_CLARIFICATION.md)
+User [clarification and confirmation](../architecture/DRAFT_CLARIFICATION.md)
 now update the same draft with revision checks and field provenance, without
 another model call. This latest record also documents the current local ports.
 
@@ -87,11 +87,11 @@ deterministic and observable in backend services.
 
 Recommended reading order:
 
-1. [backend/README.md](backend/README.md)
-2. [backend/services/README.md](backend/services/README.md)
-3. [docs/specs/CURRENT_SYSTEM.md](docs/specs/CURRENT_SYSTEM.md)
-4. [docs/specs/INTENT_UNDERSTANDING_SPEC.md](docs/specs/INTENT_UNDERSTANDING_SPEC.md)
-5. [docs/architecture/AGENT_COORDINATOR_SPEC.md](docs/architecture/AGENT_COORDINATOR_SPEC.md)
+1. [backend/README.md](../../backend/README.md)
+2. [backend/services/README.md](../../backend/services/README.md)
+3. [docs/specs/CURRENT_SYSTEM.md](../specs/CURRENT_SYSTEM.md)
+4. [docs/specs/INTENT_UNDERSTANDING_SPEC.md](../specs/INTENT_UNDERSTANDING_SPEC.md)
+5. [docs/architecture/AGENT_COORDINATOR_SPEC.md](../architecture/AGENT_COORDINATOR_SPEC.md)
 
 ## Run Locally
 
@@ -113,8 +113,8 @@ flutter run -d windows
 
 More setup and command examples:
 
-- [docs/setup/QUICKSTART.md](docs/setup/QUICKSTART.md)
-- [docs/setup/COMMANDS.md](docs/setup/COMMANDS.md)
+- [docs/setup/QUICKSTART.md](../setup/QUICKSTART.md)
+- [docs/setup/COMMANDS.md](../setup/COMMANDS.md)
 
 ## Offline Eval
 

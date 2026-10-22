@@ -10,6 +10,7 @@ import tempfile
 import zipfile
 
 from package_release import LIMIT, ROOT, verify_archive
+from verification_context import capture,digest
 
 
 def verify_runtime(archive):
@@ -47,7 +48,8 @@ print(json.dumps({'passed':4,'source':'verified archive, empty TEST ONLY databas
         child=subprocess.run([sys.executable,'-c',code],cwd=folder/'source',env=env,capture_output=True,text=True,timeout=30)
         if child.returncode:raise ValueError('归档程序启动验证失败')
         result=json.loads(child.stdout.splitlines()[-1])
-        result.update(git_commit=metadata['git_commit'],working_tree_dirty=metadata['working_tree_dirty'])
+        result.update(git_commit=metadata['git_commit'],working_tree_dirty=metadata['working_tree_dirty'],
+                      archive_sha256=digest(data),context=capture(ROOT))
         return result
 
 

@@ -3,6 +3,7 @@ import os
 import json
 from datetime import datetime, timezone
 from browser_runs import run_id, reserve, case_keys, verify_report
+from verification_context import capture,assert_context,tree_digest,digest
 import argparse
 from pathlib import Path
 import shutil
@@ -20,7 +21,7 @@ ROOT=Path(__file__).resolve().parents[1]
 def verify(suite,browser,grep=None,identifier=None):
     identifier=run_id(identifier)
     destination=reserve(ROOT,identifier,browser,suite)
-    metadata={"run_id":identifier,"browser":browser,"suite":suite,"grep":grep,"complete_suite":not bool(grep),"started_at":datetime.now(timezone.utc).isoformat(),"passed":False}
+    metadata={"run_id":identifier,"browser":browser,"suite":suite,"grep":grep,"complete_suite":not bool(grep),"started_at":datetime.now(timezone.utc).isoformat(),"passed":False,"context":capture(ROOT)}
     metadata_path=destination/"run.json"
     metadata_path.write_text(json.dumps(metadata,indent=2)+"\n",encoding="utf-8")
     (ROOT/".tmp").mkdir(exist_ok=True)
@@ -56,6 +57,7 @@ def verify(suite,browser,grep=None,identifier=None):
                             with urllib.request.urlopen(url,timeout=1): break
                         except (urllib.error.URLError,TimeoutError): time.sleep(.1)
                     else: raise RuntimeError("Acceptance service did not become ready")
+                if suite=='resilience':metadata['web_build']=tree_digest(folder/'web-dist')
                 discover=[node,str(ROOT/'node_modules/@playwright/test/cli.js'),'test','--project',browser,'--list','--reporter=json']
                 if grep:discover.extend(['--grep',grep])
                 listing=subprocess.run(discover,cwd=ROOT,env=env,capture_output=True,text=True,encoding='utf-8',check=True)
@@ -67,6 +69,9 @@ def verify(suite,browser,grep=None,identifier=None):
                 subprocess.run(command,cwd=ROOT,env=env,check=True)
                 report=json.loads((destination/'report.json').read_text(encoding='utf-8'))
                 metadata['passed_count']=verify_report(report,planned)
+                metadata['report_sha256']=digest((destination/'report.json').read_bytes())
+                assert_context(metadata['context'],capture(ROOT))
+                if suite=='resilience' and metadata['web_build']!=tree_digest(folder/'web-dist'):raise ValueError('Web build changed during browser verification')
                 metadata['passed']=True
             except Exception:
                 api_log.flush();web_log.flush()

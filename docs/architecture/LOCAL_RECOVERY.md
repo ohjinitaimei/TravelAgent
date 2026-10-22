@@ -1,5 +1,7 @@
 # 发布包本地恢复与回退演练
 
+2026-10-23 更新：当前源码/构建绑定和不可覆盖的同组本地发布验收入口见 [LOCAL_RELEASE_CANDIDATE.md](LOCAL_RELEASE_CANDIDATE.md)。下文保留原阶段结果；新演练结果写入 `artifacts/drill-runs/<run-id>/<deployment或recovery>/`，不覆盖历史报告。
+
 日期：2026-10-20。用户当前没有服务器，本轮继续本地演练，没有安装系统服务、修改个人业务库、上传 GitHub 或调用真实地图/模型。
 
 ## 这轮验证什么
@@ -13,8 +15,10 @@
 按 README 准备锁定依赖，并按 [发布说明](RELEASE_BACKUP.md) 生成自己的可信归档；Caddy 使用此前校验的官方 2.11.7。
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/verify_recovery.py artifacts/releases/自己的版本号/TravelAgent.zip --caddy .tmp/tools/caddy/caddy.exe
+.\.venv\Scripts\python.exe scripts/verify_recovery.py artifacts/releases/自己的版本号/TravelAgent.zip --caddy .tmp/tools/caddy/caddy.exe --run-id local-candidate-01
 ```
+
+当前脚本在原检查上增加完整 A/B 记录（每账号优化行程/调整来源、部分草案和完成收据）恢复核对，并要求归档受检源码与当前一致。新报告只有在服务正常退出和目录清理完成后才通过。
 
 命令会执行包内程序，限于自己构建且来源可信的归档。校验清单和哈希不是来源签名。脚本先校验同一份 ZIP 字节，再将文件解压到本次 `.tmp/recovery-drill-*` 目录，使用当前 Python 依赖环境；不是全新系统的依赖安装验收。
 

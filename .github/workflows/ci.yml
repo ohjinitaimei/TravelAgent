@@ -68,3 +68,5 @@ jobs:
             artifacts/browser-diagnostics
             artifacts/browser-reports
             artifacts/browser-runs
+            artifacts/repository-runs
+            artifacts/web-builds

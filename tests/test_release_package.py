@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 import zipfile
 
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'scripts'))
@@ -61,7 +62,8 @@ class ReleasePackageTests(unittest.TestCase):
         with self.assertRaises(ValueError):verify_archive(bad)
 
     def test_dangerous_paths_and_unexpected_members_are_rejected(self):
-        for name in ['../secret','/secret','a/../secret','a\\secret','C:/secret','.env','backend/data/live.db','backend/pois.json','deploy/backend.env']:
+        for name in ['../secret','/secret','a/../secret','a\\secret','C:/secret','.env','backend/data/live.db','backend/pois.json','deploy/backend.env',
+                     'android/release.jks','android/release.keystore','android/key.properties','backend/id_rsa','backend/id_ed25519','deploy/service.ppk']:
             self.assertFalse(source_allowed(name),name)
         self.assertTrue(source_allowed('deploy/backend.env.example'))
         result=self.build();bad=self.base/'unexpected.zip'
@@ -69,6 +71,26 @@ class ReleasePackageTests(unittest.TestCase):
             for name in src.namelist():dst.writestr(name,src.read(name))
             dst.writestr('web/extra.txt','TEST ONLY')
         with self.assertRaises(ValueError):verify_archive(bad)
+
+    def test_verified_default_dist_cannot_attest_another_web_payload(self):
+        import package_release
+        from verification_context import tree_digest
+        record={'context':{'fingerprint':'TEST ONLY'},'web_build':tree_digest(self.web)}
+        manifest=json.loads((self.repo/'PUBLISH_MANIFEST.json').read_text())
+        (self.web/'assets/app.js').write_text('// TEST ONLY stale alternate Web')
+        with patch.object(package_release,'ROOT',self.repo),patch.object(package_release,'inventory',return_value=manifest),patch('verify_web_build.validate',return_value=record):
+            with self.assertRaises(ValueError):self.build()
+        self.assertFalse((self.base/'release').exists())
+
+    def test_bound_archive_records_the_verified_web_bytes(self):
+        import package_release
+        from verification_context import tree_digest
+        record={'context':{'fingerprint':'TEST ONLY'},'web_build':tree_digest(self.web)}
+        manifest=json.loads((self.repo/'PUBLISH_MANIFEST.json').read_text())
+        with patch.object(package_release,'ROOT',self.repo),patch.object(package_release,'inventory',return_value=manifest),patch('verify_web_build.validate',return_value=record):
+            result=self.build()
+        meta=verify_archive(Path(result['archive']))
+        self.assertEqual(meta['verification']['web_fingerprint'],record['web_build']['fingerprint'])
 
 
 if __name__=='__main__':unittest.main()

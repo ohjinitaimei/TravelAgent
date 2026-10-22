@@ -100,7 +100,7 @@ npm run dev
 .\.venv\Scripts\python.exe scripts\verify_live_intake.py --allow-model-call --text '10月20日去杭州玩两天，想看博物馆，全程步行，预算800元，需要提前预约。' --reference-date 2026-10-11
 ```
 
-正式截图：[真实 Web 需求草案](../../artifacts/travel-web-live-intake.jpg)。隔离测试截图：[TEST ONLY 草案](../../artifacts/travel-web-intake-test.jpg)。截图和真实验证输出不提交。
+历史本地截图文件名为 `artifacts/travel-web-live-intake.jpg`（真实 Web 需求草案）和 `artifacts/travel-web-intake-test.jpg`（TEST ONLY 草案）。图片未随仓库分发，当前文件未保留；这里保留历史记录，不以其他截图替代当时证据。真实验证输出不提交。
 
 ## 后续顺序
 

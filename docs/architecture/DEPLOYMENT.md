@@ -1,5 +1,7 @@
 # HTTPS 部署与上线验收
 
+2026-10-23 更新：当前源码/构建绑定和不可覆盖的同组本地发布验收入口见 [LOCAL_RELEASE_CANDIDATE.md](LOCAL_RELEASE_CANDIDATE.md)。下文保留原阶段结果；新演练结果写入 `artifacts/drill-runs/<run-id>/<deployment或recovery>/`，不覆盖历史报告。
+
 日期：2026-10-20。方案：Caddy 提供生产 Web 静态文件、HTTPS 和同源代理；一个 Uvicorn/FastAPI 实例绑定 `127.0.0.1:8000`，继续使用既有 SQLite、任务工作进程、Provider/MCP 和算法。此阶段完成本机配置与验收，没有操作公网服务器、安装系统服务或上传 GitHub。
 
 ```text
@@ -93,7 +95,7 @@ sudo systemctl restart caddy
 获取 [官方 Caddy 2.11.7](https://github.com/caddyserver/caddy/releases/tag/v2.11.7) 并按同版本 checksums 文件的 SHA-512 校验。可执行文件不纳入 Git。Windows 本次将它保存在被忽略的 `.tmp/tools/caddy/caddy.exe`，在仓库根执行：
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/verify_deployment.py --caddy .tmp/tools/caddy/caddy.exe
+.\.venv\Scripts\python.exe scripts/verify_deployment.py --caddy .tmp/tools/caddy/caddy.exe --run-id local-candidate-01
 ```
 
 脚本使用临时端口、独立数据库、生产构建和临时 CA，启动同一份 Caddyfile 与显式 TEST ONLY API。私有 CA 仅交给本次 HTTP 客户端作为信任根，证书验证保持开启；不安装根证书、不安装系统服务、不使用 `verify=False`。所有监听器绑定回环，结束时按各自控制入口优雅关闭。Caddy 的数据、配置与证书目录均限制在临时目录内。

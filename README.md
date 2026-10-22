@@ -6,6 +6,8 @@ TravelAgent 将自然语言旅行需求整理为可核对草案，再由统一 F
 
 需求草案支持逐日时段、默认停留和交通上限的补充与确认；起终点文字须经真实搜索选定或明确按表单条件规划。工作台按需求、执行、行程调整串起导航，保留刷新、离线保存及来源版本对照。完整契约与验收范围见 [需求确认与 Web 连续使用](docs/architecture/REQUIREMENTS_WORKFLOW.md)。
 
+本地发布候选将源码、生产 Web、三浏览器、HTTPS、备份恢复与同一 ZIP 绑定核对；运行步骤和验收边界见 [发布候选综合验收](docs/architecture/LOCAL_RELEASE_CANDIDATE.md)。
+
 ## 当前可用范围
 
 | 模块 | 状态 |

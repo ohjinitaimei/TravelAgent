@@ -31,7 +31,8 @@ def source_allowed(name):
     filename=PurePosixPath(name).name.lower()
     if filename.endswith('.env.example'):return True
     return not (filename=='.env' or filename.endswith('.env') or '.env.' in filename
-                or re.search(r'\.(sqlite3?|db)(?:-(?:wal|shm|journal))?$|\.(pem|key|pfx|p12|pyc|log)$',filename)
+                or filename in {'id_rsa','id_ed25519','id_ecdsa','id_dsa','key.properties'}
+                or re.search(r'\.(sqlite3?|db)(?:-(?:wal|shm|journal))?$|\.(pem|key|pfx|p12|p8|ppk|jks|keystore|pyc|log)$',filename)
                 or name.startswith('backend/pois') and filename.endswith('.json'))
 
 
@@ -84,7 +85,11 @@ def build_release(output,web,credential_env=None,root=ROOT):
         or output.resolve().is_relative_to(root) and not any(output.resolve().is_relative_to(root/name) for name in ('artifacts','.tmp'))):
         raise ValueError('输出目录不得覆盖源码、静态目录或使用符号链接')
     manifest=json.loads((root/MANIFEST.name).read_text(encoding='utf-8'))
-    if root==ROOT and manifest!=inventory():raise ValueError('源码清单已过期，请先更新并校验')
+    binding=None
+    if root==ROOT:
+        if manifest!=inventory():raise ValueError('源码清单已过期，请先更新并校验')
+        from verify_web_build import validate
+        binding=validate(root) # Reject stale source/build combinations before creating any archive.
     if not (web/'index.html').is_file() or not (web/'assets').is_dir():raise ValueError('须提供已构建的 Web dist')
     configured=list(os.environ.items())
     if credential_env and credential_env.is_file():configured.extend(dotenv_values(credential_env,interpolate=False).items())
@@ -110,11 +115,16 @@ def build_release(output,web,credential_env=None,root=ROOT):
         name=path.relative_to(web).as_posix()
         if not source_allowed(name):raise ValueError('静态目录包含非发布文件')
         add('web/'+name,path)
+    if binding:
+        actual=[{'path':name[4:],'bytes':len(content),'sha256':digest(content)} for name,content in sorted(payload.items()) if name.startswith('web/')]
+        if actual!=binding['web_build']['files']:raise ValueError('打包的 Web 字节与验证构建不一致')
     if sum(map(len,payload.values()))>LIMIT:raise ValueError('发布包超过大小上限')
     def git(*args):return subprocess.check_output(['git',*args],cwd=root,text=True).strip()
     metadata={'format':1,'purpose':'travelagent_release','git_commit':git('rev-parse','HEAD'),
         'working_tree_dirty':bool(git('status','--porcelain')),'files':[
             {'path':name,'bytes':len(content),'sha256':digest(content)} for name,content in sorted(payload.items())]}
+    if binding:
+        metadata['verification']={'context_fingerprint':binding['context']['fingerprint'],'web_fingerprint':binding['web_build']['fingerprint']}
     payload['RELEASE.json']=(json.dumps(metadata,ensure_ascii=False,indent=2)+'\n').encode()
     output.mkdir(parents=True,exist_ok=False)
     temporary=output/'release.zip.partial';archive=output/'TravelAgent.zip'

@@ -1,13 +1,13 @@
 # Web 验收记录
 
-验收环境：2026-10-19 至 2026-10-22，Python 3.12、Node.js、Windows、Chromium / Firefox / WebKit Headless。本轮仅在本地运行，未上传至 GitHub 或运行云端检查；仓库保留可在 Ubuntu / Node.js 22 上执行的 CI 配置。
+验收环境：2026-10-19 至 2026-10-23，Python 3.12、Node.js、Windows、Chromium / Firefox / WebKit Headless。本轮仅在本地运行，未上传至 GitHub 或运行云端检查；仓库保留可在 Ubuntu / Node.js 22 上执行的 CI 配置。
 
 ## 可复现检查
 
 先按根 README 安装 Python、Node 与可选 Agent/MCP 锁定依赖，再执行：
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/verify_repository.py
+.\.venv\Scripts\python.exe scripts/verify_repository.py --run-id local-acceptance
 $env:PLAYWRIGHT_BROWSERS_PATH = "$PWD/.cache/playwright"
 npx playwright install --only-shell chromium firefox webkit
 .\.venv\Scripts\python.exe scripts/verify_browser.py --run-id local-acceptance
@@ -19,16 +19,22 @@ Linux 浏览器首次安装使用 `npx playwright install --with-deps --only-she
 
 | 检查 | 数量 | 覆盖范围 |
 | --- | ---: | --- |
-| Python | 259 | 旅行 API 13、Agent 8、澄清 9、MCP 服务端 1、任务恢复 3、MCP 客户端 18、鉴权隔离 15、业务限流 8、备份恢复 6、分日算法 13、地图代理 13、健康 4、部署配置 6、定时备份 8、发布包 6、恢复种子保护 3、真实质量报告/预算预检 23、时间不可行诊断 7、保存列表分页/查询 9、单日/多日共享起终点 20、交通上限 12、共享高德节流 8、逐日独立起终点 12、逐日时段/停留 10、备选地点/真实收益/兼容 19、浏览器运行与报告隔离 5 |
+| Python | 295 | 旅行 API 13、Agent 8、澄清 9、MCP 服务端 1、任务恢复 3、MCP 客户端 18、鉴权隔离 15、业务限流 8、备份恢复 6、分日算法 13、地图代理 13、健康 4、部署配置 6、定时备份 8、发布包 8、恢复种子保护及完整DTO 5、真实质量报告/预算预检 23、时间不可行诊断 7、保存列表分页/查询 9、单日/多日共享起终点 20、交通上限 12、共享高德节流 8、逐日独立起终点 12、逐日时段/停留 10、备选地点/真实收益/兼容 19、浏览器运行与报告隔离 5、演练生命周期 8、源码/构建绑定 13、候选证据拒绝 9、严格通过统计 2 |
 | TypeScript 客户端与展示逻辑 | 62 | HTTP 契约、轮询期限/取消、暂时断线、提交收据恢复、编辑差异与还原、工具握手、账号绑定与恢复、配额拒绝、本机草稿校验/冲突/存储失败、版本筛选/关系/缺省与只读差异、分页参数编码与元数据/错误、起终点汇总/缺项、版本/草稿兼容、请求与取消信号、交通上限的严格输入/清除和旧草稿兼容、逐日事实/差异/数组校验与恢复、时段与默认停留优先级/不完整输入/模式切换/差异、备选变化/最长段定位/评分缺失/开关恢复/共享 transport、草案逐日转换/确认/清除/未知保留 8、起终点交接确认/日期地点失效/恢复 3 |
 | Chromium / Firefox / WebKit | 258 次 | 每引擎旅行工作台及完整需求流程 47 项、账号流程 13 项、生产构建弱网/最大行程/连续流程/共享起终点/启动恢复/交通上限/限流恢复/逐日选择/时段停留/模式切换/备选比较/评分取舍与原方案恢复/带基线十二站 26 项，三个引擎合计 258 次执行 |
 | Web / Schema | — | TypeScript 检查、Vite 构建、OpenAPI 生成文件一致性 |
 
-当前检查集规模为 **407 个逻辑用例、579 次执行**。B 包最终 Python 259、客户端 62、类型/无密钥生产构建和 OpenAPI/TS 生成一致性通过。三引擎各 86 项，九份完整报告合计 258 次全部通过，零最终失败/跳过/自动重试，所有测试服务正常退出。新增四条完整需求/选点/恢复/来源对照流程在三引擎通过，首次定向失败及修正单列在 [需求确认与 Web 连续使用](architecture/REQUIREMENTS_WORKFLOW.md)。
+当前检查集规模为 **443 个逻辑用例、615 次执行**。C 包最终 Python 295、客户端 62、类型/无密钥生产构建和 OpenAPI/TS 生成一致性通过；三引擎各 86 项、九份完整报告合计 258 次全部通过，零最终失败/跳过/自动重试。报告绑定当前源码和实际 Web 字节，正常退出和清理均为通过条件。
+
+C 包证据组为 `c-release-final-20261023`：`artifacts/repository-runs/<id>/report.json`、九份 `artifacts/browser-runs/<id>/<engine>/<suite>/`、`artifacts/drill-runs/<id>/deployment` 与 `recovery`，以及同一干净 ZIP 的 `runtime.json`。`artifacts/candidate-runs/<id>/report.json` 统一复核源码、构建、完整套件和归档 SHA。HTTPS 29 项、完整 A/B 记录恢复/回退 97 项和归档启动 4 项另列检查数，不混入 615。具体命令、绑定和本地边界见 [发布候选综合验收](architecture/LOCAL_RELEASE_CANDIDATE.md)。
+
+预备组 `c-release-verified-20261023` 在执行期间增加严格 skip/todo 统计校验，起止源码指纹因此不同，被最终规则拒绝；保留原日志/failed元数据，不计为当前通过。修正后使用全新组完整复验，没有覆盖旧记录。历史 13 个缺失文档引用已修正或改为明确历史文件名记录；不补造缺失截图。
+
+B 包当时为 Python 259、客户端 62、三浏览器 258 次，共 407 个逻辑用例 / 579 次执行。四条需求/选点/恢复/来源对照流程保留，详见 [需求确认与 Web 连续使用](architecture/REQUIREMENTS_WORKFLOW.md)。
 
 B 包证据：`artifacts/b-workflow-repository.log`、`artifacts/b-workflow-schema.json`、`artifacts/b-workflow-<engine>-verified.log`，不可覆盖的 `artifacts/browser-runs/b-workflow-verified-20261022/<engine>/<suite>/` 及同组 `summary.json`，总表 `artifacts/b-workflow-acceptance.json`。定向组 `b-workflow-targeted-20261022-01/-02/-03` 单独保留，不能当作完整矩阵。PC 行程区域与 390 像素窄屏截图在当前 local/results 中，均明确为 TEST ONLY 数据。
 
-本轮外部数据/模型调用为 0；没有重跑真实模型新字段准确率、Amap/JS SDK、HTTPS、灾备或手机。补充草案实际调用同一 PATCH/存储链路，规划和调整实际调用隔离服务/SQLite及测试 Provider；生产入口不会载入这些测试数据。A 包真实多城/direct/MCP 结果按原日期和范围保留，不计入 B 包通过结果。
+B 包当轮外部数据/模型调用为 0，没有重跑真实模型新字段准确率、Amap/JS SDK、HTTPS、灾备或手机。补充草案实际调用同一 PATCH/存储链路，规划和调整实际调用隔离服务/SQLite及测试 Provider；生产入口不会载入这些测试数据。A 包真实多城/direct/MCP 结果按原日期和范围保留，不计入 B 包通过结果。
 
 B 包三日十二站切日 p95：未带基线 Chromium 110.4 / Firefox 149 / WebKit 290 ms，带基线 154 / 131 / 256 ms，均低于原 1500 ms 门槛。带基线 JSON 453074 字节；DOM、单次响应和草稿大小的原门槛保持，属于本机 TEST ONLY、无真实 SDK 条件。
 
