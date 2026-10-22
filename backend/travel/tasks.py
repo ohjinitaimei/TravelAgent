@@ -30,6 +30,13 @@ class TaskManager:
                 self.finish(task.id, "failed", Error(code="service_restarted", message="服务已重启，未完成任务请重新提交", retryable=True))
 
     def create(self, payload: dict, idempotency_key: str | None = None, retry_of: str | None = None, *, owner_id: str = 'local') -> Task:
+        if payload.get("kind", "plan") == "plan" and isinstance(payload.get("request"), dict):
+            # Preserve pre-anchor receipts: absent and null new options are identical.
+            request = dict(payload["request"])
+            for field in ("day_origin_poi_id", "day_destination_poi_id"):
+                if request.get(field) is None:
+                    request.pop(field, None)
+            payload = {**payload, "request": request}
         fingerprint = hashlib.sha256(json.dumps({"payload":payload,"retry_of":retry_of},sort_keys=True,ensure_ascii=False).encode()).hexdigest()
         existing = self.store.submission(idempotency_key, fingerprint,owner_id=owner_id) if idempotency_key else None
         if existing:

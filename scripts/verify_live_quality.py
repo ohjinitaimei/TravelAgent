@@ -28,11 +28,16 @@ def require(condition, label):
         raise ValueError(label)
 
 
-def provider_call_bound(request):
+def route_call_bound(request):
     days, stops = request['days'], request['stops_per_day']
     count = days * stops
     routes = min(48, count * (count - 1)) if days > 1 and stops > 1 else days * stops * (stops - 1)
-    return 1 + routes  # One POI search; the existing planner queries a directed matrix.
+    return routes + count * sum(bool(request.get(field)) for field in ('day_origin_poi_id', 'day_destination_poi_id'))
+
+
+def provider_call_bound(request):
+    anchors = {request.get(field) for field in ('day_origin_poi_id', 'day_destination_poi_id')} - {None, ''}
+    return 1 + route_call_bound(request) + len(anchors)
 
 
 def scenarios(profile, travel_date):
@@ -75,6 +80,13 @@ def quality_observations(trip, days):
                     'destination_id': segment.destination_id, 'destination_name': day.stops[position + 1].poi.name,
                     'mode': segment.mode, 'duration_min': segment.duration_min, 'distance_km': segment.distance_km,
                     'source': segment.source.model_dump(mode='json')})
+        for kind, segment, a, b in [('origin', day.origin_segment, day.origin_poi, day.stops[0].poi),
+                                     ('destination', day.destination_segment, day.stops[-1].poi, day.destination_poi)]:
+            if segment:
+                legs.append({'kind': kind, 'origin_id': segment.origin_id, 'origin_name': a.name,
+                    'destination_id': segment.destination_id, 'destination_name': b.name,
+                    'mode': segment.mode, 'duration_min': segment.duration_min, 'distance_km': segment.distance_km,
+                    'source': segment.source.model_dump(mode='json')})
         observations.append({'day_number': index + 1, 'date': str(day.date),
             'available_minutes': available, 'stay_minutes': measured['stay_minutes'],
             'travel_minutes': measured['travel_minutes'], 'scheduled_minutes': elapsed,
@@ -85,7 +97,8 @@ def quality_observations(trip, days):
         if measured['travel_minutes'] >= measured['stay_minutes']:
             attention.append({'code': 'travel_at_least_stay', 'day_number': index + 1})
     loads = [day['scheduled_minutes'] for day in observations]
-    return {'scope': 'saved_interstop_facts_only', 'origin_return_included': False,
+    anchored = bool(trip.request.day_origin_poi_id or trip.request.day_destination_poi_id)
+    return {'scope': 'saved_routes_including_selected_boundaries' if anchored else 'saved_interstop_facts_only', 'origin_return_included': anchored,
         'future_opening_verified': False, 'subjective_satisfaction': 'not_assessed',
         'day_load_spread_minutes': max(loads) - min(loads), 'days': observations, 'attention': attention}
 
@@ -98,11 +111,37 @@ def summarize(raw, expected):
     require(trip.request == request, 'request_mismatch')
     require(len(trip.days) == request.days, 'day_count')
     ids, days, missing, evidence = [], [], Counter(), []
+    def boundary(poi, segment, identifier, adjacent, original_poi, original_segment, incoming):
+        if identifier is None:
+            require(poi is None and segment is None, 'unexpected_boundary')
+            return 0, 0.0
+        require(poi is not None and poi.id == identifier and poi.source.provider == 'amap', 'boundary_poi_provenance')
+        require(bool(original_poi['source'].get('retrieved_at')), 'boundary_timestamp_missing')
+        require(datetime.fromisoformat(poi.source.retrieved_at).tzinfo is not None, 'boundary_timestamp')
+        for field in ('city', 'address', 'category', 'rating', 'average_spend', 'opening_hours'):
+            require((getattr(poi, field) is None) == (field in poi.missing_fields), 'boundary_missing_field_marker')
+        if identifier == adjacent.id:
+            require(segment is None, 'invented_same_poi_route')
+            return 0, 0.0
+        require(segment is not None and segment.source.provider == 'amap', 'boundary_route_provenance')
+        require(bool(original_segment['source'].get('retrieved_at')), 'boundary_route_timestamp_missing')
+        require(datetime.fromisoformat(segment.source.retrieved_at).tzinfo is not None, 'boundary_route_timestamp')
+        a, b = (identifier, adjacent.id) if incoming else (adjacent.id, identifier)
+        require(segment.origin_id == a and segment.destination_id == b, 'boundary_route_link')
+        require(segment.mode == request.mode and bool(segment.polyline), 'boundary_route_mode_geometry')
+        require(segment.total_cost is None, 'invented_boundary_cost')
+        return segment.duration_min, segment.distance_km
     for index, day in enumerate(trip.days):
         require(day.date == request.start_date + timedelta(days=index), 'day_date')
         require(len(day.stops) == request.stops_per_day, 'stop_count')
-        arrival = minute(request.day_start)
-        distance, travel = 0.0, 0
+        original_day = raw['days'][index]
+        incoming, incoming_distance = boundary(day.origin_poi, day.origin_segment, request.day_origin_poi_id, day.stops[0].poi,
+            original_day.get('origin_poi'), original_day.get('origin_segment'), True)
+        outgoing, outgoing_distance = boundary(day.destination_poi, day.destination_segment, request.day_destination_poi_id, day.stops[-1].poi,
+            original_day.get('destination_poi'), original_day.get('destination_segment'), False)
+        require(day.origin_departure_time == (request.day_start if request.day_origin_poi_id else None), 'origin_departure')
+        arrival = minute(request.day_start) + incoming
+        distance, travel = incoming_distance + outgoing_distance, incoming + outgoing
         for position, stop in enumerate(day.stops):
             ids.append(stop.poi.id)
             require(stop.poi.source.provider == 'amap', 'poi_provenance')
@@ -139,14 +178,17 @@ def summarize(raw, expected):
                 travel += segment.duration_min
                 distance += segment.distance_km
                 arrival += segment.duration_min
+        require(arrival + outgoing <= minute(request.day_end), 'return_end_exceeded')
+        require((minute(day.return_arrival_time) == arrival + outgoing) if request.day_destination_poi_id else day.return_arrival_time is None, 'return_arrival')
         days.append({'date': str(day.date), 'poi_ids': [s.poi.id for s in day.stops],
                      'stay_minutes': sum(s.stay_minutes for s in day.stops), 'travel_minutes': travel,
+                     'interstop_travel_minutes': travel - incoming - outgoing, 'origin_travel_minutes': incoming, 'destination_travel_minutes': outgoing,
                      'distance_km': round(distance, 6), 'last_departure': day.stops[-1].departure_time})
     require(len(ids) == len(set(ids)), 'duplicate_poi')
     require(trip.budget.total is None and trip.budget.known_subtotal == 0 and bool(trip.budget.unknown_items), 'unknown_budget_lost')
     automatic_grouping = request.days > 1 and request.stops_per_day > 1
     require(bool(trip.optimization) == automatic_grouping, 'comparison_presence')
-    route_bound = provider_call_bound(expected) - 1
+    route_bound = route_call_bound(expected)
     totals = {'distance_km': round(sum(d['distance_km'] for d in days), 6),
               'travel_minutes': sum(d['travel_minutes'] for d in days),
               'busiest_day_minutes': max(d['stay_minutes'] + d['travel_minutes'] for d in days)}

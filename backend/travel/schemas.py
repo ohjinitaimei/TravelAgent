@@ -18,6 +18,8 @@ class TimeConflictDay(Model):
     day_number: int = Field(ge=1, le=3)
     stay_minutes: int = Field(ge=0)
     travel_minutes: int = Field(ge=0)
+    origin_travel_minutes: int = Field(default=0, ge=0)
+    destination_travel_minutes: int = Field(default=0, ge=0)
     required_minutes: int = Field(ge=0)
     overrun_minutes: int = Field(gt=0)
 
@@ -148,6 +150,8 @@ class PlanRequest(Model):
     budget: float | None = Field(default=None, ge=0)
     user_prices: dict[str, float] = Field(default_factory=dict, description="用户提供的每站费用；不使用人均消费代替门票")
     stay_minutes_by_poi: StayOverrides = Field(default_factory=dict, description="用户指定的逐站停留时长，优先于默认时长", max_length=12)
+    day_origin_poi_id: str | None = Field(default=None, min_length=1, max_length=100, description="单日出发 POI；每日开始表示离开该地点")
+    day_destination_poi_id: str | None = Field(default=None, min_length=1, max_length=100, description="单日返回 POI；每日结束约束返回到达")
 
     @model_validator(mode="after")
     def validate_constraints(self):
@@ -155,6 +159,10 @@ class PlanRequest(Model):
             raise ValueError("城市与关键词不得为空")
         if self.day_end <= self.day_start:
             raise ValueError("每日结束时间必须晚于开始时间")
+        if self.days != 1 and (self.day_origin_poi_id or self.day_destination_poi_id):
+            raise ValueError("出发地与返回地仅支持单日行程；多日请显式清除所选地点")
+        if any(value is not None and not value.strip() for value in (self.day_origin_poi_id, self.day_destination_poi_id)):
+            raise ValueError("出发地与返回地 ID 不得为空白")
         if len(self.user_prices) > 12 or any(value < 0 for value in self.user_prices.values()):
             raise ValueError("用户费用必须非负且最多 12 项")
         return self
@@ -171,6 +179,8 @@ class EditRequest(Model):
     day_end: str | None = Field(default=None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
     mode: Literal["walking", "driving"] | None = None
     budget: float | None = Field(default=None, ge=0)
+    day_origin_poi_id: str | None = Field(default=None, min_length=1, max_length=100)
+    day_destination_poi_id: str | None = Field(default=None, min_length=1, max_length=100)
 
     @model_validator(mode="after")
     def validate_ids(self):
@@ -205,6 +215,12 @@ class Stop(Model):
 class Day(Model):
     date: date
     stops: list[Stop]
+    origin_poi: Poi | None = None
+    destination_poi: Poi | None = None
+    origin_segment: Segment | None = None
+    destination_segment: Segment | None = None
+    origin_departure_time: str | None = None
+    return_arrival_time: str | None = None
 
 
 class Budget(Model):

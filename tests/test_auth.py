@@ -27,6 +27,20 @@ def authenticated_fixture_worker(payload,output):
 
 
 class AuthTests(unittest.TestCase):
+    def test_boundary_versions_and_clear_operations_remain_owner_scoped(self):
+        request={**PAYLOAD,'day_origin_poi_id':'TEST ONLY alpha home','day_destination_poi_id':'TEST ONLY alpha return'}
+        created=self.client.post(BASE+'/tasks',json=request,headers=self.ah)
+        self.assertEqual(created.status_code,202)
+        final=self.wait(created.json()['id'],self.ah)
+        self.assertEqual(final['status'],'succeeded',final)
+        path=BASE+'/itineraries/'+final['itinerary_id']
+        parent=self.client.get(path,headers=self.ah).json()
+        self.assertEqual(parent['days'][0]['origin_poi']['id'],'TEST ONLY alpha home')
+        self.assertEqual(self.client.get(path,headers=self.bh).status_code,404)
+        edit={'poi_ids_by_day':[['fixture-a','fixture-b']],'day_origin_poi_id':None}
+        self.assertEqual(self.client.post(path+'/adjust',json=edit,headers=self.bh).status_code,404)
+        self.assertEqual(self.client.get(path,headers=self.ah).json(),parent)
+
     def setUp(self):
         self.folder=tempfile.TemporaryDirectory(dir=ROOT/'.tmp')
         self.addCleanup(self.folder.cleanup)

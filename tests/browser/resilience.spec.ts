@@ -32,6 +32,107 @@ function countWrites(page:Page) {
 }
 async function blockStream(page:Page) {await page.route('**/events/stream?*',route=>route.abort())}
 
+async function endpointQueries(page:Page) {
+  const poi=(id:string)=>({id,name:`TEST ONLY ${id}`,longitude:116.2,latitude:39.9,source:{provider:'user_input',retrieved_at:'2026-10-22T00:00:00Z',coordinate_system:'GCJ-02'},missing_fields:['city','address','category','rating','average_spend','opening_hours']})
+  // Explicit TEST ONLY REST search/detail fixtures. Worker schedules are still produced by the isolated API.
+  await page.route(/\/api\/v1\/travel\/pois(?:\?|\/)/,async route=>{
+    const url=new URL(route.request().url())
+    if(url.pathname.endsWith('/pois')) {
+      const keyword=url.searchParams.get('keyword')??''
+      if(keyword==='TEST ONLY delayed'){await pause(650);return route.fulfill({json:{items:[poi('old-city-result')]}})}
+      return route.fulfill({json:{items:[poi(keyword.includes('return')?'endpoint-return':'endpoint-home')]}})
+    }
+    return route.fulfill({json:poi(decodeURIComponent(url.pathname.split('/').at(-1)!))})
+  })
+}
+async function chooseEndpoint(page:Page,label:string,keyword:string) {
+  const picker=page.getByRole('group',{name:`${label}（可选）`,exact:true}).first()
+  await picker.getByLabel(`${label}搜索`,{exact:true}).fill(keyword)
+  await picker.getByRole('button',{name:`搜索${label}`,exact:true}).click()
+  await picker.getByRole('button',{name:/^选择 TEST ONLY/}).click()
+}
+
+test('single-day endpoints survive draft refresh and offline clear while saved totals and source stay accurate',async({page,context})=>{
+  await endpointQueries(page);await fillPlan(page)
+  await chooseEndpoint(page,'出发地','TEST ONLY home')
+  await chooseEndpoint(page,'返回地','TEST ONLY return')
+  const writes=countWrites(page)
+  await page.getByRole('button',{name:'开始规划',exact:true}).click()
+  await expect(page.getByText('行程已生成并保存',{exact:true})).toBeVisible()
+  const parent=await trip(page,(await task(page)).itinerary_id)
+  expect(parent.days[0].stops[0].arrival_time).toBe('09:37')
+  expect(parent.days[0].return_arrival_time).toBe('12:51')
+  await expect(page.locator('.boundary-stop')).toHaveCount(2)
+  await expect(page.getByRole('button',{name:'DAY 1',exact:false})).toContainText('总交通 111 分钟')
+  await page.locator('.map-stop-list > summary').click()
+  await page.getByRole('button',{name:'地图返回地 TEST ONLY endpoint-return',exact:true}).click()
+  await expect(page.getByRole('button',{name:'地图定位返回地 TEST ONLY endpoint-return',exact:true})).toBeFocused()
+  await page.getByRole('button',{name:'编辑行程',exact:true}).click()
+  const editor=page.getByRole('form',{name:'行程编辑',exact:true})
+  await editor.getByRole('button',{name:'清除返回地',exact:true}).click()
+  await expect(page.getByRole('region',{name:'本次编辑改动'})).toContainText('返回地')
+  await expect(page.getByRole('status',{name:'编辑草稿存储'})).toContainText('已保存在本机')
+  page.once('dialog',dialog=>dialog.accept());await page.reload()
+  await page.getByRole('button',{name:'恢复编辑草稿',exact:true}).click()
+  await expect(editor.getByRole('button',{name:'清除返回地',exact:true})).toHaveCount(0)
+  await expect(editor.getByRole('button',{name:'清除出发地',exact:true})).toBeVisible()
+  try {
+    await context.setOffline(true)
+    await page.getByRole('button',{name:'保存并重算',exact:true}).click()
+    await expect(page.getByRole('button',{name:'恢复上次提交',exact:true})).toBeEnabled()
+  } finally {await context.setOffline(false)}
+  const response=page.waitForResponse(r=>r.url().endsWith('/adjust')&&r.request().method()==='POST')
+  await page.getByRole('button',{name:'恢复上次提交',exact:true}).click()
+  const accepted=await(await response).json()
+  await expect(page.locator('.task-id')).toContainText(accepted.id)
+  await expect(page.getByText('行程已生成并保存',{exact:true})).toBeVisible()
+  const child=await trip(page,(await task(page)).itinerary_id)
+  expect(child.request.day_destination_poi_id).toBeNull();expect(child.request.day_origin_poi_id).toBe('endpoint-home')
+  expect(child.parent_id).toBe(parent.id);expect(child.days[0].return_arrival_time).toBeNull()
+  await expect(page.getByRole('button',{name:'DAY 1',exact:false})).toContainText('总交通 74 分钟')
+  expect(await trip(page,parent.id)).toEqual(parent)
+  const adjustments=writes.filter(w=>w.url.endsWith('/adjust'))
+  expect(adjustments).toHaveLength(2);expect(adjustments[0].key).toBeTruthy();expect(adjustments[0].key).toBe(adjustments[1].key)
+  await page.getByRole('button',{name:'已保存行程',exact:false}).first().click()
+  await page.getByLabel('搜索已保存行程').fill(child.id)
+  await page.getByRole('button',{name:'对比来源版本',exact:true}).click()
+  const comparison=page.getByRole('region',{name:'已保存版本对照'})
+  await expect(comparison.getByRole('row').filter({hasText:'已保存总交通'})).toContainText('111 分钟')
+  await expect(comparison.getByRole('row').filter({hasText:'已保存总交通'})).toContainText('74 分钟')
+  await expect(comparison.getByRole('row').filter({hasText:'返回地'})).toContainText('未设置')
+})
+
+test('endpoint time diagnostics and explicit multi-day clearing preserve selections and reject stale search results',async({page})=>{
+  await endpointQueries(page);await fillPlan(page)
+  const form=page.getByRole('form',{name:'旅行规划',exact:true})
+  const origin=page.getByRole('group',{name:'出发地（可选）',exact:true}).first()
+  await origin.getByLabel('出发地搜索',{exact:true}).fill('TEST ONLY delayed')
+  await origin.getByRole('button',{name:'搜索出发地',exact:true}).click()
+  await form.getByLabel('目的地',{exact:true}).fill('TEST ONLY changed city')
+  await pause(800)
+  await expect(origin.getByRole('button',{name:'选择 TEST ONLY old-city-result',exact:true})).toHaveCount(0)
+  await chooseEndpoint(page,'出发地','TEST ONLY home');await chooseEndpoint(page,'返回地','TEST ONLY return')
+  await form.getByLabel('旅行天数').selectOption('2')
+  const writes=countWrites(page)
+  await page.getByRole('button',{name:'开始规划',exact:true}).click()
+  await expect(page.getByRole('alert').filter({hasText:'起终点仅支持单日'})).toBeVisible()
+  expect(writes).toHaveLength(0)
+  await form.getByLabel('旅行天数').selectOption('1')
+  await form.getByLabel('每日结束',{exact:true}).fill('12:30')
+  await page.getByRole('button',{name:'开始规划',exact:true}).click()
+  const guide=page.getByRole('region',{name:'时间约束调整建议'})
+  await expect(guide).toBeVisible()
+  const row=guide.getByRole('row').filter({hasText:'第 1 天'})
+  await expect(row.getByRole('cell')).toHaveText(['120','37','37','37','231','21'])
+  expect((await task(page)).itinerary_id).toBeNull()
+  await form.getByRole('button',{name:'清除返回地',exact:true}).click()
+  await page.getByRole('button',{name:'开始规划',exact:true}).click()
+  await expect(page.getByText('行程已生成并保存',{exact:true})).toBeVisible()
+  const saved=await trip(page,(await task(page)).itinerary_id)
+  expect(saved.days[0].destination_poi).toBeNull()
+  expect(saved.days[0].origin_poi.id).toBe('endpoint-home')
+})
+
 test('complete user journey repairs constraints, restores a draft and saves one adjusted version after offline recovery',async({page,context},info)=>{
   const writes=countWrites(page)
   const form=page.getByRole('form',{name:'旅行规划',exact:true})
@@ -121,6 +222,29 @@ test('complete user journey repairs constraints, restores a draft and saves one 
     expect(listing.total).toBe(1);expect(listing.items[0].id).toBe(adjusted.id)
     await info.attach('complete-journey-test-only',{body:JSON.stringify({fixture:'TEST ONLY',failedTask:failed.id,source:original.id,adjustment:adjusted.id,writeAttempts:writes.length,acceptedTasks:3,sourceUnchanged:true}),contentType:'application/json'})
   })
+})
+
+test('draft recovery stays disabled until startup task synchronization is complete',async({page})=>{
+  await fillPlan(page)
+  await page.getByRole('button',{name:'开始规划',exact:true}).click()
+  await expect(page.getByText('行程已生成并保存',{exact:true})).toBeVisible()
+  const current=await task(page)
+  await page.getByRole('button',{name:'编辑行程',exact:true}).click()
+  await page.getByLabel('停留（分钟）',{exact:true}).first().fill('90')
+  await expect(page.getByRole('status',{name:'编辑草稿存储'})).toContainText('已保存在本机')
+  let release!:()=>void,reading=false,hold=true
+  const gate=new Promise<void>(resolve=>{release=resolve})
+  await page.route(`**/tasks/${current.id}`,async route=>{
+    if(hold&&route.request().method()==='GET'){reading=true;await gate}
+    await route.continue()
+  })
+  try {
+    page.once('dialog',dialog=>dialog.accept());await page.reload()
+    await expect.poll(()=>reading).toBeTruthy()
+    await expect(page.getByRole('button',{name:'恢复编辑草稿',exact:true})).toBeDisabled()
+  } finally {hold=false;release()}
+  await page.getByRole('button',{name:'恢复编辑草稿',exact:true}).click()
+  await expect(page.getByRole('region',{name:'本次编辑改动'})).toContainText('90 分钟')
 })
 
 test('intermittent read failures recover events and preserve one accepted task',async({page})=>{

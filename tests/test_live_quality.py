@@ -36,6 +36,32 @@ class ReportInputProvider(FixtureProvider):
 
 
 class LiveReportTests(unittest.TestCase):
+    def test_boundary_inspection_includes_real_route_cost_in_schedule_and_observations(self):
+        request={**self.request,'days':1,'day_origin_poi_id':'TEST ONLY home','day_destination_poi_id':'TEST ONLY hotel'}
+        raw=plan(PlanRequest.model_validate(request),lambda *_:None,provider=ReportInputProvider()).model_dump(mode='json')
+        result=summarize(raw,request)
+        self.assertEqual(result['days'][0]['travel_minutes'],111)
+        self.assertEqual(result['days'][0]['interstop_travel_minutes'],37)
+        self.assertEqual(result['route_query_upper_bound'],6)
+        self.assertEqual(provider_call_bound(request),9)
+        observations=result['quality_observations']
+        self.assertTrue(observations['origin_return_included'])
+        self.assertEqual(observations['days'][0]['scheduled_minutes'],171)
+        self.assertEqual(len(observations['days'][0]['legs']),3)
+
+    def test_boundary_inspector_rejects_missing_facts_and_fabricated_timestamps(self):
+        request={**self.request,'days':1,'day_origin_poi_id':'TEST ONLY home','day_destination_poi_id':'TEST ONLY hotel'}
+        original=plan(PlanRequest.model_validate(request),lambda *_:None,provider=ReportInputProvider()).model_dump(mode='json')
+        for change in ('missing_leg','missing_poi_time','missing_route_time','wrong_link','wrong_return'):
+            with self.subTest(change=change):
+                raw=deepcopy(original);day=raw['days'][0]
+                if change=='missing_leg':day['destination_segment']=None
+                if change=='missing_poi_time':day['origin_poi']['source'].pop('retrieved_at')
+                if change=='missing_route_time':day['destination_segment']['source'].pop('retrieved_at')
+                if change=='wrong_link':day['destination_segment']['origin_id']='TEST ONLY wrong'
+                if change=='wrong_return':day['return_arrival_time']='10:00'
+                with self.assertRaises(ValueError):summarize(raw,request)
+
     def setUp(self):
         self.request = {'city': 'TEST ONLY 城市', 'query': 'TEST ONLY 公园', 'start_date': '2026-10-20',
                         'days': 2, 'stops_per_day': 2, 'stay_minutes': 30, 'day_start': '09:00', 'day_end': '22:00', 'mode': 'walking'}

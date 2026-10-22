@@ -172,7 +172,7 @@ async def adjust(itinerary_id: str, body: EditRequest, request: Request, idempot
         raise TravelFailure("invalid_day_count", "调整行程必须保留原有天数", status=422)
     values = trip.request.model_dump(mode="json")
     for field in body.model_fields_set - {"poi_ids_by_day", "optimize_order"}:
-        if getattr(body, field) is not None or field == "budget":
+        if getattr(body, field) is not None or field in {"budget", "day_origin_poi_id", "day_destination_poi_id"}:
             values[field] = getattr(body, field)
     ids = {item for day in body.poi_ids_by_day for item in day}
     for field in ("user_prices", "stay_minutes_by_poi"):

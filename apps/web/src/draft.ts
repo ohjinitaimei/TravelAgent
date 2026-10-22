@@ -29,7 +29,7 @@ export function clarificationRequest(draft:Draft, answers:Partial<Record<DraftFi
 
 /** Applying a draft replaces earlier inputs; never submits a planning task. */
 export function draftForm(draft: Draft): PlanRequest {
-  const defaults: PlanRequest={city:'',query:'',start_date:'',days:2,stops_per_day:3,day_start:'09:00',day_end:'18:00',stay_minutes:60,mode:'walking',budget:null,user_prices:{},stay_minutes_by_poi:{}}
+  const defaults: PlanRequest={city:'',query:'',start_date:'',days:2,stops_per_day:3,day_start:'09:00',day_end:'18:00',stay_minutes:60,mode:'walking',budget:null,user_prices:{},stay_minutes_by_poi:{},day_origin_poi_id:null,day_destination_poi_id:null}
   for(const [field,value] of Object.entries(draft.proposal.values)) {
     if(value!=null && field in defaults) Object.assign(defaults,{[field]:value})
   }

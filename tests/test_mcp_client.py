@@ -56,6 +56,18 @@ def fixture_mcp_worker(payload,output):
 
 
 class McpClientTests(unittest.TestCase):
+    def test_endpoints_reuse_the_same_mcp_provider_and_preserve_budget_failures(self):
+        request=PlanRequest.model_validate({**PAYLOAD,'day_origin_poi_id':'TEST ONLY home','day_destination_poi_id':'TEST ONLY hotel'})
+        with open_mcp_provider(parameters=parameters()) as provider:
+            trip=plan(request,lambda *_:None,provider=provider)
+            self.assertEqual(trip.days[0].stops[0].arrival_time,'09:37')
+            self.assertEqual(trip.days[0].return_arrival_time,'12:51')
+            self.assertEqual(trip.days[0].origin_segment.origin_id,'TEST ONLY home')
+            self.assertEqual(trip.days[0].destination_segment.destination_id,'TEST ONLY hotel')
+        with open_mcp_provider(parameters=parameters(),limits=McpLimits(max_calls=3)) as provider:
+            with self.assertRaises(TravelFailure) as caught:plan(request,lambda *_:None,provider=provider)
+            self.assertEqual(caught.exception.code,'tool_budget_exhausted')
+
     def test_planner_and_existing_registry_use_the_same_client(self):
         events=[]
         with open_mcp_provider(parameters=parameters()) as provider:

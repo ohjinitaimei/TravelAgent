@@ -4140,6 +4140,68 @@
             },
             "type": "array",
             "title": "Stops"
+          },
+          "origin_poi": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Poi"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "destination_poi": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Poi"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "origin_segment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Segment"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "destination_segment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Segment"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "origin_departure_time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Departure Time"
+          },
+          "return_arrival_time": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Return Arrival Time"
           }
         },
         "additionalProperties": false,
@@ -4697,6 +4759,32 @@
               }
             ],
             "title": "Budget"
+          },
+          "day_origin_poi_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day Origin Poi Id"
+          },
+          "day_destination_poi_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day Destination Poi Id"
           }
         },
         "additionalProperties": false,
@@ -5202,6 +5290,34 @@
             "maxProperties": 12,
             "title": "Stay Minutes By Poi",
             "description": "用户指定的逐站停留时长，优先于默认时长"
+          },
+          "day_origin_poi_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day Origin Poi Id",
+            "description": "单日出发 POI；每日开始表示离开该地点"
+          },
+          "day_destination_poi_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day Destination Poi Id",
+            "description": "单日返回 POI；每日结束约束返回到达"
           }
         },
         "additionalProperties": false,
@@ -5708,6 +5824,18 @@
             "type": "integer",
             "minimum": 0.0,
             "title": "Travel Minutes"
+          },
+          "origin_travel_minutes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Origin Travel Minutes",
+            "default": 0
+          },
+          "destination_travel_minutes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Destination Travel Minutes",
+            "default": 0
           },
           "required_minutes": {
             "type": "integer",

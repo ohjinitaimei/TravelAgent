@@ -14,12 +14,13 @@ export function userPrices(ids: string[], values: Record<string,string|number>):
 export type Value = string|number|null|undefined
 export type EditInput = {
   groups:string[][]; prices:Record<string,Value>; durations:Record<string,Value>
-  constraints:{start_date:string;day_start:string;day_end:string;mode:string;budget:Value}
+  constraints:{start_date:string;day_start:string;day_end:string;mode:string;budget:Value;day_origin_poi_id?:string|null;day_destination_poi_id?:string|null}
   defaultStay:Value; optimize:boolean
 }
 export type EditSnapshot = {
   groups:string[][]; prices:Record<string,Value>; durations:Record<string,Value>
   start_date:string;day_start:string;day_end:string;mode:string;budget:Value;defaultStay:Value;optimize:boolean
+  day_origin_poi_id:string|null;day_destination_poi_id:string|null
 }
 export type EditChange = {label:string;before:string;after:string}
 
@@ -36,7 +37,8 @@ export function editSnapshot(input:EditInput):EditSnapshot {
     prices:Object.fromEntries(ids.map(id=>[id,numeric(input.prices[id])])),
     durations:Object.fromEntries(ids.map(id=>[id,numeric(input.durations[id]??input.defaultStay)])),
     start_date:input.constraints.start_date,day_start:input.constraints.day_start,day_end:input.constraints.day_end,
-    mode:input.constraints.mode,budget:numeric(input.constraints.budget),defaultStay:numeric(input.defaultStay),optimize:input.optimize}
+    mode:input.constraints.mode,budget:numeric(input.constraints.budget),defaultStay:numeric(input.defaultStay),optimize:input.optimize,
+    day_origin_poi_id:input.constraints.day_origin_poi_id??null,day_destination_poi_id:input.constraints.day_destination_poi_id??null}
 }
 
 export function editChanges(before:EditSnapshot,after:EditSnapshot,name:(id:string)=>string):EditChange[] {
@@ -54,6 +56,9 @@ export function editChanges(before:EditSnapshot,after:EditSnapshot,name:(id:stri
     if((previous?before.prices[id]:null)!==after.prices[id]) changes.push({label:`费用 ${name(id)}`,before:text(previous?before.prices[id]:null,' 元'),after:text(after.prices[id],' 元')})
   }
   const labels={start_date:'出发日期',day_start:'每日开始',day_end:'每日结束',mode:'交通方式',budget:'预算上限',defaultStay:'新增站点默认停留',optimize:'日内重新排序'} as const
+  for(const [key,label] of [['day_origin_poi_id','出发地'],['day_destination_poi_id','返回地']] as const) {
+    if((before[key]??null)!==(after[key]??null))changes.push({label,before:before[key]?name(before[key]):'未设置',after:after[key]?name(after[key]):'未设置'})
+  }
   for(const key of Object.keys(labels) as (keyof typeof labels)[]) if(before[key]!==after[key]) {
     const show=(snapshot:EditSnapshot)=>key==='mode'?({walking:'步行',driving:'驾车'}[snapshot.mode]??snapshot.mode):key==='optimize'?(snapshot.optimize?'开启':'关闭'):text(snapshot[key] as Value,key==='budget'?' 元':key==='defaultStay'?' 分钟':'')
     changes.push({label:labels[key],before:show(before),after:show(after)})

@@ -10,8 +10,8 @@ const emit = defineEmits<{ locate: [field: 'window' | 'stops' | 'stay', dayNumbe
     <h3>每天的时间需要再留一点余量</h3>
     <template v-if="details">
       <p>失败任务的原时段为 {{details.day_start}}–{{details.day_end}}，每天可用 {{details.available_minutes}} 分钟。下表显示原方案超时的日期，不是已保存行程或可行候选。</p>
-      <div class="time-table"><table><caption>原方案时间核验（分钟）</caption><thead><tr><th scope="col">日期</th><th scope="col">停留</th><th scope="col">站间交通</th><th scope="col">共需</th><th scope="col">超出</th></tr></thead><tbody><tr v-for="day in details.days" :key="day.day_number"><th scope="row">第 {{day.day_number}} 天</th><td>{{day.stay_minutes}}</td><td>{{day.travel_minutes}}</td><td>{{day.required_minutes}}</td><td>{{day.overrun_minutes}}</td></tr></tbody></table></div>
-      <p>停留取自该任务的用户设置，站间交通取自接口结果。此核验不包含住宿往返、预约或营业时间限制，也不代表未来实际耗时。</p>
+      <div class="time-table"><table><caption>原方案时间核验（分钟）</caption><thead><tr><th scope="col">日期</th><th scope="col">停留</th><th scope="col">站间交通</th><th scope="col">出发交通</th><th scope="col">返回交通</th><th scope="col">共需</th><th scope="col">超出</th></tr></thead><tbody><tr v-for="day in details.days" :key="day.day_number"><th scope="row">第 {{day.day_number}} 天</th><td>{{day.stay_minutes}}</td><td>{{day.travel_minutes}}</td><td>{{day.origin_travel_minutes??0}}</td><td>{{day.destination_travel_minutes??0}}</td><td>{{day.required_minutes}}</td><td>{{day.overrun_minutes}}</td></tr></tbody></table></div>
+      <p>停留取自该任务的用户设置，交通取自接口结果；出发/返回仅在选定对应地点时计入。未设置一侧的往返、预约或营业时间未验证，也不代表未来实际耗时。</p>
     </template>
     <p v-else>这条历史任务没有分日诊断。请核对每日时段、地点数量与停留时间，再重新提交。</p>
     <p>可以扩大每日时段，减少地点，或按自己的安排缩短停留。改变条件后仍需后端重新核验，不保证一次调整即可通过。</p>

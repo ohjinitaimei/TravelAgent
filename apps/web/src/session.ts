@@ -31,5 +31,9 @@ export function restoreForm(defaults: PlanRequest, stored: unknown): PlanRequest
   }
   if (value.mode === 'walking' || value.mode === 'driving') result.mode = value.mode
   if (typeof value.budget === 'number' && Number.isFinite(value.budget) && value.budget >= 0) result.budget = value.budget
+  for(const field of ['day_origin_poi_id','day_destination_poi_id'] as const) {
+    const id=value[field]
+    if(id===null||typeof id==='string'&&id.length>0&&id.length<=100&&id.trim())result[field]=id as string|null
+  }
   return result
 }

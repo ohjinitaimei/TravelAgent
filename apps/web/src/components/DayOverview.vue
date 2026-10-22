@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { Itinerary } from '../api'
+import { dayTransport } from '../journey'
 
 const props = defineProps<{ itinerary: Itinerary; selected: number; previewCounts?: number[] }>()
 const emit = defineEmits<{ select: [index: number] }>()
@@ -9,8 +10,8 @@ const days = computed(() => props.itinerary.days.map(day => ({
   date: day.date,
   stops: day.stops.length,
   stay: day.stops.reduce((sum, stop) => sum + stop.stay_minutes, 0),
-  travel: day.stops.reduce((sum, stop) => sum + (stop.travel_to_next?.duration_min ?? 0), 0),
-  distance: day.stops.reduce((sum, stop) => sum + (stop.travel_to_next?.distance_km ?? 0), 0),
+  transport: dayTransport(day,props.itinerary.request),
+  hasBoundary: Boolean(day.origin_poi||day.destination_poi),
   cost: day.stops.reduce((sum, stop) => sum + (stop.user_cost ?? 0), 0),
   missingCost: day.stops.filter(stop => stop.user_cost == null).length,
 })))
@@ -40,7 +41,8 @@ function navigate(event: KeyboardEvent, index: number) {
         </template>
         <template v-else>
           <span class="overview-stations">{{day.stops}} 站 · 停留 {{day.stay}} 分钟</span>
-          <span>站间交通 {{day.travel}} 分钟 · {{day.distance.toFixed(2)}} km</span>
+          <span>站间交通 {{day.transport.interstop??'未知'}} 分钟 · 总道路 {{day.transport.distance?.toFixed(2)??'未知'}} km</span>
+          <span v-if="day.hasBoundary">出发/返回 {{day.transport.boundary??'未知'}} 分钟 · 总交通 {{day.transport.total??'未知'}} 分钟</span>
           <span class="overview-cost">已录入站点费用 ¥{{day.cost.toFixed(2)}}</span>
           <span class="overview-muted">{{day.missingCost ? `${day.missingCost} 站费用未填` : '站点费用已填齐'}} · 不含未录入费用</span>
         </template>

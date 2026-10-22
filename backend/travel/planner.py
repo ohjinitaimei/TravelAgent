@@ -29,8 +29,13 @@ def plan(request: PlanRequest, emit: Callable[[str, str], None], *, provider: Am
     emit("search", "正在查询高德真实 POI")
     intent = ParsedIntent(city=request.city, original_query=request.query, start_time=request.day_start,
                           end_time=request.day_end, budget=request.budget, transport_mode=request.mode)
+    poi_cache = {}
+    def detail(poi_id):
+        if poi_id not in poi_cache:
+            poi_cache[poi_id] = provider.detail(poi_id)
+        return poi_cache[poi_id]
     if poi_ids_by_day is not None:
-        groups = [[provider.detail(poi_id) for poi_id in ids] for ids in poi_ids_by_day]
+        groups = [[detail(poi_id) for poi_id in ids] for ids in poi_ids_by_day]
     else:
         pois = provider.search(request.query, request.city)
         required = request.days * request.stops_per_day
@@ -39,8 +44,14 @@ def plan(request: PlanRequest, emit: Callable[[str, str], None], *, provider: Am
         emit("ranking", "复用现有推荐函数；仅使用可核验字段")
         ranked = poi_ranker.rank_pois([legacy(poi, request) for poi in pois], intent, top_k=required, factual_only=True)
         by_id = {poi.id: poi for poi in pois}
+        poi_cache.update(by_id)
         chosen = [by_id[item["poi"].id] for item in ranked]
         groups = [chosen[index:index + request.stops_per_day] for index in range(0, required, request.stops_per_day)]
+
+    if request.day_origin_poi_id or request.day_destination_poi_id:
+        emit("anchor_lookup", "正在核对所选出发地与返回地")
+    origin_poi = detail(request.day_origin_poi_id) if request.day_origin_poi_id else None
+    destination_poi = detail(request.day_destination_poi_id) if request.day_destination_poi_id else None
 
     comparison = None
     automatic_grouping = poi_ids_by_day is None and optimize_order and request.days > 1 and request.stops_per_day > 1
@@ -53,6 +64,7 @@ def plan(request: PlanRequest, emit: Callable[[str, str], None], *, provider: Am
     warnings = ["未验证预约、闭馆日及出行日期的营业状态；请在出发前确认。",
                 "交通时间为接口查询时的估计，不保证未来出发日的实际耗时。",
                 "关键词用于 POI 召回；每日时段、停留时间、交通模式和预算以表单为准。",
+                "已计入所选出发地与返回地交通；未设置的一侧不包含往返，日内排序不保证全局最优。" if origin_poi or destination_poi else
                 "未包含住宿或出发点往返交通；日内排序不保证全局最优。"]
     warnings.append("仅比较有限地理交换候选与原分日，不保证跨日全局最优。" if automatic_grouping else
                     "保留用户指定分日，不自动跨日移动地点。" if poi_ids_by_day is not None else "按推荐顺序分日。")
@@ -60,6 +72,15 @@ def plan(request: PlanRequest, emit: Callable[[str, str], None], *, provider: Am
     segments = {}
     end_limit = route_planner._time_to_minutes(request.day_end)
     start_time = route_planner._time_to_minutes(request.day_start)
+    def route(a, b):
+        if a.id == b.id:
+            return None  # Same adjacent POI needs no route, never a fabricated zero-minute Segment.
+        key = (a.id, b.id)
+        if key not in segments:
+            segments[key] = provider.route(a, b, request.mode)
+        return segments[key]
+    def clock(minutes):
+        return f"{minutes // 60:02d}:{minutes % 60:02d}"
 
     def evaluate(day_groups, label):
         days, travel_minutes, day_minutes = [], [], []
@@ -72,12 +93,20 @@ def plan(request: PlanRequest, emit: Callable[[str, str], None], *, provider: Am
                 for destination in group:
                     if origin.id != destination.id:
                         key = (origin.id, destination.id)
-                        if key not in segments:
-                            segments[key] = provider.route(origin, destination, request.mode)
-                        day_segments[key] = segments[key]
+                        day_segments[key] = route(origin, destination)
+            if origin_poi or destination_poi:
+                emit("boundary_routing", "正在查询真实出发与返回交通")
+                for poi in group:
+                    if origin_poi: route(origin_poi, poi)
+                    if destination_poi: route(poi, destination_poi)
             internal = [legacy(poi, request) for poi in group]
             emit("optimizing", f"{label}第 {index + 1} 天：复用现有最近邻排序")
-            ordered = route_planner._optimize_order_by_distance(internal, distance_fn=lambda a, b: day_segments[(a.id, b.id)].distance_km) if optimize_order else internal
+            ordered = route_planner._optimize_order_by_distance(internal,
+                distance_fn=lambda a, b: day_segments[(a.id, b.id)].distance_km,
+                start_distance_fn=(lambda poi: 0 if poi.id == origin_poi.id else segments[(origin_poi.id, poi.id)].distance_km) if origin_poi else None) if optimize_order else internal
+            lookup = {poi.id: poi for poi in group}
+            incoming = route(origin_poi, lookup[ordered[0].id]) if origin_poi else None
+            outgoing = route(lookup[ordered[-1].id], destination_poi) if destination_poi else None
             matrix = {key: {} for key in ("distance_km", "duration_min")}
             for (origin, destination), segment in day_segments.items():
                 for key in matrix:
@@ -86,12 +115,13 @@ def plan(request: PlanRequest, emit: Callable[[str, str], None], *, provider: Am
             # proposal distances never enter route, time or budget calculations.
             intent.planning_distance_matrix = matrix
             emit("scheduling", f"{label}第 {index + 1} 天：复用现有时间调度")
-            scheduled = route_planner._build_route_stops(ordered, intent)
+            scheduled = route_planner._build_route_stops(ordered, intent, start_minutes=start_time + (incoming.duration_min if incoming else 0))
             last_end = int(scheduled[-1].end_time) if scheduled else start_time
+            last_end += outgoing.duration_min if outgoing else 0
             feasible = feasible and last_end <= end_limit
             day_minutes.append(last_end - start_time)
-            lookup = {poi.id: poi for poi in group}
-            stops, duration = [], 0
+            stops, duration = [], sum(segment.duration_min for segment in (incoming, outgoing) if segment)
+            distance += sum(segment.distance_km for segment in (incoming, outgoing) if segment)
             for position, stop in enumerate(scheduled):
                 poi = lookup[stop.poi.id]
                 cost = request.user_prices.get(poi.id)
@@ -103,7 +133,10 @@ def plan(request: PlanRequest, emit: Callable[[str, str], None], *, provider: Am
                                   stay_minutes=int(stop.poi.visit_duration), user_cost=cost,
                                   cost_source="user_input" if cost is not None else None, travel_to_next=segment))
             travel_minutes.append(duration)
-            days.append(Day(date=request.start_date + timedelta(days=index), stops=stops))
+            days.append(Day(date=request.start_date + timedelta(days=index), stops=stops,
+                origin_poi=origin_poi, destination_poi=destination_poi, origin_segment=incoming, destination_segment=outgoing,
+                origin_departure_time=request.day_start if origin_poi else None,
+                return_arrival_time=clock(last_end) if destination_poi else None))
         return days, PlanningMetrics(distance_km=round(distance, 6), travel_minutes=sum(travel_minutes),
             busiest_day_minutes=max(day_minutes, default=0), per_day_travel_minutes=travel_minutes, feasible=feasible)
 
@@ -139,11 +172,15 @@ def plan(request: PlanRequest, emit: Callable[[str, str], None], *, provider: Am
         conflicts = []
         for index, group in enumerate(groups):
             stay = sum(request.stay_minutes_by_poi.get(poi.id, request.stay_minutes) for poi in group)
-            travel = baseline.per_day_travel_minutes[index]
-            required = stay + travel
+            total_travel = baseline.per_day_travel_minutes[index]
+            incoming = days[index].origin_segment.duration_min if days[index].origin_segment else 0
+            outgoing = days[index].destination_segment.duration_min if days[index].destination_segment else 0
+            travel = total_travel - incoming - outgoing
+            required = stay + total_travel
             if required > available:
                 conflicts.append(TimeConflictDay(day_number=index + 1, stay_minutes=stay,
-                    travel_minutes=travel, required_minutes=required, overrun_minutes=required - available))
+                    travel_minutes=travel, origin_travel_minutes=incoming, destination_travel_minutes=outgoing,
+                    required_minutes=required, overrun_minutes=required - available))
         diagnostics = TimeConstraintDiagnostics(operation="adjust" if parent_id else "plan",
             source_itinerary_id=parent_id, day_start=request.day_start, day_end=request.day_end,
             available_minutes=available, days=conflicts)
@@ -153,6 +190,9 @@ def plan(request: PlanRequest, emit: Callable[[str, str], None], *, provider: Am
 
     unknown = [f"{stop.poi.name}：实际消费/门票" for day in days for stop in day.stops if stop.user_cost is None]
     unknown.extend(f"{stop.poi.name}：完整交通费用" for day in days for stop in day.stops if stop.travel_to_next is not None)
+    for day in days:
+        if day.origin_segment: unknown.append("出发地至首站：完整交通费用")
+        if day.destination_segment: unknown.append("末站至返回地：完整交通费用")
     unknown.append("住宿、餐饮及其他未录入费用")
     known = round(sum(stop.user_cost or 0 for day in days for stop in day.stops), 2)
     status = "exceeded" if request.budget is not None and known > request.budget else "unknown"

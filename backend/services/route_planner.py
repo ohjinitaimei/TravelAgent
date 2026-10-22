@@ -510,7 +510,7 @@ def _mandatory_pois(ranked_pois: list[dict[str, Any]], intent: ParsedIntent) -> 
     return anchors
 
 
-def _build_route_stops(selected: list[POI], intent: ParsedIntent, amap: bool = False) -> list[RouteStop]:
+def _build_route_stops(selected: list[POI], intent: ParsedIntent, amap: bool = False, *, start_minutes: int | None = None) -> list[RouteStop]:
     """
     构建带有时序的路线站点列表
 
@@ -528,7 +528,7 @@ def _build_route_stops(selected: list[POI], intent: ParsedIntent, amap: bool = F
         list[RouteStop]: 带有时间安排的路线站点列表
     """
     stops: list[RouteStop] = []
-    current_time = _time_to_minutes(intent.start_time)
+    current_time = _time_to_minutes(intent.start_time) if start_minutes is None else start_minutes
 
     def earliest_arrival(poi: POI) -> int | None:
         stages = getattr(intent, "ordered_stages", []) or []
@@ -997,7 +997,7 @@ def _make_variant_distinct(
     return _RouteOption(stops=route, name=name, strategy=strategy)
 
 
-def _optimize_order_by_distance(pois: list[POI], *, distance_fn=None) -> list[POI]:
+def _optimize_order_by_distance(pois: list[POI], *, distance_fn=None, start_distance_fn=None) -> list[POI]:
     """
     使用最近邻贪心算法优化POI顺序
 
@@ -1013,8 +1013,10 @@ def _optimize_order_by_distance(pois: list[POI], *, distance_fn=None) -> list[PO
         return pois
 
     remaining = list(pois)
-    # 从第一个POI开始
-    result = [remaining.pop(0)]
+    # Optional caller-supplied factual incoming distances; retain legacy seed otherwise.
+    first = min(remaining, key=start_distance_fn) if start_distance_fn is not None else remaining[0]
+    result = [first]
+    remaining.remove(first)
 
     while remaining:
         last = result[-1]

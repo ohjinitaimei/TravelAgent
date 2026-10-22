@@ -464,6 +464,14 @@ export interface components {
             date: string;
             /** Stops */
             stops: components["schemas"]["Stop"][];
+            origin_poi?: components["schemas"]["Poi"] | null;
+            destination_poi?: components["schemas"]["Poi"] | null;
+            origin_segment?: components["schemas"]["Segment"] | null;
+            destination_segment?: components["schemas"]["Segment"] | null;
+            /** Origin Departure Time */
+            origin_departure_time?: string | null;
+            /** Return Arrival Time */
+            return_arrival_time?: string | null;
         };
         /** Draft */
         Draft: {
@@ -597,6 +605,10 @@ export interface components {
             mode?: ("walking" | "driving") | null;
             /** Budget */
             budget?: number | null;
+            /** Day Origin Poi Id */
+            day_origin_poi_id?: string | null;
+            /** Day Destination Poi Id */
+            day_destination_poi_id?: string | null;
         };
         /** Error */
         Error: {
@@ -808,6 +820,16 @@ export interface components {
             stay_minutes_by_poi?: {
                 [key: string]: number;
             };
+            /**
+             * Day Origin Poi Id
+             * @description 单日出发 POI；每日开始表示离开该地点
+             */
+            day_origin_poi_id?: string | null;
+            /**
+             * Day Destination Poi Id
+             * @description 单日返回 POI；每日结束约束返回到达
+             */
+            day_destination_poi_id?: string | null;
         };
         /** PlanningMetrics */
         PlanningMetrics: {
@@ -974,6 +996,16 @@ export interface components {
             stay_minutes: number;
             /** Travel Minutes */
             travel_minutes: number;
+            /**
+             * Origin Travel Minutes
+             * @default 0
+             */
+            origin_travel_minutes: number;
+            /**
+             * Destination Travel Minutes
+             * @default 0
+             */
+            destination_travel_minutes: number;
             /** Required Minutes */
             required_minutes: number;
             /** Overrun Minutes */

@@ -31,7 +31,7 @@ Pagination keyboard focus, status announcements and retained-page recovery: [arc
 
 完整用户操作、源码/API 对应及连续验收结果：[architecture/WEB_USER_JOURNEY.md](architecture/WEB_USER_JOURNEY.md)。
 
-多城路途负担、真实证据与复核边界：[architecture/RECOMMENDATION_QUALITY.md](architecture/RECOMMENDATION_QUALITY.md)。后续单日起终点契约与预算：[architecture/JOURNEY_ENDPOINTS_DESIGN.md](architecture/JOURNEY_ENDPOINTS_DESIGN.md)。
+多城路途负担、真实证据与复核边界：[architecture/RECOMMENDATION_QUALITY.md](architecture/RECOMMENDATION_QUALITY.md)。已实现的单日起终点操作、契约、调度与真实记录：[architecture/SINGLE_DAY_ENDPOINTS.md](architecture/SINGLE_DAY_ENDPOINTS.md)；原接入设计见 [architecture/JOURNEY_ENDPOINTS_DESIGN.md](architecture/JOURNEY_ENDPOINTS_DESIGN.md)。
 
 ## Doc Groups
 

@@ -81,8 +81,8 @@ export class TravelClient {
   }
   itinerary(id: string) { return this.get<Itinerary>(`/itineraries/${encodeURIComponent(id)}`) }
   adjust(id: string, request: Schema<'EditRequest'>, options?:SubmitOptions) { return this.post<Task>(`/itineraries/${encodeURIComponent(id)}/adjust`, request,options) }
-  search(keyword: string, city: string) { return this.get<Schema<'PoiList'>>(`/pois?${new URLSearchParams({keyword, city})}`) }
-  detail(id: string) { return this.get<Poi>(`/pois/${encodeURIComponent(id)}`) }
+  search(keyword: string, city: string, signal?:AbortSignal) { return this.get<Schema<'PoiList'>>(`/pois?${new URLSearchParams({keyword, city})}`,signal) }
+  detail(id: string, signal?:AbortSignal) { return this.get<Poi>(`/pois/${encodeURIComponent(id)}`,signal) }
   route(request: Schema<'RouteQuery'>) { return this.post<Schema<'Segment'>>('/routes', request) }
 
   /** Platform-neutral polling: uni-app can inject uni.request as transport. */

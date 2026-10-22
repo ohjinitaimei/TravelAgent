@@ -19,7 +19,8 @@ function snapshot(v:unknown):EditSnapshot {
   const fields=(raw:unknown)=>{if(!object(raw))throw Error('invalid');return Object.fromEntries([...ids].sort().map(key=>[key,scalar(raw[key])]))}
   const text=(key:string)=>{if(typeof v[key]!=='string'||v[key].length>32)throw Error('invalid');return v[key] as string}
   if(!['walking','driving'].includes(String(v.mode))||typeof v.optimize!=='boolean')throw Error('invalid')
-  return {groups,prices:fields(v.prices),durations:fields(v.durations),start_date:text('start_date'),day_start:text('day_start'),day_end:text('day_end'),mode:String(v.mode),budget:scalar(v.budget),defaultStay:scalar(v.defaultStay),optimize:v.optimize}
+  const anchor=(key:string)=>{const value=v[key];if(value==null)return null;if(!id(value)||value.length>100||!value.trim()||groups.length!==1)throw Error('invalid');return value}
+  return {groups,prices:fields(v.prices),durations:fields(v.durations),start_date:text('start_date'),day_start:text('day_start'),day_end:text('day_end'),mode:String(v.mode),budget:scalar(v.budget),defaultStay:scalar(v.defaultStay),optimize:v.optimize,day_origin_poi_id:anchor('day_origin_poi_id'),day_destination_poi_id:anchor('day_destination_poi_id')}
 }
 export function parseEditDraft(raw:string,now=Date.now()):EditDraft {
   if(raw.length>MAX_SIZE)throw Error('草稿过大，无法恢复；可放弃本机草稿后重新编辑。')

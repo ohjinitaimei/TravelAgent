@@ -11,7 +11,9 @@ const rows=computed(()=>{
   const total=(value:number|null)=>value==null?'未知':`¥${value.toFixed(2)}`
   return [
     ['地点',`${before.stops} 站`,`${after.stops} 站`],['用户设定停留',minute(before.stay),minute(after.stay)],
-    ['已保存站间交通',minute(before.travel),minute(after.travel)],['已保存道路距离',distance(before.distance),distance(after.distance)],
+    ['已保存站间交通',minute(before.interstopTravel),minute(after.interstopTravel)],
+    ['已保存出发/返回交通',minute(before.boundaryTravel),minute(after.boundaryTravel)],
+    ['已保存总交通',minute(before.travel),minute(after.travel)],['已保存道路距离',distance(before.distance),distance(after.distance)],
     ['已录入费用小计',total(before.knownCost),total(after.knownCost)],
     ['站点费用未填',`${before.missingStationCosts} 站`,`${after.missingStationCosts} 站`],
     ['完整预算总额',total(before.totalCost),total(after.totalCost)]

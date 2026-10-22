@@ -36,7 +36,7 @@ class TimeConstraintTests(unittest.TestCase):
         self.assertEqual(route.call_count,2)
         self.assertEqual(details.available_minutes,90)
         self.assertEqual(details.operation,'plan')
-        self.assertEqual(details.days[0].model_dump(),{'day_number':1,'stay_minutes':120,'travel_minutes':37,'required_minutes':157,'overrun_minutes':67})
+        self.assertEqual(details.days[0].model_dump(),{'day_number':1,'stay_minutes':120,'travel_minutes':37,'origin_travel_minutes':0,'destination_travel_minutes':0,'required_minutes':157,'overrun_minutes':67})
 
     def test_per_stop_overrides_and_manual_edit_source_are_preserved(self):
         details=self.failure({**PAYLOAD,'day_end':'10:30','stay_minutes_by_poi':{'fixture-a':40,'fixture-b':20}},
