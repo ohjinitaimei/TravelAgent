@@ -40,6 +40,8 @@ sudo install -m 0640 -o root -g caddy deploy/gateway.env.example /etc/travelagen
 
 编辑两个配置副本，将 `travel.example.com` 换成自己的域名，保持 HTTP/HTTPS 同域、后端 CORS 来源与 HTTPS 来源一致。DNS 指向该主机，入口开放 TCP 80/443；API 8000 和管理接口 2019 保持回环绑定，不做端口转发。证书数据由 Caddy 账号写入 `/var/lib/caddy/travelagent`，业务库不放在源码或静态目录。无需把任何数据库放入 Web root。
 
+高德共享节流默认创建业务库同目录的 `amap-rate.sqlite3`，API 与任务/MCP 服务账号须能写同一文件。自定义路径必须是静态目录之外的独立绝对文件，不能与业务库重合；预检同时验证三个节流数值边界。该状态不属于业务备份，不应在运行中清除来绕过限流。独立启动 MCP 的路径约定、配额与多主机边界见 [AMAP_REQUEST_PACING.md](AMAP_REQUEST_PACING.md)。
+
 ```bash
 sudo .venv/bin/python scripts/check_deployment.py \
   --backend-env /etc/travelagent/backend.env \

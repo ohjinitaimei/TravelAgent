@@ -22,6 +22,10 @@ from travel.tools import TravelTools
 BACKEND=Path(__file__).resolve().parents[1]
 AMAP_ENV=("AMAP_KEY","AMAP_WEB_KEY","AMAP_WEB_BASE_URL","AMAP_WEB_TIMEOUT_SECONDS")
 ERRORS={
+    "provider_rate_limited":("高德请求过于频繁，请稍后手动重试",True,429),
+    "provider_busy":("数据请求正在排队，请稍后手动重试",True,429),
+    "provider_gate_unavailable":("高德请求调度暂不可用，请稍后重试",True,503),
+    "invalid_provider_gate_config":("高德请求节流配置无效，请检查服务端配置",False,503),
     "provider_not_configured":("未配置高德 Web 服务 Key；无法查询真实数据",False,503),
     "provider_timeout":("高德接口超时",True,504),
     "provider_unavailable":("高德接口调用失败",True,502),
@@ -64,6 +68,9 @@ def bundled_parameters():
     # No command, file path or remote address is accepted from a request or LLM.
     from mcp import StdioServerParameters
     environment={name:os.environ[name] for name in AMAP_ENV if name in os.environ}
+    from travel.provider_gate import SETTINGS, rate_path
+    environment.update({name:os.environ[name] for name in SETTINGS if name in os.environ})
+    environment['TRAVEL_AMAP_RATE_DB_PATH']=str(rate_path())
     environment.update(PYTHONIOENCODING="utf-8",PYTHONUTF8="1")
     return StdioServerParameters(command=sys.executable,args=["-m","travel.mcp_server"],cwd=str(BACKEND),env=environment)
 
@@ -109,7 +116,9 @@ class McpConnection:
             code=error.get("code") if isinstance(error,dict) else None
             if isinstance(code,str) and code in ERRORS:
                 message,retryable,status=ERRORS[code]
-                raise TravelFailure(code,message,retryable,status)
+                delay=error.get('retry_after')
+                delay=delay if type(delay) is int and 1<=delay<=300 else None
+                raise TravelFailure(code,message,retryable,status,retry_after=delay)
             raise TravelFailure("mcp_tool_failed","工具调用失败，请检查服务配置")
         if set(envelope)!={"data"}:
             raise TravelFailure("invalid_mcp_response","工具结果缺少业务数据")

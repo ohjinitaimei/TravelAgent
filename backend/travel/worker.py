@@ -21,6 +21,6 @@ def run(payload: dict, output):
         output.put({"kind": "result", "data": result.model_dump(mode="json")})
     except TravelFailure as error:
         output.put({"kind": "error", "data": Error(code=error.code, message=error.message,
-            retryable=error.retryable, time_constraints=error.time_constraints, travel_constraints=error.travel_constraints).model_dump(mode="json")})
+            retryable=error.retryable, retry_after=error.retry_after, time_constraints=error.time_constraints, travel_constraints=error.travel_constraints).model_dump(mode="json")})
     except Exception:
         output.put({"kind": "error", "data": {"code": "planning_failed", "message": "规划执行失败，请检查服务端日志与输入", "retryable": False}})

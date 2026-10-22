@@ -1,5 +1,6 @@
 """Read-only deployment preflight. Never print credentials or change a database."""
 import argparse
+import math
 from pathlib import Path
 import re
 from urllib.parse import urlsplit
@@ -45,6 +46,13 @@ def validate(backend,gateway):
         raise ValueError('TRAVEL_WEB_ROOT 须指向已构建 dist 的绝对路径')
     if not db.is_absolute() or not db.parent.is_dir() or db.resolve().is_relative_to(web.resolve()):
         raise ValueError('数据库须使用静态目录之外的绝对路径，且父目录已存在')
+    rate=Path(backend.get('TRAVEL_AMAP_RATE_DB_PATH') or db.parent/'amap-rate.sqlite3')
+    if not rate.is_absolute() or not rate.parent.is_dir() or rate.resolve().is_relative_to(web.resolve()) or rate.resolve()==db.resolve():
+        raise ValueError('节流状态须使用静态目录之外的独立绝对文件路径，且父目录已存在')
+    for name,default,low,high in [('MIN_INTERVAL','1',.05,5),('MAX_WAIT','3',.1,5),('COOLDOWN','5',1,60)]:
+        try:value=float(backend.get('TRAVEL_AMAP_'+name+'_SECONDS',default))
+        except (ValueError,TypeError):raise ValueError('高德请求节流配置无效') from None
+        if not math.isfinite(value) or not low<=value<=high:raise ValueError('高德请求节流配置无效')
     data=Path(gateway.get('TRAVEL_CADDY_DATA','/var/lib/caddy/travelagent'))
     if not data.is_absolute() or data.resolve().is_relative_to(web.resolve()):raise ValueError('证书存储须使用静态目录之外的绝对路径')
     forbidden={'.env','.git','backend','node_modules'}

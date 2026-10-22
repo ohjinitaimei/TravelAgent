@@ -451,8 +451,8 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
             <label>总预算（可选）<div class="money-input"><span>¥</span><input v-model.number="form.budget" name="budget" step="any" type="number" min="0" placeholder="输入预算上限"/></div></label>
             <div class="planner-endpoints">
               <p class="subtle">每日使用同一出发地与返回地。开始时间为离开出发地，结束时间包含抵达返回地；未设置的一侧沿用首/末站时段。</p>
-              <EndpointPicker v-model="form.day_origin_poi_id" label="出发地" :city="form.city" :disabled="busy||active" @loaded="rememberAnchor"/>
-              <EndpointPicker v-model="form.day_destination_poi_id" label="返回地" :city="form.city" :disabled="busy||active" @loaded="rememberAnchor"/>
+              <EndpointPicker v-model="form.day_origin_poi_id" :known-poi="knownPoi(form.day_origin_poi_id)" label="出发地" :city="form.city" :disabled="busy||active" @loaded="rememberAnchor"/>
+              <EndpointPicker v-model="form.day_destination_poi_id" :known-poi="knownPoi(form.day_destination_poi_id)" label="返回地" :city="form.city" :disabled="busy||active" @loaded="rememberAnchor"/>
             </div>
             <button class="primary full" type="submit" :disabled="busy||active||Boolean(staleDraft)">{{busy||active ? '任务处理中…' : '开始规划'}}<span aria-hidden="true">↗</span></button>
           </AccessibleForm>
@@ -464,6 +464,7 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
             <div v-if="!task" class="execution-empty"><span>◷</span>提交需求后，在这里查看真实执行进度。</div>
             <ol v-else class="event-list"><li v-for="event in events" :key="event.id"><span class="event-dot"/><span>{{event.message}}</span><time>{{eventTime(event.timestamp)}}</time></li></ol>
             <div v-if="task" class="task-controls"><small class="task-id">任务 {{task.id}}<span v-if="task.retry_of"> · 原任务重试</span></small><button v-if="!busy&&!pending" class="text-button" @click="resume">重新查询状态 ↻</button><button v-if="task.retry_available&&!pending" class="secondary" :disabled="busy" @click="retryTask">按原条件重试</button></div>
+            <p v-if="task?.error?.retry_after" role="status" aria-label="数据请求等待提示">服务建议等待约 {{task.error.retry_after}} 秒后手动重试；不会自动重新提交规划，等待后也可能仍受限。</p>
             <TimeConstraintGuide v-if="task?.status==='failed'&&task.error?.code==='time_constraint_exceeded'" :details="task.error.time_constraints" :editable="timeGuideEditable" :editing="editing" @locate="locateTimeConstraint"/>
             <TravelLoadPanel v-if="task?.status==='failed'&&task.error?.code==='travel_constraint_exceeded'" failure :details="task.error.travel_constraints" :editable="travelGuideEditable" :editing="editing" @limits="locateTravelLimits"/>
             <small v-if="restoring" role="status">正在恢复上次的工作空间…</small>
@@ -489,8 +490,8 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
                   <details class="edit-constraints" open><summary>日期与行程约束</summary><label>出发日期<input v-model="editConstraints.start_date" name="start_date" type="date" required/></label><div class="field-row"><label>每日开始<input v-model="editConstraints.day_start" name="day_start" type="time" required/></label><label>每日结束<input v-model="editConstraints.day_end" name="day_end" data-after="day_start" type="time" required/></label></div><label>交通方式<select v-model="editConstraints.mode" name="mode"><option value="walking">步行</option><option value="driving">驾车</option></select></label><label>单段交通上限（分钟）<input v-model.number="editConstraints.max_leg_travel_minutes" name="max_leg_travel_minutes" type="number" min="1" max="1439" step="1" placeholder="不限制"/></label><label>每日交通上限（分钟）<input v-model.number="editConstraints.max_daily_travel_minutes" name="max_daily_travel_minutes" type="number" min="1" max="1439" step="1" placeholder="不限制"/></label><p class="edit-note">交通上限按当前模式核验，包含出发和返回。留空可明确清除。</p><label>总预算上限<input v-model.number="editConstraints.budget" name="budget" step="any" type="number" min="0" placeholder="留空取消上限"/></label><label>新增站点默认停留（分钟）<input v-model.number="editStay" type="number" required min="10" max="360" step="1"/></label></details><label class="check-label"><input v-model="optimize" type="checkbox"/>按真实距离重新排序</label>
                   <div class="edit-endpoints">
                     <p class="edit-note">所有日期共用所选起终点。开始时间为离开出发地，结束时间包含返回；清除即取消所有日期的对应边界。</p>
-                    <EndpointPicker v-model="editConstraints.day_origin_poi_id" label="出发地" :city="itinerary.request.city" :disabled="busy||active" @loaded="rememberAnchor"/>
-                    <EndpointPicker v-model="editConstraints.day_destination_poi_id" label="返回地" :city="itinerary.request.city" :disabled="busy||active" @loaded="rememberAnchor"/>
+                    <EndpointPicker v-model="editConstraints.day_origin_poi_id" :known-poi="knownPoi(editConstraints.day_origin_poi_id)" label="出发地" :city="itinerary.request.city" :disabled="busy||active" @loaded="rememberAnchor"/>
+                    <EndpointPicker v-model="editConstraints.day_destination_poi_id" :known-poi="knownPoi(editConstraints.day_destination_poi_id)" label="返回地" :city="itinerary.request.city" :disabled="busy||active" @loaded="rememberAnchor"/>
                   </div>
                   </fieldset>
                   <div class="edit-actions"><button class="primary" type="submit" :disabled="busy||active">保存并重算</button><button class="secondary" type="button" :disabled="busy||active" @click="exitEdit">退出编辑</button></div></AccessibleForm><button class="text-button" @click="tab='explore';searchCity=itinerary.request.city">探索并添加地点 ↗</button>

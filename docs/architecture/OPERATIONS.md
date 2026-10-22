@@ -1,5 +1,7 @@
 # 资源限流与数据库恢复
 
+高德外部调用另使用安装级共享节流与冷却，不改变本文的按用户业务配额。独立状态文件、配置、429/503 契约及手动恢复见 [AMAP_REQUEST_PACING.md](AMAP_REQUEST_PACING.md)；原有业务备份命令不包含该节流文件。
+
 适用范围：单个 FastAPI API 实例、SQLite WAL、本地空间或账号模式。账号身份由后端会话解析；客户端不能指定配额归属。配置在 `backend/.env`，默认值见 `.env.example`，修改后重启服务。不会更改已有推荐、路线排序和时间调度算法。
 
 HTTPS 部署模板改用 systemd 读取 `/etc/travelagent/backend.env`，数据库放在 `/var/lib/travelagent/`，操作与健康检查见 [DEPLOYMENT.md](DEPLOYMENT.md)。在该模式执行下述备份/账号命令时显式传入实际 `--db`，避免依赖开发目录的默认路径；生产服务和操作者应使用同一个已核对的数据路径。

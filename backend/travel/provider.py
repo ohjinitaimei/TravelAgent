@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import math
+import re
 from typing import Any
 
 import httpx
@@ -11,11 +12,12 @@ from travel.schemas import Poi, Point, Segment, Source, TimeConstraintDiagnostic
 
 
 class TravelFailure(Exception):
-    def __init__(self, code: str, message: str, retryable: bool = False, status: int = 502, *, time_constraints: TimeConstraintDiagnostics | None = None, travel_constraints: TravelConstraintDiagnostics | None = None):
+    def __init__(self, code: str, message: str, retryable: bool = False, status: int = 502, *, time_constraints: TimeConstraintDiagnostics | None = None, travel_constraints: TravelConstraintDiagnostics | None = None, retry_after: int | None = None):
         super().__init__(message)
         self.code, self.message, self.retryable, self.status = code, message, retryable, status
         self.time_constraints = time_constraints
         self.travel_constraints = travel_constraints
+        self.retry_after = retry_after
 
 
 def number(value: Any) -> float | None:
@@ -31,12 +33,19 @@ def text(value: Any) -> str | None:
 
 
 class AmapProvider:
-    def __init__(self, client: AmapClient | None = None):
+    def __init__(self, client: AmapClient | None = None, *, gate=None):
         self.client = client or AmapClient()
+        self.gate = gate
 
     def call(self, method: str, **kwargs: Any) -> dict:
         if not self.client.enabled:
             raise TravelFailure("provider_not_configured", "未配置高德 Web 服务 Key；无法查询真实数据", status=503)
+        from travel.provider_gate import ProviderGate, GateFailure
+        try:
+            gate = self.gate or ProviderGate.from_env()
+            gate.acquire()
+        except GateFailure as error:
+            raise TravelFailure(error.code, str(error), error.code != 'invalid_provider_gate_config', error.status, retry_after=error.retry_after) from None
         try:
             data = getattr(self.client, method)(**kwargs)
         except httpx.TimeoutException:
@@ -45,7 +54,14 @@ class AmapProvider:
             # Never include an upstream URL: its query contains the API key.
             raise TravelFailure("provider_unavailable", "高德接口调用失败", True) from None
         if not isinstance(data, dict) or str(data.get("status")) != "1":
-            code = str(data.get("infocode", "unknown")) if isinstance(data, dict) else "unknown"
+            raw = str(data.get("infocode", "unknown")) if isinstance(data, dict) else "unknown"
+            code = raw if re.fullmatch(r"[0-9]{5}", raw) else "unknown"
+            if code in {"10014", "10015", "10019", "10020", "10021"}:
+                try:
+                    delay = gate.rejected()
+                except GateFailure as error:
+                    raise TravelFailure(error.code, str(error), True, error.status, retry_after=error.retry_after) from None
+                raise TravelFailure('provider_rate_limited', '高德请求过于频繁，请稍后手动重试', True, 429, retry_after=delay)
             raise TravelFailure("provider_rejected", f"高德拒绝请求（错误码 {code}），请检查授权、权限和配额")
         return data
 

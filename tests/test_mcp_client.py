@@ -56,6 +56,25 @@ def fixture_mcp_worker(payload,output):
 
 
 class McpClientTests(unittest.TestCase):
+    def test_shared_cooldown_crosses_real_stdio_and_hint_is_sanitized(self):
+        from travel.provider_gate import ProviderGate
+        with tempfile.TemporaryDirectory(dir=ROOT/'.tmp') as folder:
+            record=Path(folder)/'paced.jsonl'
+            ProviderGate(record.with_suffix('.sqlite3'),cooldown=10).rejected()
+            with open_mcp_provider(parameters=parameters('paced',record)) as provider:
+                with self.assertRaises(TravelFailure) as caught:provider.detail('fixture-a')
+                self.assertEqual(caught.exception.code,'provider_rate_limited')
+                self.assertTrue(1<=caught.exception.retry_after<=10)
+                self.assertEqual(provider.client.calls,1)
+            rows=[json.loads(line) for line in record.read_text().splitlines()]
+            self.assertFalse(any(row['event']=='unexpected_http' for row in rows))
+        for scenario,expected in [('rate_hint',3),('rate_bool',None),('rate_large',None),('rate_text',None)]:
+            with self.subTest(scenario=scenario),open_mcp_provider(parameters=parameters(scenario)) as provider:
+                with self.assertRaises(TravelFailure) as caught:provider.detail('fixture-a')
+                self.assertEqual(caught.exception.retry_after,expected)
+                self.assertEqual(caught.exception.status,429);self.assertTrue(caught.exception.retryable)
+                self.assertNotIn('SECRET',str(caught.exception));self.assertEqual(provider.client.calls,1)
+
     def test_endpoints_reuse_the_same_mcp_provider_and_preserve_budget_failures(self):
         request=PlanRequest.model_validate({**PAYLOAD,'day_origin_poi_id':'TEST ONLY home','day_destination_poi_id':'TEST ONLY hotel'})
         with open_mcp_provider(parameters=parameters()) as provider:

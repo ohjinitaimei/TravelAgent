@@ -52,5 +52,15 @@ class DeploymentConfigTests(unittest.TestCase):
         (self.web/'.env').write_text('TEST ONLY')
         with self.assertRaises(ValueError):validate(self.backend,self.gateway)
 
+    def test_pacing_state_and_bounds_are_private_and_read_only(self):
+        for path in (self.web/'rate.sqlite3',Path(self.backend['TRAVEL_DB_PATH']),Path('relative.sqlite3')):
+            with self.subTest(path=path),self.assertRaises(ValueError):
+                validate({**self.backend,'TRAVEL_AMAP_RATE_DB_PATH':str(path)},self.gateway)
+        for name,value in [('MIN_INTERVAL','nan'),('MAX_WAIT','20'),('COOLDOWN','0')]:
+            with self.subTest(name=name),self.assertRaises(ValueError):
+                validate({**self.backend,'TRAVEL_AMAP_'+name+'_SECONDS':value},self.gateway)
+        validate(self.backend,self.gateway)
+        self.assertFalse((self.root/'amap-rate.sqlite3').exists())
+
 
 if __name__=='__main__':unittest.main()

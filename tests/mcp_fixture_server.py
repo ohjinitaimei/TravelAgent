@@ -15,7 +15,7 @@ sys.path.insert(0,str(ROOT/"backend"))
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument("--test-fixtures-only",action="store_true",required=True)
-    parser.add_argument("--scenario",choices=["good","malformed","error","unknown_error","hang","slow_start","missing","exit","text_only","invalid_route","mismatched_poi","maximum_endpoints"],default="good")
+    parser.add_argument("--scenario",choices=["good","malformed","error","unknown_error","hang","slow_start","missing","exit","text_only","invalid_route","mismatched_poi","maximum_endpoints","paced","rate_hint","rate_bool","rate_large","rate_text"],default="good")
     parser.add_argument("--record",type=Path)
     args=parser.parse_args()
     if args.record and not args.record.resolve().is_relative_to((ROOT/".tmp").resolve()):
@@ -30,11 +30,21 @@ def main():
     from mcp.types import CallToolResult, TextContent
     from test_travel import FixtureProvider
     from travel.tools import TravelTools
-    if args.scenario in {"good", "maximum_endpoints"}:
+    if args.scenario in {"good", "maximum_endpoints", "paced"}:
         # Exercise the production server's actual registered output schemas.
         # Only the test process replaces its provider; production has no switch.
         from travel import mcp_server
-        if args.scenario == 'maximum_endpoints':
+        if args.scenario == 'paced':
+            from unittest.mock import Mock
+            from travel.provider import AmapProvider
+            from travel.provider_gate import ProviderGate
+            client=Mock(enabled=True)
+            def forbidden(**kwargs):
+                record('unexpected_http')
+                raise AssertionError('TEST ONLY: cooldown must prevent HTTP')
+            client.poi_detail.side_effect=forbidden
+            mcp_server.TravelTools=lambda:TravelTools(AmapProvider(client,gate=ProviderGate(args.record.with_suffix('.sqlite3'))))
+        elif args.scenario == 'maximum_endpoints':
             from test_journey_endpoints import LargeEndpointProvider
             mcp_server.TravelTools=lambda:TravelTools(LargeEndpointProvider())
         else:
@@ -46,6 +56,10 @@ def main():
     async def call(name,arguments):
         record("call",name=name)
         if args.scenario=="exit": os._exit(3)
+        if args.scenario.startswith('rate_'):
+            delay={'rate_hint':3,'rate_bool':True,'rate_large':301,'rate_text':'SECRET'}[args.scenario]
+            envelope={'error':{'code':'provider_rate_limited','message':'SECRET key=TEST ONLY','retryable':False,'retry_after':delay}}
+            return CallToolResult(isError=True,structuredContent=envelope,content=[TextContent(type='text',text=json.dumps(envelope))])
         if args.scenario=="hang" and name=="get_route":
             try: await asyncio.sleep(30)
             finally: record("call_cancelled")

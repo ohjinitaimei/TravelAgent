@@ -70,6 +70,7 @@ class Error(Model):
     code: str
     message: str
     retryable: bool = False
+    retry_after: int | None = Field(default=None, strict=True, ge=1, le=300, description="建议等待的秒数；不代表服务届时一定可用，也不触发自动提交")
     time_constraints: TimeConstraintDiagnostics | None = None
     travel_constraints: TravelConstraintDiagnostics | None = None
 

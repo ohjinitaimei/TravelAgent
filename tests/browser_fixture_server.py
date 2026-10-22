@@ -46,11 +46,13 @@ def browser_worker(payload, output):
             optimize_order=payload.get('optimize_order',True),parent_id=payload.get('parent_id'))
         output.put({'kind':'result','data':result.model_dump(mode='json')})
         return
-    if query=="TEST ONLY retry":
-        marker=Path(os.environ["TRAVEL_TEST_MARKER"])
+    if query in {"TEST ONLY retry","TEST ONLY provider limit"}:
+        marker=Path(os.environ["TRAVEL_TEST_MARKER"]+('.rate' if query.endswith('limit') else ''))
         if not marker.exists():
             marker.write_text("TEST ONLY",encoding="utf-8")
-            output.put({"kind":"error","data":{"code":"provider_timeout","message":"TEST ONLY 临时连接失败","retryable":True}})
+            error={"code":"provider_timeout","message":"TEST ONLY 临时连接失败","retryable":True}
+            if query.endswith('limit'):error.update(code='provider_rate_limited',message='TEST ONLY 高德请求限流',retry_after=3)
+            output.put({"kind":"error","data":error})
             return
     if query=="TEST ONLY slow": time.sleep(2)
     return fixture_worker(payload,output)

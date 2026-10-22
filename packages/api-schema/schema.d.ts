@@ -625,6 +625,11 @@ export interface components {
              * @default false
              */
             retryable: boolean;
+            /**
+             * Retry After
+             * @description 建议等待的秒数；不代表服务届时一定可用，也不触发自动提交
+             */
+            retry_after?: number | null;
             time_constraints?: components["schemas"]["TimeConstraintDiagnostics"] | null;
             travel_constraints?: components["schemas"]["TravelConstraintDiagnostics"] | null;
         };

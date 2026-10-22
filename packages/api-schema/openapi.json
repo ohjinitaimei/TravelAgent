@@ -4835,6 +4835,20 @@
             "title": "Retryable",
             "default": false
           },
+          "retry_after": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 300.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retry After",
+            "description": "建议等待的秒数；不代表服务届时一定可用，也不触发自动提交"
+          },
           "time_constraints": {
             "anyOf": [
               {

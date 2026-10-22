@@ -138,7 +138,7 @@ Pop-Location
 
 Web 使用 HttpOnly 会话 Cookie 和 CSRF 校验，密码与会话 Token 不进入 localStorage。账号模式下旧数据保留在本地空间，管理员可停服、备份后显式迁移，见 [账号初始化、隔离和迁移说明](docs/architecture/AUTH_ISOLATION.md)。
 
-业务配额默认按用户隔离，任务/事件查询和取消不受配额限制。运维工具支持在线备份、校验和恢复到新数据库，保留业务归属并撤销历史会话。配置、命令与恢复演练见 [资源限流与数据库恢复](docs/architecture/OPERATIONS.md)。公网部署还需配置 HTTPS 和入口网关，并完成所在环境的运维验收。
+业务配额默认按用户隔离，任务/事件查询和取消不受配额限制。高德调用另在 API、任务和本机 MCP 间共享请求节奏与冷却，限流时显示等待建议，用户手动重试；起终点编辑复用已有详情。配置与边界见 [高德请求节流](docs/architecture/AMAP_REQUEST_PACING.md)。运维工具支持在线备份、校验和恢复到新数据库，保留业务归属并撤销历史会话。配置、命令与恢复演练见 [资源限流与数据库恢复](docs/architecture/OPERATIONS.md)。公网部署还需配置 HTTPS 和入口网关，并完成所在环境的运维验收。
 
 ## 可复现检查
 

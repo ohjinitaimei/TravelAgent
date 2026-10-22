@@ -6,7 +6,7 @@ import sys
 import tempfile
 import time
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
@@ -46,7 +46,7 @@ def fixture_worker(payload, output):
         output.put({"kind": "result", "data": result.model_dump(mode="json")})
     except TravelFailure as error:
         output.put({"kind":"error","data":Error(code=error.code,message=error.message,
-            retryable=error.retryable,time_constraints=error.time_constraints,travel_constraints=error.travel_constraints).model_dump(mode='json')})
+            retryable=error.retryable,retry_after=error.retry_after,time_constraints=error.time_constraints,travel_constraints=error.travel_constraints).model_dump(mode='json')})
 
 
 def stalled_worker(payload, output):
@@ -95,7 +95,7 @@ class ProviderTests(unittest.TestCase):
 
     def test_provider_error_does_not_expose_key(self):
         import httpx
-        provider = AmapProvider(AmapClient(key="SECRET-TEST-ONLY"))
+        provider = AmapProvider(AmapClient(key="SECRET-TEST-ONLY"), gate=Mock())
         with patch.object(provider.client, "search_poi", side_effect=httpx.ConnectError("https://provider/?key=SECRET-TEST-ONLY")):
             with self.assertRaises(TravelFailure) as error:
                 provider.search("x", "y")

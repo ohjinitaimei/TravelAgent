@@ -16,7 +16,7 @@ import os
 # model, GitHub or user session credentials into this data-only tool process.
 for env_path in (Path(__file__).resolve().parents[1]/".env",Path(__file__).resolve().parents[2]/".env"):
     for key,value in dotenv_values(env_path).items():
-        if key in {"AMAP_KEY","AMAP_WEB_KEY","AMAP_WEB_BASE_URL","AMAP_WEB_TIMEOUT_SECONDS"} and value is not None:
+        if key in {"AMAP_KEY","AMAP_WEB_KEY","AMAP_WEB_BASE_URL","AMAP_WEB_TIMEOUT_SECONDS","TRAVEL_AMAP_RATE_DB_PATH","TRAVEL_AMAP_MIN_INTERVAL_SECONDS","TRAVEL_AMAP_MAX_WAIT_SECONDS","TRAVEL_AMAP_COOLDOWN_SECONDS"} and value is not None:
             os.environ.setdefault(key,value)
 
 from travel.provider import TravelFailure
@@ -33,6 +33,8 @@ def call(name, arguments):
         # Return the same sanitized error envelope as REST. It never contains
         # an upstream URL, API key, synthetic success or guessed route.
         envelope = {"error": {"code": error.code, "message": error.message, "retryable": error.retryable}}
+        if error.retry_after is not None:
+            envelope['error']['retry_after']=error.retry_after
         return CallToolResult(isError=True, content=[TextContent(type="text", text=json.dumps(envelope, ensure_ascii=False))], structuredContent=envelope)
 
 

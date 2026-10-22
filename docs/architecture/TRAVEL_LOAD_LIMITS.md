@@ -1,5 +1,7 @@
 # 路途负担与交通时长上限
 
+后续共享节流阶段已完成本文清除后保存与真实 MCP 的受控复验，见 [AMAP_REQUEST_PACING.md](AMAP_REQUEST_PACING.md)。下方首次失败记录按原范围保留，不挪作通过。
+
 日期：2026-10-22。沿用统一 FastAPI、真实 Provider/MCP、既有推荐、最近邻排序、分日候选和调度。只在本地开发；无数据库迁移、核心依赖升级或 GitHub 上传。共享起终点范围见 [MULTIDAY_ENDPOINTS.md](MULTIDAY_ENDPOINTS.md)。
 
 ## 用户操作

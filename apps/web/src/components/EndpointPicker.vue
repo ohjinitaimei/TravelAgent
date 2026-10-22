@@ -1,12 +1,18 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch } from 'vue'
 import { useTravelApi, type Poi } from '../api'
+import { TravelApiError } from '../../../../packages/api-schema/client'
 
-const props=defineProps<{label:string;city:string;modelValue?:string|null;disabled?:boolean}>()
+const props=defineProps<{label:string;city:string;modelValue?:string|null;disabled?:boolean;knownPoi?:Poi|null}>()
 const emit=defineEmits<{'update:modelValue':[value:string|null];loaded:[poi:Poi]}>()
 const api=useTravelApi(),query=ref(''),results=ref<Poi[]>([]),selected=ref<Poi|null>(null)
 const issue=ref(''),loading=ref(false),lookingUp=ref(false)
 let searchGeneration=0,detailGeneration=0,searchController:AbortController|null=null,detailController:AbortController|null=null
+function failureMessage(error:unknown,fallback:string) {
+  const message=error instanceof Error?error.message:fallback
+  return error instanceof TravelApiError&&error.retryAfterSeconds
+    ?`${message}；服务建议等待约 ${error.retryAfterSeconds} 秒后手动重试`:message
+}
 function choose(poi:Poi) {selected.value=poi;issue.value='';emit('loaded',poi);emit('update:modelValue',poi.id);results.value=[]}
 async function search() {
   if(props.disabled||!query.value.trim()||!props.city.trim())return
@@ -14,20 +20,21 @@ async function search() {
   searchController?.abort();searchController=new AbortController()
   loading.value=true;issue.value='';results.value=[]
   try {const value=await api.search(query.value.trim(),props.city,searchController.signal);if(generation===searchGeneration)results.value=value.items}
-  catch(error) {if(generation===searchGeneration)issue.value=error instanceof Error?error.message:'地点查询失败'}
+  catch(error) {if(generation===searchGeneration)issue.value=failureMessage(error,'地点查询失败')}
   finally {if(generation===searchGeneration)loading.value=false}
 }
-watch(()=>props.modelValue,async id=>{
+watch(()=>[props.modelValue,props.knownPoi] as const,async ([id,known])=>{
   const generation=++detailGeneration
   detailController?.abort();detailController=null;lookingUp.value=false
   issue.value=''
   if(!id){selected.value=null;return}
+  if(known?.id===id){selected.value=known;return}
   if(selected.value?.id===id)return
   selected.value=null;lookingUp.value=true;detailController=new AbortController()
   try {
     const poi=await api.detail(id,detailController.signal)
     if(generation===detailGeneration){if(poi.id!==id)throw Error('地点详情与选择不一致');selected.value=poi;emit('loaded',poi)}
-  } catch(error) {if(generation===detailGeneration)issue.value=error instanceof Error?error.message:'地点详情读取失败'}
+  } catch(error) {if(generation===detailGeneration)issue.value=failureMessage(error,'地点详情读取失败')}
   finally {if(generation===detailGeneration)lookingUp.value=false}
 },{immediate:true})
 watch(()=>props.city,()=>{searchGeneration++;searchController?.abort();results.value=[];loading.value=false})

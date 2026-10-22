@@ -52,8 +52,44 @@ async function chooseEndpoint(page:Page,label:string,keyword:string) {
   await picker.getByRole('button',{name:/^选择 TEST ONLY/}).click()
 }
 
+test('provider cooldown shows bounded hints and retries only after an explicit click',async({page})=>{
+  await fillPlan(page)
+  await page.getByLabel('地点关键词',{exact:false}).fill('TEST ONLY provider limit')
+  const writes:{url:string;key:string|undefined}[]=[]
+  page.on('request',r=>{if(r.method()==='POST'&&/\/travel\/tasks(?:\/[^/]+\/retry)?$/.test(r.url()))writes.push({url:r.url(),key:r.headers()['idempotency-key']})})
+  await page.getByRole('button',{name:'开始规划',exact:true}).click()
+  await expect(page.getByRole('status',{name:'数据请求等待提示'})).toContainText('约 3 秒后手动重试')
+  const failed=await task(page)
+  expect(failed.status).toBe('failed');expect(failed.itinerary_id).toBeNull()
+  await pause(3300)
+  expect(writes).toHaveLength(1)
+  await page.getByRole('button',{name:'按原条件重试',exact:true}).click()
+  await expect(page.getByText('行程已生成并保存',{exact:true})).toBeVisible()
+  const saved=await task(page)
+  expect(saved.retry_of).toBe(failed.id);expect(writes).toHaveLength(2)
+  expect(writes[0].key).toBeTruthy();expect(writes[1].key).not.toBe(writes[0].key)
+})
+
+test('endpoint search keeps its selection and waits for manual retry after a 429',async({page})=>{
+  await endpointQueries(page);await fillPlan(page)
+  await chooseEndpoint(page,'出发地','TEST ONLY home')
+  let calls=0
+  await page.route('**/api/v1/travel/pois?*',route=>{
+    calls++;return route.fulfill({status:429,headers:{'Retry-After':'3'},json:{error:{code:'provider_rate_limited',message:'TEST ONLY 限流',retryable:true,retry_after:3}}})
+  })
+  const picker=page.getByRole('group',{name:'出发地（可选）',exact:true}).first()
+  await picker.getByRole('button',{name:'搜索出发地',exact:true}).click()
+  await expect(picker.getByRole('alert')).toContainText('约 3 秒后手动重试')
+  await expect(picker.getByRole('status')).toContainText('TEST ONLY endpoint-home')
+  await pause(3300);expect(calls).toBe(1)
+  await picker.getByRole('button',{name:'搜索出发地',exact:true}).click()
+  await expect.poll(()=>calls).toBe(2)
+})
+
 test('single-day endpoints survive draft refresh and offline clear while saved totals and source stay accurate',async({page,context})=>{
   await endpointQueries(page);await fillPlan(page)
+  let detailReads=0
+  page.on('request',r=>{if(r.method()==='GET'&&/\/travel\/pois\/[^/?]+$/.test(r.url()))detailReads++})
   await chooseEndpoint(page,'出发地','TEST ONLY home')
   await chooseEndpoint(page,'返回地','TEST ONLY return')
   const writes=countWrites(page)
@@ -68,12 +104,15 @@ test('single-day endpoints survive draft refresh and offline clear while saved t
   await page.getByRole('button',{name:'地图返回地 TEST ONLY endpoint-return',exact:true}).click()
   await expect(page.getByRole('button',{name:'地图定位返回地 TEST ONLY endpoint-return',exact:true})).toBeFocused()
   await page.getByRole('button',{name:'编辑行程',exact:true}).click()
+  await expect(page.getByRole('form',{name:'行程编辑',exact:true}).getByText('已选择：TEST ONLY endpoint-home',{exact:true})).toBeVisible()
+  expect(detailReads).toBe(0)
   const editor=page.getByRole('form',{name:'行程编辑',exact:true})
   await editor.getByRole('button',{name:'清除返回地',exact:true}).click()
   await expect(page.getByRole('region',{name:'本次编辑改动'})).toContainText('返回地')
   await expect(page.getByRole('status',{name:'编辑草稿存储'})).toContainText('已保存在本机')
   page.once('dialog',dialog=>dialog.accept());await page.reload()
   await page.getByRole('button',{name:'恢复编辑草稿',exact:true}).click()
+  expect(detailReads).toBeLessThanOrEqual(2) // At most startup form hydration, never another editor lookup.
   await expect(editor.getByRole('button',{name:'清除返回地',exact:true})).toHaveCount(0)
   await expect(editor.getByRole('button',{name:'清除出发地',exact:true})).toBeVisible()
   try {
