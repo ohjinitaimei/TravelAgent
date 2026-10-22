@@ -1,5 +1,7 @@
 # Roadmap
 
+This file preserves the earlier module roadmap. For the current Web-first travel service, implementation batches, verified gaps and acceptance gates are defined in [Optimization Program](../architecture/OPTIMIZATION_PROGRAM.md). Items below are directions, not evidence that the corresponding legacy capabilities are enabled in the production travel API.
+
 This roadmap starts from the cleaned current system and keeps one rule in mind:
 do not make the backend heavy just to look more agentic.
 

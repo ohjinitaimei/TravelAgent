@@ -30,8 +30,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 17018,
-      "sha256": "75bc697f3bcbc06bdf91af2d62e1a97d20b7b511d609c638ebe7a1e2363df2c5"
+      "bytes": 17189,
+      "sha256": "434445ba82f83c5115784b019c4e447a4dcb0bcf1bafc5252673b6377b5c7a67"
     },
     {
       "path": "analysis_options.yaml",
@@ -925,8 +925,8 @@
     },
     {
       "path": "docs/RELEASE_STATUS.md",
-      "bytes": 17438,
-      "sha256": "245acc1aab3f0bea48507b6ddd1a9116122a19e42aa407b87031214f765675ca"
+      "bytes": 17931,
+      "sha256": "8749408da86b83cd76b0ff6778f906b85a52ca75b399621f7adb2c452c6dc1eb"
     },
     {
       "path": "docs/TECHNICAL_REPORT.md",
@@ -1059,6 +1059,11 @@
       "sha256": "020b34c3d9571ebdffeac78366892b78776f25d7451558f673a27f2b790649de"
     },
     {
+      "path": "docs/architecture/OPTIMIZATION_PROGRAM.md",
+      "bytes": 18524,
+      "sha256": "1769e4b3cf0ca67a98e1762fe7dbb187372f6c76c68390593ca1a128983db91b"
+    },
+    {
       "path": "docs/architecture/README.md",
       "bytes": 1483,
       "sha256": "4795686cc2631ab3cd486cc33b0b9be1ddd6d4831dc080d3d8392a1b1fbdeaee"
@@ -1185,8 +1190,8 @@
     },
     {
       "path": "docs/specs/ROADMAP.md",
-      "bytes": 2278,
-      "sha256": "d9a15ef21f51d3465e1ffcc5795d7f2d18005333b10a9522d22997d6ec8026bd"
+      "bytes": 2634,
+      "sha256": "42b8fd67e94bbf7cf64e0b8233c86f2faecbf21c0d9b6b138714322ec38e5dd6"
     },
     {
       "path": "docs/specs/SCHEMA_CONTRACTS.md",
