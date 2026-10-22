@@ -35,5 +35,9 @@ export function restoreForm(defaults: PlanRequest, stored: unknown): PlanRequest
     const id=value[field]
     if(id===null||typeof id==='string'&&id.length>0&&id.length<=100&&id.trim())result[field]=id as string|null
   }
+  for(const field of ['max_leg_travel_minutes','max_daily_travel_minutes'] as const) {
+    const v=value[field]
+    if(v===null||typeof v==='number'&&Number.isInteger(v)&&v>=1&&v<=1439)result[field]=v as number|null
+  }
   return result
 }

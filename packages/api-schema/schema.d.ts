@@ -605,6 +605,10 @@ export interface components {
             mode?: ("walking" | "driving") | null;
             /** Budget */
             budget?: number | null;
+            /** Max Leg Travel Minutes */
+            max_leg_travel_minutes?: number | null;
+            /** Max Daily Travel Minutes */
+            max_daily_travel_minutes?: number | null;
             /** Day Origin Poi Id */
             day_origin_poi_id?: string | null;
             /** Day Destination Poi Id */
@@ -622,6 +626,7 @@ export interface components {
              */
             retryable: boolean;
             time_constraints?: components["schemas"]["TimeConstraintDiagnostics"] | null;
+            travel_constraints?: components["schemas"]["TravelConstraintDiagnostics"] | null;
         };
         /** ErrorResponse */
         ErrorResponse: {
@@ -699,6 +704,7 @@ export interface components {
              */
             algorithm: string;
             optimization?: components["schemas"]["GroupingOptimization"] | null;
+            travel_load?: components["schemas"]["TravelLoad"] | null;
         };
         /** ItineraryList */
         ItineraryList: {
@@ -830,6 +836,16 @@ export interface components {
             stay_minutes_by_poi?: {
                 [key: string]: number;
             };
+            /**
+             * Max Leg Travel Minutes
+             * @description 用户设置的每段交通分钟上限，含所选出发及返回，按当前交通模式核验
+             */
+            max_leg_travel_minutes?: number | null;
+            /**
+             * Max Daily Travel Minutes
+             * @description 用户设置的每日全部交通分钟上限，含所选出发及返回
+             */
+            max_daily_travel_minutes?: number | null;
             /**
              * Day Origin Poi Id
              * @description 每日共享出发 POI；每日开始表示离开该地点
@@ -1064,6 +1080,85 @@ export interface components {
             /** Tools */
             tools?: string[];
             error?: components["schemas"]["Error"] | null;
+        };
+        /** TravelConstraintDiagnostics */
+        TravelConstraintDiagnostics: {
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "walking" | "driving";
+            /** Max Leg Travel Minutes */
+            max_leg_travel_minutes?: number | null;
+            /** Max Daily Travel Minutes */
+            max_daily_travel_minutes?: number | null;
+            /** Days */
+            days: components["schemas"]["TravelLoadDay"][];
+            /**
+             * Operation
+             * @enum {string}
+             */
+            operation: "plan" | "adjust";
+            /** Source Itinerary Id */
+            source_itinerary_id?: string | null;
+            /**
+             * Basis
+             * @default original_partition
+             * @constant
+             */
+            basis: "original_partition";
+        };
+        /** TravelLegViolation */
+        TravelLegViolation: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "origin" | "interstop" | "destination";
+            /** Origin Id */
+            origin_id: string;
+            /** Destination Id */
+            destination_id: string;
+            /** Duration Min */
+            duration_min: number;
+            /** Overrun Minutes */
+            overrun_minutes: number;
+        };
+        /** TravelLoad */
+        TravelLoad: {
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "walking" | "driving";
+            /** Max Leg Travel Minutes */
+            max_leg_travel_minutes?: number | null;
+            /** Max Daily Travel Minutes */
+            max_daily_travel_minutes?: number | null;
+            /** Days */
+            days: components["schemas"]["TravelLoadDay"][];
+        };
+        /** TravelLoadDay */
+        TravelLoadDay: {
+            /** Day Number */
+            day_number: number;
+            /** Stay Minutes */
+            stay_minutes: number;
+            /** Travel Minutes */
+            travel_minutes: number;
+            /** Longest Leg Minutes */
+            longest_leg_minutes?: number | null;
+            /** Travel Share Of Scheduled */
+            travel_share_of_scheduled: number;
+            /** Travel At Least Stay */
+            travel_at_least_stay: boolean;
+            /**
+             * Over Daily Minutes
+             * @default 0
+             */
+            over_daily_minutes: number;
+            /** Violating Legs */
+            violating_legs?: components["schemas"]["TravelLegViolation"][];
         };
     };
     responses: never;

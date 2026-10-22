@@ -300,16 +300,17 @@ class EndpointApiTests(unittest.TestCase):
     def test_legacy_receipt_null_equivalence_and_non_null_id_conflict(self):
         with api() as (client, app):
             request = PlanRequest.model_validate(PAYLOAD).model_dump(mode='json')
-            for field in ('day_origin_poi_id', 'day_destination_poi_id'): request.pop(field)
+            for field in ('day_origin_poi_id', 'day_destination_poi_id', 'max_leg_travel_minutes', 'max_daily_travel_minutes'): request.pop(field)
             payload = {'request': request}
             fingerprint = hashlib.sha256(json.dumps({'payload': payload, 'retry_of': None}, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
             task = Task(id='test-only-old-receipt', status='failed')
             app.state.travel.store.register_task(task, payload, 'test-only-old-key', fingerprint)
             headers = {'Idempotency-Key': 'test-only-old-key'}
-            response = client.post('/api/v1/travel/tasks', json={**PAYLOAD, 'day_origin_poi_id': None}, headers=headers)
+            response = client.post('/api/v1/travel/tasks', json={**PAYLOAD, 'day_origin_poi_id': None, 'max_leg_travel_minutes': None}, headers=headers)
             self.assertEqual(response.status_code, 202)
             self.assertEqual(response.json()['id'], task.id)
             self.assertEqual(client.post('/api/v1/travel/tasks', json={**PAYLOAD, 'day_origin_poi_id': 'home'}, headers=headers).status_code, 409)
+            self.assertEqual(client.post('/api/v1/travel/tasks', json={**PAYLOAD, 'max_leg_travel_minutes': 30}, headers=headers).status_code, 409)
 
 
 if __name__ == '__main__': unittest.main()

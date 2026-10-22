@@ -46,7 +46,7 @@ def fixture_worker(payload, output):
         output.put({"kind": "result", "data": result.model_dump(mode="json")})
     except TravelFailure as error:
         output.put({"kind":"error","data":Error(code=error.code,message=error.message,
-            retryable=error.retryable,time_constraints=error.time_constraints).model_dump(mode='json')})
+            retryable=error.retryable,time_constraints=error.time_constraints,travel_constraints=error.travel_constraints).model_dump(mode='json')})
 
 
 def stalled_worker(payload, output):

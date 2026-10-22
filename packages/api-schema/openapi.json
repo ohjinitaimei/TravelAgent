@@ -4760,6 +4760,32 @@
             ],
             "title": "Budget"
           },
+          "max_leg_travel_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1439.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Leg Travel Minutes"
+          },
+          "max_daily_travel_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1439.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Daily Travel Minutes"
+          },
           "day_origin_poi_id": {
             "anyOf": [
               {
@@ -4813,6 +4839,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/TimeConstraintDiagnostics"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "travel_constraints": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TravelConstraintDiagnostics"
               },
               {
                 "type": "null"
@@ -5025,6 +5061,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/GroupingOptimization"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "travel_load": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TravelLoad"
               },
               {
                 "type": "null"
@@ -5310,6 +5356,34 @@
             "maxProperties": 12,
             "title": "Stay Minutes By Poi",
             "description": "用户指定的逐站停留时长，优先于默认时长"
+          },
+          "max_leg_travel_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1439.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Leg Travel Minutes",
+            "description": "用户设置的每段交通分钟上限，含所选出发及返回，按当前交通模式核验"
+          },
+          "max_daily_travel_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1439.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Daily Travel Minutes",
+            "description": "用户设置的每日全部交通分钟上限，含所选出发及返回"
           },
           "day_origin_poi_id": {
             "anyOf": [
@@ -5993,6 +6067,247 @@
           "provider_configured"
         ],
         "title": "ToolServiceStatus"
+      },
+      "TravelConstraintDiagnostics": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "walking",
+              "driving"
+            ],
+            "title": "Mode"
+          },
+          "max_leg_travel_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1439.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Leg Travel Minutes"
+          },
+          "max_daily_travel_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1439.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Daily Travel Minutes"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/TravelLoadDay"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Days"
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "plan",
+              "adjust"
+            ],
+            "title": "Operation"
+          },
+          "source_itinerary_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Itinerary Id"
+          },
+          "basis": {
+            "type": "string",
+            "const": "original_partition",
+            "title": "Basis",
+            "default": "original_partition"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "mode",
+          "days",
+          "operation"
+        ],
+        "title": "TravelConstraintDiagnostics"
+      },
+      "TravelLegViolation": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "origin",
+              "interstop",
+              "destination"
+            ],
+            "title": "Kind"
+          },
+          "origin_id": {
+            "type": "string",
+            "title": "Origin Id"
+          },
+          "destination_id": {
+            "type": "string",
+            "title": "Destination Id"
+          },
+          "duration_min": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Duration Min"
+          },
+          "overrun_minutes": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Overrun Minutes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "origin_id",
+          "destination_id",
+          "duration_min",
+          "overrun_minutes"
+        ],
+        "title": "TravelLegViolation"
+      },
+      "TravelLoad": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "walking",
+              "driving"
+            ],
+            "title": "Mode"
+          },
+          "max_leg_travel_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1439.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Leg Travel Minutes"
+          },
+          "max_daily_travel_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1439.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Daily Travel Minutes"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/TravelLoadDay"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Days"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "mode",
+          "days"
+        ],
+        "title": "TravelLoad"
+      },
+      "TravelLoadDay": {
+        "properties": {
+          "day_number": {
+            "type": "integer",
+            "maximum": 3.0,
+            "minimum": 1.0,
+            "title": "Day Number"
+          },
+          "stay_minutes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Stay Minutes"
+          },
+          "travel_minutes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Travel Minutes"
+          },
+          "longest_leg_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Longest Leg Minutes"
+          },
+          "travel_share_of_scheduled": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Travel Share Of Scheduled"
+          },
+          "travel_at_least_stay": {
+            "type": "boolean",
+            "title": "Travel At Least Stay"
+          },
+          "over_daily_minutes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Over Daily Minutes",
+            "default": 0
+          },
+          "violating_legs": {
+            "items": {
+              "$ref": "#/components/schemas/TravelLegViolation"
+            },
+            "type": "array",
+            "maxItems": 5,
+            "title": "Violating Legs"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "day_number",
+          "stay_minutes",
+          "travel_minutes",
+          "travel_share_of_scheduled",
+          "travel_at_least_stay"
+        ],
+        "title": "TravelLoadDay"
       }
     },
     "securitySchemes": {

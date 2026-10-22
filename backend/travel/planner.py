@@ -8,9 +8,10 @@ from uuid import uuid4
 from core.schemas import POI, ParsedIntent
 from services import poi_ranker, route_planner
 from travel.provider import AmapProvider, TravelFailure
-from travel.schemas import Budget, Day, GroupingOptimization, Itinerary, PlanningMetrics, PlanRequest, Poi, Stop, TimeConflictDay, TimeConstraintDiagnostics
+from travel.schemas import Budget, Day, GroupingOptimization, Itinerary, PlanningMetrics, PlanRequest, Poi, Stop, TimeConflictDay, TimeConstraintDiagnostics, TravelConstraintDiagnostics
 from travel.tools import TravelTools
 from travel.planning_budget import planning_budget
+from travel.travel_load import travel_load, within_travel_limits
 
 
 def legacy(poi: Poi, request: PlanRequest) -> POI:
@@ -140,6 +141,7 @@ def plan(request: PlanRequest, emit: Callable[[str, str], None], *, provider: Am
                 origin_poi=origin_poi, destination_poi=destination_poi, origin_segment=incoming, destination_segment=outgoing,
                 origin_departure_time=request.day_start if origin_poi else None,
                 return_arrival_time=clock(last_end) if destination_poi else None))
+        feasible = feasible and within_travel_limits(travel_load(days, request))
         return days, PlanningMetrics(distance_km=round(distance, 6), travel_minutes=sum(travel_minutes),
             busiest_day_minutes=max(day_minutes, default=0), per_day_travel_minutes=travel_minutes, feasible=feasible)
 
@@ -185,10 +187,15 @@ def plan(request: PlanRequest, emit: Callable[[str, str], None], *, provider: Am
                 conflicts.append(TimeConflictDay(day_number=index + 1, stay_minutes=stay,
                     travel_minutes=travel, origin_travel_minutes=incoming, destination_travel_minutes=outgoing,
                     required_minutes=required, overrun_minutes=required - available))
-        diagnostics = TimeConstraintDiagnostics(operation="adjust" if parent_id else "plan",
-            source_itinerary_id=parent_id, day_start=request.day_start, day_end=request.day_end,
-            available_minutes=available, days=conflicts)
-        raise TravelFailure("time_constraint_exceeded", "行程超过每日结束时间；请调整每日时段、站数或停留时长", status=422, time_constraints=diagnostics)
+        if conflicts:
+            diagnostics = TimeConstraintDiagnostics(operation="adjust" if parent_id else "plan",
+                source_itinerary_id=parent_id, day_start=request.day_start, day_end=request.day_end,
+                available_minutes=available, days=conflicts)
+            raise TravelFailure("time_constraint_exceeded", "行程超过每日结束时间；请调整每日时段、站数或停留时长", status=422, time_constraints=diagnostics)
+        load = travel_load(days, request)
+        diagnostics = TravelConstraintDiagnostics(**load.model_dump(), operation="adjust" if parent_id else "plan", source_itinerary_id=parent_id)
+        diagnostics.days = [day for day in load.days if day.over_daily_minutes or day.violating_legs]
+        raise TravelFailure("travel_constraint_exceeded", "真实路线超出所设交通时长上限；请调整地点、交通模式或明确修改上限", status=422, travel_constraints=diagnostics)
     if comparison:
         emit("grouping_validated", "真实路线核验通过，已采用更合适的分日" if comparison.applied else "真实路线核验后保留原分日")
 
@@ -207,5 +214,5 @@ def plan(request: PlanRequest, emit: Callable[[str, str], None], *, provider: Am
     return Itinerary(id=uuid4().hex, parent_id=parent_id, title=f"{request.city} · {request.days} 日行程",
                      request=request, days=days,
                      budget=Budget(limit=request.budget, known_subtotal=known, unknown_items=unknown, status=status), warnings=warnings,
-                     optimization=comparison,
+                     optimization=comparison, travel_load=travel_load(days, request),
                      algorithm="ranker_engine + bounded geographic day exchange + route_planner nearest-neighbor + route_planner scheduler" if comparison else Itinerary.model_fields['algorithm'].default)

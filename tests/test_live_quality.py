@@ -62,6 +62,21 @@ class LiveReportTests(unittest.TestCase):
                 bad=deepcopy(raw);bad['days'][-1]['return_arrival_time']='09:00'
                 with self.assertRaises(ValueError):summarize(bad,request)
 
+    def test_load_inspector_rejects_false_totals_longest_share_attention_and_limits(self):
+        for key,value in [('travel_minutes',0),('longest_leg_minutes',None),('travel_share_of_scheduled',0),('travel_at_least_stay',True)]:
+            with self.subTest(key=key):
+                bad=deepcopy(self.raw);bad['travel_load']['days'][0][key]=value
+                with self.assertRaises(ValueError):summarize(bad,self.request)
+        old=deepcopy(self.raw);old.pop('travel_load')
+        self.assertTrue(summarize(old,self.request)['days'])
+
+    def test_live_integrity_gate_rejects_facts_over_explicit_user_limits(self):
+        for field in ('max_leg_travel_minutes','max_daily_travel_minutes'):
+            with self.subTest(field=field):
+                request={**self.request,field:36}
+                bad=deepcopy(self.raw);bad['request'][field]=36;bad['travel_load'][field]=36
+                with self.assertRaises(ValueError):summarize(bad,request)
+
     def test_boundary_inspector_rejects_missing_facts_and_fabricated_timestamps(self):
         request={**self.request,'days':1,'day_origin_poi_id':'TEST ONLY home','day_destination_poi_id':'TEST ONLY hotel'}
         original=plan(PlanRequest.model_validate(request),lambda *_:None,provider=ReportInputProvider()).model_dump(mode='json')

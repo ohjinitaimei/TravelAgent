@@ -31,9 +31,9 @@ class TaskManager:
 
     def create(self, payload: dict, idempotency_key: str | None = None, retry_of: str | None = None, *, owner_id: str = 'local') -> Task:
         if payload.get("kind", "plan") == "plan" and isinstance(payload.get("request"), dict):
-            # Preserve pre-anchor receipts: absent and null new options are identical.
+            # Preserve old receipts: absent and null additive options are identical.
             request = dict(payload["request"])
-            for field in ("day_origin_poi_id", "day_destination_poi_id"):
+            for field in ("day_origin_poi_id", "day_destination_poi_id", "max_leg_travel_minutes", "max_daily_travel_minutes"):
                 if request.get(field) is None:
                     request.pop(field, None)
             payload = {**payload, "request": request}

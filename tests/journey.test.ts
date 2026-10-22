@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { TravelClient, type Itinerary } from '../packages/api-schema/client'
 import { dayTransport } from '../apps/web/src/journey'
-import { editSnapshot, editChanges } from '../apps/web/src/editor'
+import { travelLimits, editSnapshot, editChanges } from '../apps/web/src/editor'
 import { parseEditDraft } from '../apps/web/src/editDraft'
 import { versionChanges, versionMetrics } from '../apps/web/src/versions'
 import { restoreForm } from '../apps/web/src/session'
@@ -54,4 +54,24 @@ test('restored planner and requests retain endpoints and forward search cancella
   await api.create(value)
   assert.equal(calls[0].init.signal,controller.signal);assert.equal(calls[1].init.signal,controller.signal)
   assert.match(calls[0].path,/a%26b/);assert.equal(calls[2].init.body.day_origin_poi_id,'home')
+})
+
+
+test('travel limits normalize explicit clearing and reject fractional or coerced inputs',()=>{
+  assert.deepEqual(travelLimits({max_leg_travel_minutes:'',max_daily_travel_minutes:null}),{max_leg_travel_minutes:null,max_daily_travel_minutes:null})
+  assert.equal(travelLimits({max_leg_travel_minutes:1,max_daily_travel_minutes:1439}).max_daily_travel_minutes,1439)
+  for(const value of [0,1440,1.2,'30',NaN])assert.throws(()=>travelLimits({max_leg_travel_minutes:value}))
+})
+
+test('travel limits persist as user inputs and old draft baselines normalize absent fields',()=>{
+  const original=trip(),baseline=editSnapshot({groups:[['a']],prices:{a:null},durations:{a:60},constraints:original.request,defaultStay:60,optimize:false})
+  const old={...baseline} as Partial<typeof baseline>;delete old.max_leg_travel_minutes;delete old.max_daily_travel_minutes
+  const value={...baseline,max_leg_travel_minutes:20,max_daily_travel_minutes:45}
+  const restored=parseEditDraft(JSON.stringify({version:1,sourceId:original.id,sourceCreatedAt:'',baseline:old,value,day:0,updatedAt:Date.now()}))
+  assert.equal(restored.baseline.max_leg_travel_minutes,null)
+  assert.equal(restored.value.max_daily_travel_minutes,45)
+  assert.equal(restoreForm(original.request,{...original.request,max_leg_travel_minutes:20}).max_leg_travel_minutes,20)
+  assert.equal(restoreForm(original.request,{...original.request,max_leg_travel_minutes:1.5}).max_leg_travel_minutes,undefined)
+  assert.ok(editChanges(restored.baseline,restored.value,id=>id).some(c=>c.label==='单段交通上限'&&c.after==='20 分钟'))
+  assert.ok(editChanges(restored.value,restored.baseline,id=>id).some(c=>c.label==='单段交通上限'&&c.after==='未设置'))
 })

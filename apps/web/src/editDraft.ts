@@ -20,7 +20,7 @@ function snapshot(v:unknown):EditSnapshot {
   const text=(key:string)=>{if(typeof v[key]!=='string'||v[key].length>32)throw Error('invalid');return v[key] as string}
   if(!['walking','driving'].includes(String(v.mode))||typeof v.optimize!=='boolean')throw Error('invalid')
   const anchor=(key:string)=>{const value=v[key];if(value==null)return null;if(!id(value)||value.length>100||!value.trim())throw Error('invalid');return value}
-  return {groups,prices:fields(v.prices),durations:fields(v.durations),start_date:text('start_date'),day_start:text('day_start'),day_end:text('day_end'),mode:String(v.mode),budget:scalar(v.budget),defaultStay:scalar(v.defaultStay),optimize:v.optimize,day_origin_poi_id:anchor('day_origin_poi_id'),day_destination_poi_id:anchor('day_destination_poi_id')}
+  return {groups,prices:fields(v.prices),durations:fields(v.durations),start_date:text('start_date'),day_start:text('day_start'),day_end:text('day_end'),mode:String(v.mode),budget:scalar(v.budget),defaultStay:scalar(v.defaultStay),optimize:v.optimize,max_leg_travel_minutes:scalar(v.max_leg_travel_minutes??null),max_daily_travel_minutes:scalar(v.max_daily_travel_minutes??null),day_origin_poi_id:anchor('day_origin_poi_id'),day_destination_poi_id:anchor('day_destination_poi_id')}
 }
 export function parseEditDraft(raw:string,now=Date.now()):EditDraft {
   if(raw.length>MAX_SIZE)throw Error('草稿过大，无法恢复；可放弃本机草稿后重新编辑。')

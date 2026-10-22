@@ -34,11 +34,44 @@ class TimeConstraintDiagnostics(Model):
     days: list[TimeConflictDay] = Field(min_length=1, max_length=3)
 
 
+class TravelLegViolation(Model):
+    kind: Literal["origin", "interstop", "destination"]
+    origin_id: str
+    destination_id: str
+    duration_min: int = Field(ge=0)
+    overrun_minutes: int = Field(gt=0)
+
+
+class TravelLoadDay(Model):
+    day_number: int = Field(ge=1, le=3)
+    stay_minutes: int = Field(ge=0)
+    travel_minutes: int = Field(ge=0)
+    longest_leg_minutes: int | None = Field(default=None, ge=0)
+    travel_share_of_scheduled: float = Field(ge=0, le=1)
+    travel_at_least_stay: bool
+    over_daily_minutes: int = Field(default=0, ge=0)
+    violating_legs: list[TravelLegViolation] = Field(default_factory=list, max_length=5)
+
+
+class TravelLoad(Model):
+    mode: Literal["walking", "driving"]
+    max_leg_travel_minutes: int | None = Field(default=None, strict=True, ge=1, le=1439)
+    max_daily_travel_minutes: int | None = Field(default=None, strict=True, ge=1, le=1439)
+    days: list[TravelLoadDay] = Field(min_length=1, max_length=3)
+
+
+class TravelConstraintDiagnostics(TravelLoad):
+    operation: Literal["plan", "adjust"]
+    source_itinerary_id: str | None = None
+    basis: Literal["original_partition"] = "original_partition"
+
+
 class Error(Model):
     code: str
     message: str
     retryable: bool = False
     time_constraints: TimeConstraintDiagnostics | None = None
+    travel_constraints: TravelConstraintDiagnostics | None = None
 
 
 class ErrorResponse(Model):
@@ -150,6 +183,8 @@ class PlanRequest(Model):
     budget: float | None = Field(default=None, ge=0)
     user_prices: dict[str, float] = Field(default_factory=dict, description="用户提供的每站费用；不使用人均消费代替门票")
     stay_minutes_by_poi: StayOverrides = Field(default_factory=dict, description="用户指定的逐站停留时长，优先于默认时长", max_length=12)
+    max_leg_travel_minutes: int | None = Field(default=None, strict=True, ge=1, le=1439, description="用户设置的每段交通分钟上限，含所选出发及返回，按当前交通模式核验")
+    max_daily_travel_minutes: int | None = Field(default=None, strict=True, ge=1, le=1439, description="用户设置的每日全部交通分钟上限，含所选出发及返回")
     day_origin_poi_id: str | None = Field(default=None, min_length=1, max_length=100, description="每日共享出发 POI；每日开始表示离开该地点")
     day_destination_poi_id: str | None = Field(default=None, min_length=1, max_length=100, description="每日共享返回 POI；每日结束约束返回到达")
 
@@ -177,6 +212,8 @@ class EditRequest(Model):
     day_end: str | None = Field(default=None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
     mode: Literal["walking", "driving"] | None = None
     budget: float | None = Field(default=None, ge=0)
+    max_leg_travel_minutes: int | None = Field(default=None, strict=True, ge=1, le=1439)
+    max_daily_travel_minutes: int | None = Field(default=None, strict=True, ge=1, le=1439)
     day_origin_poi_id: str | None = Field(default=None, min_length=1, max_length=100)
     day_destination_poi_id: str | None = Field(default=None, min_length=1, max_length=100)
 
@@ -262,6 +299,7 @@ class Itinerary(Model):
     warnings: list[str]
     algorithm: str = "ranker_engine + route_planner nearest-neighbor + route_planner scheduler"
     optimization: GroupingOptimization | None = None
+    travel_load: TravelLoad | None = None
 
     @classmethod
     def from_saved_json(cls, data: str) -> Itinerary:

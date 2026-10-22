@@ -182,12 +182,30 @@ def summarize(raw, expected):
                 travel += segment.duration_min
                 distance += segment.distance_km
                 arrival += segment.duration_min
+        if request.max_daily_travel_minutes is not None:
+            require(travel <= request.max_daily_travel_minutes, 'daily_travel_limit')
+        factual_legs = [day.origin_segment, *[stop.travel_to_next for stop in day.stops], day.destination_segment]
+        if request.max_leg_travel_minutes is not None:
+            require(all(leg.duration_min <= request.max_leg_travel_minutes for leg in factual_legs if leg), 'leg_travel_limit')
         require(arrival + outgoing <= minute(request.day_end), 'return_end_exceeded')
         require((minute(day.return_arrival_time) == arrival + outgoing) if request.day_destination_poi_id else day.return_arrival_time is None, 'return_arrival')
         days.append({'date': str(day.date), 'poi_ids': [s.poi.id for s in day.stops],
                      'stay_minutes': sum(s.stay_minutes for s in day.stops), 'travel_minutes': travel,
                      'interstop_travel_minutes': travel - incoming - outgoing, 'origin_travel_minutes': incoming, 'destination_travel_minutes': outgoing,
                      'distance_km': round(distance, 6), 'last_departure': day.stops[-1].departure_time})
+    if trip.travel_load is not None:
+        load=trip.travel_load
+        require(load.mode==request.mode and load.max_leg_travel_minutes==request.max_leg_travel_minutes and load.max_daily_travel_minutes==request.max_daily_travel_minutes, 'load_request')
+        require(len(load.days)==len(days), 'load_days')
+        for index, (measured, saved) in enumerate(zip(days, load.days)):
+            require(saved.day_number==index+1 and saved.stay_minutes==measured['stay_minutes'] and saved.travel_minutes==measured['travel_minutes'], 'load_totals')
+            factual_day=trip.days[index]
+            legs=[factual_day.origin_segment,*[stop.travel_to_next for stop in factual_day.stops],factual_day.destination_segment]
+            require(saved.longest_leg_minutes==max((leg.duration_min for leg in legs if leg),default=None), 'load_longest_leg')
+            elapsed=measured['stay_minutes']+measured['travel_minutes']
+            require(abs(saved.travel_share_of_scheduled-round(measured['travel_minutes']/elapsed,4))<1e-6, 'load_share')
+            require(saved.travel_at_least_stay==(measured['travel_minutes']>=measured['stay_minutes']), 'load_attention')
+            require(not saved.over_daily_minutes and not saved.violating_legs, 'load_violations')
     require(len(ids) == len(set(ids)), 'duplicate_poi')
     require(trip.budget.total is None and trip.budget.known_subtotal == 0 and bool(trip.budget.unknown_items), 'unknown_budget_lost')
     automatic_grouping = request.days > 1 and request.stops_per_day > 1
@@ -279,7 +297,8 @@ def run_case(client, request, transport):
             require(task.get('itinerary_id') is None, 'failed_task_has_itinerary')
             return {'passed': False, 'status': task['status'], 'error_code': error.code if error else None, 'task_id': task_id,
                 'retry_available': task.get('retry_available'), 'no_partial_itinerary': True,
-                'time_constraints': error.time_constraints.model_dump(mode='json') if error and error.time_constraints else None}
+                'time_constraints': error.time_constraints.model_dump(mode='json') if error and error.time_constraints else None,
+                'travel_constraints': error.travel_constraints.model_dump(mode='json') if error and error.travel_constraints else None}
         try:
             response = client.get(f"/itineraries/{task['itinerary_id']}")
             response.raise_for_status()

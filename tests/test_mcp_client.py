@@ -82,6 +82,19 @@ class McpClientTests(unittest.TestCase):
             self.assertEqual(provider.client.calls,29)
             self.assertEqual(child.days[2].destination_poi.id,'hotel')
 
+    def test_stdio_travel_limits_use_factual_legs_without_extra_tool_calls(self):
+        for limit in (36,37):
+            with self.subTest(limit=limit),open_mcp_provider(parameters=parameters()) as provider:
+                request=PlanRequest.model_validate({**PAYLOAD,'max_leg_travel_minutes':limit})
+                if limit==36:
+                    with self.assertRaises(TravelFailure) as caught:plan(request,lambda *_:None,provider=provider)
+                    self.assertEqual(caught.exception.code,'travel_constraint_exceeded')
+                    self.assertEqual(caught.exception.travel_constraints.days[0].violating_legs[0].duration_min,37)
+                else:
+                    trip=plan(request,lambda *_:None,provider=provider)
+                    self.assertEqual(trip.travel_load.days[0].longest_leg_minutes,37)
+                self.assertEqual(provider.client.calls,3)
+
     def test_planner_and_existing_registry_use_the_same_client(self):
         events=[]
         with open_mcp_provider(parameters=parameters()) as provider:
