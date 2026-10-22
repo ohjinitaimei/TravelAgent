@@ -118,6 +118,8 @@ npx playwright install --only-shell chromium firefox webkit
 
 仅复现生产构建的弱网、最大行程和连续操作流程，运行 `scripts/verify_browser.py --suite resilience`。Linux 首次安装浏览器加 `--with-deps`。新连续场景的步骤、真实数据实测及本轮运行范围见 [完整用户流程验收](architecture/WEB_USER_JOURNEY.md)，历史检查见 [验收记录](ACCEPTANCE.md)。
 
+需要复核推荐的路途负担时，使用 [多城质量报告](architecture/RECOMMENDATION_QUALITY.md) 的显式真实验收命令。报告包含交通占比和最长路段，不是满意度评分；运行会消耗自己的授权配额。
+
 日常需备份后端 SQLite 业务库；不要把浏览器草稿当备份。已有在线快照、校验和恢复命令，按 [运维说明](architecture/OPERATIONS.md) 与 [发布包/备份说明](architecture/RELEASE_BACKUP.md) 操作，恢复到新路径并验证后再切换。
 
 提交源码不包含 `.env`、安全密钥、SQLite、个人行程、缓存和本机验收 artifacts。当前操作以本地验收和发布包为准；GitHub 上传另行执行。

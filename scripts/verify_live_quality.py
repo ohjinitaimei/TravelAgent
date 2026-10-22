@@ -1,7 +1,7 @@
 """Opt-in, bounded real Amap quality checks through an isolated production API.
 
 No fixture injection, model calls, production database access or automatic retries.
-Fixed smoke/expanded profiles; six plans and 138 provider calls at most.
+Fixed profiles; six plans and 138 provider calls at most.
 """
 import argparse
 from collections import Counter
@@ -43,6 +43,9 @@ def scenarios(profile, travel_date):
         'expanded': [('nanjing-museums-3', '南京', '博物馆', 1, 3, 'walking'),
                      ('suzhou-coffee-4', '苏州', '咖啡', 1, 4, 'driving'),
                      ('suzhou-parks-12', '苏州', '公园', 3, 4, 'driving')],
+        'diverse': [('hangzhou-parks-6', '杭州', '公园', 2, 3, 'walking'),
+                    ('beijing-museums-3', '北京', '博物馆', 1, 3, 'driving'),
+                    ('chengdu-coffee-4', '成都', '咖啡', 1, 4, 'walking')],
     }
     cases = []
     for identifier, city, keyword, days, stops, mode in definitions[profile]:
@@ -55,6 +58,36 @@ def scenarios(profile, travel_date):
 def minute(value):
     require(isinstance(value, str) and re.fullmatch(r'([01]\d|2[0-3]):[0-5]\d', value), 'invalid_clock')
     return int(value[:2]) * 60 + int(value[3:])
+
+
+def quality_observations(trip, days):
+    """Describe validated saved facts; never infer satisfaction or new constraints."""
+    available = minute(trip.request.day_end) - minute(trip.request.day_start)
+    observations, attention = [], []
+    for index, day in enumerate(trip.days):
+        measured = days[index]
+        elapsed = measured['stay_minutes'] + measured['travel_minutes']
+        legs = []
+        for position, stop in enumerate(day.stops):
+            segment = stop.travel_to_next
+            if segment is not None:
+                legs.append({'origin_id': segment.origin_id, 'origin_name': stop.poi.name,
+                    'destination_id': segment.destination_id, 'destination_name': day.stops[position + 1].poi.name,
+                    'mode': segment.mode, 'duration_min': segment.duration_min, 'distance_km': segment.distance_km,
+                    'source': segment.source.model_dump(mode='json')})
+        observations.append({'day_number': index + 1, 'date': str(day.date),
+            'available_minutes': available, 'stay_minutes': measured['stay_minutes'],
+            'travel_minutes': measured['travel_minutes'], 'scheduled_minutes': elapsed,
+            'remaining_minutes': available - elapsed,
+            'travel_share_of_scheduled': round(measured['travel_minutes'] / elapsed, 4),
+            'longest_leg_minutes': max((leg['duration_min'] for leg in legs), default=None), 'legs': legs})
+        # A transparent review cue, not a universal preference or rejection gate.
+        if measured['travel_minutes'] >= measured['stay_minutes']:
+            attention.append({'code': 'travel_at_least_stay', 'day_number': index + 1})
+    loads = [day['scheduled_minutes'] for day in observations]
+    return {'scope': 'saved_interstop_facts_only', 'origin_return_included': False,
+        'future_opening_verified': False, 'subjective_satisfaction': 'not_assessed',
+        'day_load_spread_minutes': max(loads) - min(loads), 'days': observations, 'attention': attention}
 
 
 def summarize(raw, expected):
@@ -132,6 +165,7 @@ def summarize(raw, expected):
     unmatched = [item['id'] for item in evidence if not (item['name_contains_keyword'] or item['category_contains_keyword'])]
     other_cities = [item['id'] for item in evidence if item['city'] and item['city'].removesuffix('市') != request.city.removesuffix('市')]
     missing_cities = [item['id'] for item in evidence if not item['city']]
+    observations = quality_observations(trip, days)
     return {'itinerary_id': trip.id, 'days': days, 'missing_fields': dict(sorted(missing.items())),
             'budget_total': trip.budget.total, 'unknown_budget_items': len(trip.budget.unknown_items),
             'route_queries': comparison.route_queries if comparison else None,
@@ -141,7 +175,8 @@ def summarize(raw, expected):
             'totals': totals, 'improvement': improvement, 'poi_evidence': evidence,
             'keyword_evidence': {'method': 'literal_name_or_category', 'matched': len(evidence) - len(unmatched), 'total': len(evidence), 'unmatched_ids': unmatched},
             'different_reported_city_ids': other_cities, 'missing_reported_city_ids': missing_cities,
-            'review_required': bool(unmatched or other_cities or missing_cities)}
+            'quality_observations': observations,
+            'review_required': bool(unmatched or other_cities or missing_cities or observations['attention'])}
 
 
 def compare_transports(cases):
@@ -169,6 +204,8 @@ def finalize_report(report):
     report['integrity_rejection_count'] = sum(case.get('status') == 'succeeded' and not case['passed'] for case in cases)
     report['failure_counts'] = dict(Counter(case.get('error_code', 'unknown') for case in cases if not case['passed']))
     report['review_required'] = any(case.get('review_required') for case in cases)
+    report['subjective_quality_assessment'] = 'not_assessed'
+    report['travel_attention_case_count'] = sum(bool(case.get('quality_observations', {}).get('attention')) for case in cases)
     report['transport_comparisons'] = compare_transports(cases)
     report['passed'] = len(cases) == report['expected_cases'] and all(case['passed'] for case in cases) and report['services_stopped_gracefully']
     return report
@@ -220,7 +257,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--live-amap', action='store_true')
     parser.add_argument('--date', type=date.fromisoformat, required=True)
-    parser.add_argument('--profile', choices=['smoke', 'expanded'], default='smoke')
+    parser.add_argument('--profile', choices=['smoke', 'expanded', 'diverse'], default='smoke')
     parser.add_argument('--transport', choices=['direct', 'mcp', 'both'], default='both')
     parser.add_argument('--max-provider-calls', type=int, default=150, help='Preflight upper limit, 1–150; never an automatic retry budget')
     parser.add_argument('--dry-run', action='store_true', help='Print the fixed scenarios/bounds without reading credentials or starting services')

@@ -48,6 +48,72 @@ class LiveReportTests(unittest.TestCase):
         self.assertEqual(result['missing_fields']['rating'], 4)
         self.assertEqual([day['travel_minutes'] for day in result['days']], [37, 37])
 
+    def test_daily_travel_load_slack_and_longest_leg_use_saved_facts(self):
+        observed = summarize(self.raw, self.request)['quality_observations']
+        self.assertEqual(observed['day_load_spread_minutes'], 0)
+        day = observed['days'][0]
+        self.assertEqual((day['available_minutes'], day['scheduled_minutes'], day['remaining_minutes']), (780, 97, 683))
+        self.assertEqual(day['travel_share_of_scheduled'], .3814)
+        self.assertEqual(day['longest_leg_minutes'], 37)
+        self.assertEqual(len(day['legs']), 1)
+        self.assertEqual(day['legs'][0]['source'], self.raw['days'][0]['stops'][0]['travel_to_next']['source'])
+        self.assertEqual(day['legs'][0]['destination_id'], self.raw['days'][0]['stops'][1]['poi']['id'])
+
+    def test_single_stop_day_has_no_route_not_an_invented_zero_minute_leg(self):
+        request = {**self.request, 'days': 1, 'stops_per_day': 1}
+        raw = plan(PlanRequest.model_validate(request), lambda *_: None, provider=ReportInputProvider()).model_dump(mode='json')
+        day = summarize(raw, request)['quality_observations']['days'][0]
+        self.assertEqual(day['travel_share_of_scheduled'], 0)
+        self.assertIsNone(day['longest_leg_minutes'])
+        self.assertEqual(day['legs'], [])
+        self.assertEqual(day['remaining_minutes'], 750)
+
+    def test_travel_attention_is_inclusive_and_does_not_reject_feasible_trips(self):
+        class LongRouteProvider(ReportInputProvider):
+            minutes = 60
+            def route(self, *args):
+                segment = super().route(*args)
+                segment.duration_min = self.minutes
+                return segment
+        request = {**self.request, 'days': 1}
+        for duration, attention in ((59, []), (60, [{'code': 'travel_at_least_stay', 'day_number': 1}])):
+            with self.subTest(duration=duration):
+                provider = LongRouteProvider(); provider.minutes = duration
+                raw = plan(PlanRequest.model_validate(request), lambda *_: None, provider=provider).model_dump(mode='json')
+                observed = summarize(raw, request)['quality_observations']
+                self.assertEqual(observed['attention'], attention)
+                self.assertEqual(observed['subjective_satisfaction'], 'not_assessed')
+
+    def test_observations_do_not_mutate_source_or_claim_unmeasured_capabilities(self):
+        original = deepcopy(self.raw)
+        observed = summarize(self.raw, self.request)['quality_observations']
+        self.assertEqual(self.raw, original)
+        self.assertEqual(observed['scope'], 'saved_interstop_facts_only')
+        self.assertFalse(observed['origin_return_included'])
+        self.assertFalse(observed['future_opening_verified'])
+        self.assertNotIn('score', observed)
+        self.assertNotIn('satisfied', observed)
+
+    def test_diverse_profile_adds_cities_and_respects_a_preflight_budget(self):
+        cases = scenarios('diverse', '2026-10-23')
+        self.assertEqual({case['request']['city'] for case in cases}, {'杭州', '北京', '成都'})
+        self.assertEqual([case['maximum_provider_calls'] for case in cases], [31, 7, 13])
+        self.assertEqual(sum(case['maximum_provider_calls'] for case in cases), 51)
+        with patch.object(sys, 'argv', ['verify_live_quality.py', '--date', '2026-10-23', '--profile', 'diverse', '--transport', 'direct', '--max-provider-calls', '50', '--live-amap']), patch('verify_live_quality.subprocess.Popen') as start, patch('verify_live_quality.dotenv_values') as credentials, patch('sys.stderr'):
+            with self.assertRaises(SystemExit) as caught:
+                main()
+            self.assertEqual(caught.exception.code, 2)
+            start.assert_not_called(); credentials.assert_not_called()
+
+    def test_integrity_success_with_attention_is_not_subjective_quality_approval(self):
+        case = {'status': 'succeeded', 'passed': True, 'review_required': True,
+                'quality_observations': {'attention': [{'code': 'travel_at_least_stay', 'day_number': 1}]}}
+        result = finalize_report({'expected_cases': 1, 'services_stopped_gracefully': True, 'cases': [case]})
+        self.assertTrue(result['passed'])
+        self.assertTrue(result['review_required'])
+        self.assertEqual(result['travel_attention_case_count'], 1)
+        self.assertEqual(result['subjective_quality_assessment'], 'not_assessed')
+
     def test_rejects_missing_provenance_and_markers(self):
         for field in ('source', 'missing_fields'):
             with self.subTest(field=field):
@@ -129,9 +195,10 @@ class LiveReportTests(unittest.TestCase):
                 start.assert_not_called();credentials.assert_not_called()
 
     def test_dry_run_reads_no_credentials_and_starts_no_services(self):
-        with patch.object(sys,'argv',['verify_live_quality.py','--date','2026-10-22','--profile','expanded','--dry-run']),patch('verify_live_quality.subprocess.Popen') as start,patch('verify_live_quality.dotenv_values') as credentials,patch('builtins.print'):
-            self.assertEqual(main(),0)
-            start.assert_not_called();credentials.assert_not_called()
+        for profile in ('expanded', 'diverse'):
+            with self.subTest(profile=profile),patch.object(sys,'argv',['verify_live_quality.py','--date','2026-10-22','--profile',profile,'--dry-run']),patch('verify_live_quality.subprocess.Popen') as start,patch('verify_live_quality.dotenv_values') as credentials,patch('builtins.print'):
+                self.assertEqual(main(),0)
+                start.assert_not_called();credentials.assert_not_called()
 
     def test_report_preserves_task_failure_unknown_status_and_inspector_rejection(self):
         report={'expected_cases':4,'services_stopped_gracefully':True,'cases':[

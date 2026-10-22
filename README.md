@@ -35,6 +35,8 @@ TravelAgent 将自然语言旅行需求整理为可核对草案，再由统一 F
 
 真实数据验收支持关键词与站数矩阵、无凭证预算预检、失败分类和 POI 字面证据复核。博物馆三站、咖啡四站及三天十二站的直接 Provider/MCP 六任务已通过来源与调度检查，数据、耗时和判定范围见 [扩展质量矩阵](docs/architecture/EXPANDED_QUALITY.md)。
 
+质量报告另列每一天交通占比、最长真实路段、剩余时段及跨日负担，不生成满意度分数。杭州公园、北京博物馆、成都咖啡三个新场景已通过来源/调度核验；杭州长步行与成都字面未匹配结果保留为复核线索，见 [推荐质量观察](docs/architecture/RECOMMENDATION_QUALITY.md)。下一模块的单日起终点契约与调用上限见 [接入设计](docs/architecture/JOURNEY_ENDPOINTS_DESIGN.md)，当前表单尚不包含往返交通。
+
 未提交的行程编辑可在同一浏览器、同一账号下保留 7 天，刷新或关闭后显式恢复。恢复前核对原行程版本并重新获取新增地点，不自动提交；存储失败会提示，已保存的后端行程不受影响。详见 [草稿恢复说明](docs/architecture/EDIT_DRAFT_RECOVERY.md)。
 
 键盘可跳过导航、切换页面并操作地点详情。提交有误时会聚焦中文摘要，摘要可定位其他日期或折叠区中的字段；站点排序、移动和移除后保留可用焦点。详见 [键盘与错误定位](docs/architecture/KEYBOARD_ACCESSIBILITY.md)。

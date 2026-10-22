@@ -30,8 +30,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 14981,
-      "sha256": "301155f1352ba106c3120f4a361c20a438f36c21445c7405d15beb5019c9b28d"
+      "bytes": 15493,
+      "sha256": "c0d30afe398579772f9dcf72fe8e3618da762213ea178ff5316e384cb86f92c3"
     },
     {
       "path": "analysis_options.yaml",
@@ -855,18 +855,18 @@
     },
     {
       "path": "docs/ACCEPTANCE.md",
-      "bytes": 20680,
-      "sha256": "8d64267e9e11517ed85463e00a87192fd57b25dc3371ce5d9f3a7bc47d8ad06d"
+      "bytes": 21292,
+      "sha256": "4deee4ff28079e3fcf2d7d45e2044925020ab52510c861e66fbe5eba377c5e24"
     },
     {
       "path": "docs/README.md",
-      "bytes": 2329,
-      "sha256": "df92606bb6e396bd27126e555b7995fa671d0500d2e72fe5e3ab71973819caf8"
+      "bytes": 2591,
+      "sha256": "6ddfd3861a297fcb989c8d4707f7c5666a1887d7dd6c7625b536526845c0b8d3"
     },
     {
       "path": "docs/RELEASE_STATUS.md",
-      "bytes": 12097,
-      "sha256": "994c8f5f1291be33d2895e35dccc96c6b61ea3dd591ea988b641ea9ec6ed2933"
+      "bytes": 13265,
+      "sha256": "27e161c2f30b3f984fdab42b10d3f3545d17a093217758c8c11776f9fa19ea0d"
     },
     {
       "path": "docs/TECHNICAL_REPORT.md",
@@ -880,8 +880,8 @@
     },
     {
       "path": "docs/USER_GUIDE.md",
-      "bytes": 10888,
-      "sha256": "2e9cbe5c62ed0e74c729d8784e8f5a271ed4ca1b61955870267d66fad9c77730"
+      "bytes": 11132,
+      "sha256": "1201a6772d130587ce7a79865f6d25b67958cf9f452b754b5e2ca56f23014335"
     },
     {
       "path": "docs/architecture/AGENT_COORDINATOR_SPEC.md",
@@ -944,6 +944,11 @@
       "sha256": "9a40789798d4139747b490db73e60a95290c16d7dc44e70d446424a5e772c642"
     },
     {
+      "path": "docs/architecture/JOURNEY_ENDPOINTS_DESIGN.md",
+      "bytes": 6320,
+      "sha256": "5f65fe118290d956aeed8ca01d3eb7b40f34fa77899d0bfec51377c5903a7420"
+    },
+    {
       "path": "docs/architecture/KEYBOARD_ACCESSIBILITY.md",
       "bytes": 3750,
       "sha256": "98c8f5fe4b1f4bffe1bd9175e3b46032893eb544263d30f63070d909b5bafb4e"
@@ -977,6 +982,11 @@
       "path": "docs/architecture/README.md",
       "bytes": 1483,
       "sha256": "4795686cc2631ab3cd486cc33b0b9be1ddd6d4831dc080d3d8392a1b1fbdeaee"
+    },
+    {
+      "path": "docs/architecture/RECOMMENDATION_QUALITY.md",
+      "bytes": 6586,
+      "sha256": "7de5f3ecc1f5f360f9be599ae421626bc28435d8bf8150227882b32a38075f23"
     },
     {
       "path": "docs/architecture/RELEASE_BACKUP.md",
@@ -1255,8 +1265,8 @@
     },
     {
       "path": "scripts/verify_live_quality.py",
-      "bytes": 19613,
-      "sha256": "d4d368582cbcc8fed22786ffc58a34d7f753bd239413cc05fb3c05dfe50d1d08"
+      "bytes": 22178,
+      "sha256": "32fb6d453092965cbd4242a864f212aa2f59407a76c5f435982108336087ec04"
     },
     {
       "path": "scripts/verify_live_travel.py",
@@ -1400,8 +1410,8 @@
     },
     {
       "path": "tests/test_live_quality.py",
-      "bytes": 9260,
-      "sha256": "8a23bac6aeba674552801c6d4a9512fb7a6882e5bd0523e638bbde0b572887ca"
+      "bytes": 13735,
+      "sha256": "d358403e1ed7c166c62d5d1fa5b8edbb8b5073232118650153054310d1336f27"
     },
     {
       "path": "tests/test_map_proxy.py",
