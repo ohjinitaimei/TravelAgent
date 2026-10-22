@@ -4358,7 +4358,12 @@
                 "day_end",
                 "stay_minutes",
                 "mode",
-                "budget"
+                "budget",
+                "day_schedules",
+                "max_leg_travel_minutes",
+                "max_daily_travel_minutes",
+                "origin_hint",
+                "destination_hint"
               ]
             },
             "type": "array",
@@ -4383,7 +4388,12 @@
                 "day_end",
                 "stay_minutes",
                 "mode",
-                "budget"
+                "budget",
+                "day_schedules",
+                "max_leg_travel_minutes",
+                "max_daily_travel_minutes",
+                "origin_hint",
+                "destination_hint"
               ]
             },
             "type": "object",
@@ -4432,6 +4442,12 @@
                   "type": "number"
                 },
                 {
+                  "items": {
+                    "$ref": "#/components/schemas/DraftDaySchedule"
+                  },
+                  "type": "array"
+                },
+                {
                   "type": "null"
                 }
               ]
@@ -4447,7 +4463,12 @@
                 "day_end",
                 "stay_minutes",
                 "mode",
-                "budget"
+                "budget",
+                "day_schedules",
+                "max_leg_travel_minutes",
+                "max_daily_travel_minutes",
+                "origin_hint",
+                "destination_hint"
               ]
             },
             "type": "object",
@@ -4466,7 +4487,12 @@
                 "day_end",
                 "stay_minutes",
                 "mode",
-                "budget"
+                "budget",
+                "day_schedules",
+                "max_leg_travel_minutes",
+                "max_daily_travel_minutes",
+                "origin_hint",
+                "destination_hint"
               ]
             },
             "type": "array",
@@ -4505,11 +4531,16 @@
                 "day_end",
                 "stay_minutes",
                 "mode",
-                "budget"
+                "budget",
+                "day_schedules",
+                "max_leg_travel_minutes",
+                "max_daily_travel_minutes",
+                "origin_hint",
+                "destination_hint"
               ]
             },
             "type": "array",
-            "maxItems": 10,
+            "maxItems": 15,
             "title": "Confirm Fields"
           }
         },
@@ -4519,6 +4550,51 @@
           "expected_revision"
         ],
         "title": "DraftClarificationRequest"
+      },
+      "DraftDaySchedule": {
+        "properties": {
+          "day_start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day Start"
+          },
+          "day_end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day End"
+          },
+          "stay_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 360.0,
+                "minimum": 10.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stay Minutes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "DraftDaySchedule",
+        "description": "User expressions may be incomplete; no planner defaults are inferred here."
       },
       "DraftRequest": {
         "properties": {
@@ -4552,7 +4628,7 @@
               "type": "string"
             },
             "type": "object",
-            "maxProperties": 10,
+            "maxProperties": 15,
             "title": "Evidence"
           },
           "unhandled_requirements": {
@@ -4701,6 +4777,77 @@
               }
             ],
             "title": "Budget"
+          },
+          "day_schedules": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/DraftDaySchedule"
+                },
+                "type": "array",
+                "maxItems": 3,
+                "minItems": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Day Schedules",
+            "description": "按第1天至末日排列；未表达的子字段保留null，不继承表单默认；补充时完整替换数组"
+          },
+          "max_leg_travel_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1439.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Leg Travel Minutes"
+          },
+          "max_daily_travel_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1439.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Daily Travel Minutes"
+          },
+          "origin_hint": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Hint",
+            "description": "用户出发地原文，仅作待核对的搜索提示，不是已选POI或ID"
+          },
+          "destination_hint": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destination Hint",
+            "description": "用户返回地原文，仅作待核对的搜索提示，不是已选POI或ID"
           }
         },
         "additionalProperties": false,

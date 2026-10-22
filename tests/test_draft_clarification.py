@@ -14,7 +14,8 @@ sys.path.insert(0, str(ROOT / "backend"))
 from agent.travel_intake import finish_draft
 from travel.drafts import clarify
 from travel.provider import TravelFailure
-from travel.schemas import Draft, DraftClarificationRequest, DraftRequest, DraftSubmission, Task
+from travel.schemas import Draft, DraftClarificationRequest, DraftRequest, DraftSubmission, DraftValues, Task
+from pydantic import ValidationError
 from travel.store import Store
 
 
@@ -40,7 +41,7 @@ class ClarificationTests(unittest.TestCase):
                 self.assertEqual(result["confirmed_fields"],["budget","city","query"])
                 self.assertEqual(result["questions"],["请确认出发日期"])
                 self.assertEqual(result["field_sources"]["city"],"user_input")
-                self.assertNotIn("query",result["field_sources"])
+                self.assertEqual(result["field_sources"]["query"],"model_extracted")
                 second=client.patch(url,json={"expected_revision":2,"values":{"start_date":"2026-10-20"}}).json()
                 self.assertEqual(second["revision"],3)
                 self.assertEqual(second["proposal"]["values"]["city"],"杭州")
@@ -109,6 +110,97 @@ class ClarificationTests(unittest.TestCase):
         self.assertEqual(restored.revision,1)
         self.assertEqual(restored.confirmed_fields,[])
         self.assertEqual(restored.proposal.evidence,seed.proposal.evidence)
+
+    def test_partial_daily_expressions_preserve_unknowns_and_require_explicit_completion(self):
+        seed=partial_draft()
+        request=DraftClarificationRequest(expected_revision=1,values={"days":2,
+            "day_schedules":[{"day_start":"14:00"},{"day_end":"16:30","stay_minutes":45}],
+            "max_leg_travel_minutes":30,"max_daily_travel_minutes":90,
+            "origin_hint":"TEST ONLY 酒店","destination_hint":"TEST ONLY 车站"})
+        result=clarify(seed,request)
+        self.assertIsNone(result.proposal.values.day_schedules[0].day_end)
+        self.assertIsNone(result.proposal.values.day_schedules[0].stay_minutes)
+        self.assertIsNone(result.proposal.values.day_schedules[1].day_start)
+        self.assertIn("请补全第 1 天的结束时间、默认停留",result.questions)
+        self.assertIn("请补全第 2 天的开始时间",result.questions)
+        self.assertTrue(any("真实地点搜索" in item and "酒店" in item for item in result.questions))
+        self.assertEqual(result.coordinator_action,"ask_clarification")
+        self.assertEqual(result.field_sources["day_schedules"],"user_input")
+        self.assertIn("交通上限", " ".join(result.warnings))
+        history=Draft.model_validate_json(result.model_dump_json()).clarifications[-1]
+        self.assertEqual(history.values["day_schedules"][0].day_start,"14:00")
+        self.assertIsNone(history.values["day_schedules"][0].day_end)
+        complete=clarify(result,DraftClarificationRequest(expected_revision=2,values={
+            "city":"杭州","start_date":"2026-10-25",
+            "day_schedules":[{"day_start":"14:00","day_end":"18:00","stay_minutes":60},
+                {"day_start":"09:00","day_end":"16:30","stay_minutes":45}]}))
+        self.assertFalse(any("补全第" in item for item in complete.questions))
+        self.assertEqual(complete.proposal.values.max_leg_travel_minutes,30)
+        self.assertEqual(complete.proposal.values.origin_hint,"TEST ONLY 酒店")
+        self.assertTrue(any("真实地点搜索" in item for item in complete.questions))
+        self.assertIsNone(complete.proposal.values.day_start)  # No inferred shared fallback.
+
+    def test_daily_length_conflict_requires_atomic_revision_and_legacy_fields_remain(self):
+        seed=clarify(partial_draft(),DraftClarificationRequest(expected_revision=1,values={
+            "days":2,"day_schedules":[{"day_start":"14:00"},{"day_start":"09:00"}]}))
+        with self.assertRaises(TravelFailure) as error:
+            clarify(seed,DraftClarificationRequest(expected_revision=2,values={"days":1}))
+        self.assertEqual(error.exception.code,"invalid_draft_constraints")
+        self.assertEqual(seed.revision,2)
+        self.assertEqual(len(seed.proposal.values.day_schedules),2)
+        changed=clarify(seed,DraftClarificationRequest(expected_revision=2,values={"days":1,"day_schedules":[{"day_start":"14:00"}]}))
+        self.assertEqual(changed.revision,3)
+        self.assertEqual(changed.proposal.values.days,1)
+        self.assertEqual(len(changed.proposal.values.day_schedules),1)
+        unknown=finish_draft(seed.input,DraftSubmission(values={"day_schedules":[{"day_end":"17:00"}]},evidence={"day_schedules":"TEST ONLY"}),lambda *_:None)
+        self.assertIsNone(unknown.proposal.values.days)
+        self.assertIn("请确认旅行天数，以核对逐日时段数量",unknown.questions)
+
+    def test_new_fields_clear_and_confirm_without_implicit_providers(self):
+        result=clarify(partial_draft(),DraftClarificationRequest(expected_revision=1,values={
+            "day_schedules":[{"day_start":"10:00"}],"max_leg_travel_minutes":20,"origin_hint":"TEST ONLY 酒店"}))
+        confirmed=clarify(result,DraftClarificationRequest(expected_revision=2,confirm_fields=["origin_hint","day_schedules"]))
+        self.assertEqual(confirmed.proposal.values.origin_hint,"TEST ONLY 酒店")
+        self.assertEqual(confirmed.field_sources["origin_hint"],"user_input")
+        self.assertTrue(any("真实地点搜索" in item for item in confirmed.questions))
+        cleared=clarify(confirmed,DraftClarificationRequest(expected_revision=3,values={
+            "day_schedules":None,"origin_hint":None,"max_leg_travel_minutes":None}))
+        for field in ("day_schedules","origin_hint","max_leg_travel_minutes"):
+            self.assertNotIn(field,cleared.confirmed_fields)
+            self.assertNotIn(field,cleared.field_sources)
+            self.assertNotIn(field,cleared.proposal.evidence)
+        self.assertEqual(cleared.proposal.values.query,"博物馆")
+
+    def test_new_fields_reject_coercion_invented_poi_payloads_and_invalid_windows(self):
+        cases=[{"max_leg_travel_minutes":True},{"max_daily_travel_minutes":"30"},{"max_daily_travel_minutes":1440},
+            {"day_schedules":[]},{"day_schedules":[{"stay_minutes":30.5}]},
+            {"day_schedules":[{"day_start":"18:00","day_end":"09:00"}]},
+            {"days":2,"day_schedules":[{}]}, {"origin_hint":{"id":"invented","longitude":120}},
+            {"destination_hint":" "},{"origin_poi_id":"invented"},
+            {"day_schedules":[{"day_start":"10:00","poi_id":"invented"}]}]
+        for values in cases:
+            with self.subTest(values=values),self.assertRaises(ValidationError):
+                DraftValues.model_validate(values)
+
+    def test_new_daily_fields_survive_api_restart_and_bad_merge_keeps_saved_revision(self):
+        from main import app
+        with tempfile.TemporaryDirectory(dir=ROOT/".tmp") as directory, patch.dict(os.environ,{"TRAVEL_DB_PATH":str(Path(directory)/"draft.sqlite3")}), patch("agent.travel_intake.create_draft",side_effect=AssertionError("No model call")), patch("travel.tools.TravelTools",side_effect=AssertionError("No data call")):
+            with TestClient(app) as client:
+                seed=partial_draft()
+                app.state.travel.store.succeed_draft(Task(id="test-only-task",status="running",kind="draft"),seed)
+                url="/api/v1/travel/drafts/"+seed.id
+                response=client.patch(url,json={"expected_revision":1,"values":{"days":2,
+                    "day_schedules":[{"day_start":"14:00"},{"day_end":"16:00"}],
+                    "max_daily_travel_minutes":75,"origin_hint":"TEST ONLY 酒店"}})
+                self.assertEqual(response.status_code,200,response.text)
+                saved=response.json()
+                bad=client.patch(url,json={"expected_revision":2,"values":{"days":1}})
+                self.assertEqual(bad.status_code,422)
+                self.assertEqual(bad.json()["error"]["code"],"invalid_draft_constraints")
+                self.assertEqual(client.get(url).json(),saved)
+            with TestClient(app) as client:
+                self.assertEqual(client.get(url).json(),saved)
+                self.assertEqual(client.get("/api/v1/travel/itineraries").json()["items"],[])
 
 
 if __name__=="__main__":

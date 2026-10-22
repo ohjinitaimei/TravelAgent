@@ -2,10 +2,11 @@ import { parseScheduleInputs, type PlanForm } from './schedules'
 import type { PendingSubmission } from './submissions'
 import { editDraftKey } from './editDraft'
 import { parseEndpoints } from './endpoints'
+import type { HandoffDecision } from './handoff'
 
 const KEY = 'travelagent.workspace.v1'
 function key(ownerId:string) {return ownerId==='local'?KEY:`${KEY}.user.${encodeURIComponent(ownerId)}`}
-export type WorkspaceSession = { form?: PlanForm; taskId?: string; itineraryId?: string; draftId?: string; pendingSubmission?:PendingSubmission; appliedDraft?:{id:string;revision:number} }
+export type WorkspaceSession = { form?: PlanForm; taskId?: string; itineraryId?: string; draftId?: string; pendingSubmission?:PendingSubmission; appliedDraft?:{id:string;revision:number}; handoffDecision?:HandoffDecision }
 
 /** Persist user inputs, pending submissions and server IDs, never provider datasets or credentials. */
 export function readSession(ownerId='local'): WorkspaceSession {
@@ -30,6 +31,7 @@ export function restoreForm(defaults: PlanForm, stored: unknown): PlanForm {
     const number = value[field]
     if (typeof number === 'number' && Number.isInteger(number) && number >= min && number <= max) result[field] = number
   }
+  if(value.stay_minutes===null||value.stay_minutes==='')result.stay_minutes=value.stay_minutes
   if(typeof value.compare_poi_alternatives==='boolean')result.compare_poi_alternatives=value.compare_poi_alternatives
   if (value.mode === 'walking' || value.mode === 'driving') result.mode = value.mode
   if (typeof value.budget === 'number' && Number.isFinite(value.budget) && value.budget >= 0) result.budget = value.budget

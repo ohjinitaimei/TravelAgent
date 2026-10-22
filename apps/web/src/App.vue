@@ -3,6 +3,10 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowR
 import { useTravelApi, apiBase, type Draft, type Itinerary, type Poi, type Schema, type Task, type TravelEvent } from './api'
 import RouteMap from './components/RouteMap.vue'
 import JourneyEndpoints from './components/JourneyEndpoints.vue'
+import PlanningForm from './components/PlanningForm.vue'
+import DraftHandoff from './components/DraftHandoff.vue'
+import WorkflowNavigation from './components/WorkflowNavigation.vue'
+import { handoffKey, handoffAccepted, type HandoffDecision } from './handoff'
 import JourneySchedule from './components/JourneySchedule.vue'
 import { checkedStay, cloneSchedules, scheduleAt, validatedSchedules, type PlanForm, type ScheduleInput, type ScheduleOptions } from './schedules'
 import { cloneEndpoints, endpointAt, selectedAnchorIds, type DayEndpoints } from './endpoints'
@@ -19,7 +23,7 @@ import OptimizationComparison from './components/OptimizationComparison.vue'
 import PlanningComparison from './components/PlanningComparison.vue'
 import DayOverview from './components/DayOverview.vue'
 import TravelLoadPanel from './components/TravelLoadPanel.vue'
-import TimeConstraintGuide from './components/TimeConstraintGuide.vue'
+import TaskExecution from './components/TaskExecution.vue'
 import SavedTrips from './components/SavedTrips.vue'
 import { shortVersion, versionTime } from './versions'
 import { draftForm } from './draft'
@@ -50,7 +54,10 @@ const draft = ref<Draft|null>(null)
 const draftConflict = ref(false)
 const pending = ref<PendingSubmission|null>(restoreSubmission(session.pendingSubmission))
 const appliedDraft=ref(session.appliedDraft??null)
-const staleDraft=computed(()=>draft.value&&appliedDraft.value?.id===draft.value.id&&appliedDraft.value.revision!==(draft.value.revision??1))
+const staleDraft=computed(()=>Boolean(appliedDraft.value&&draft.value&&(appliedDraft.value.id!==draft.value.id||appliedDraft.value.revision!==(draft.value.revision??1))))
+const appliedSource=computed(()=>draft.value&&appliedDraft.value?.id===draft.value.id&&appliedDraft.value.revision===(draft.value.revision??1)?draft.value:null)
+const handoffDecision=ref<HandoffDecision|null>(session.handoffDecision??null)
+const handoffBlocked=computed(()=>Boolean(appliedDraft.value&&!draft.value||appliedSource.value&&!handoffAccepted(appliedSource.value,form,handoffDecision.value)))
 const connection=ref<'connected'|'reconnecting'|'offline'>('connected'), reconnectAttempt=ref(0)
 const selectedDay = ref(0), selectedPoi = ref<Poi | null>(null)
 const poiOpener=shallowRef<HTMLElement|null>(null),pageHeading=ref<HTMLElement>(),mainContent=ref<HTMLElement>()
@@ -115,11 +122,9 @@ const previewAnchors=computed(()=>{
 })
 const mapAnchors=computed(()=>previewAnchors.value??{origin:day.value?.origin_poi,destination:day.value?.destination_poi})
 const visiblePois=computed(()=>previewPois.value??day.value?.stops.map(s=>s.poi)??[])
-const statusLabels: Record<string,string> = { queued:'排队中', running:'规划中', succeeded:'已完成', failed:'失败', cancelled:'已取消', timed_out:'已超时' }
 const nav = [{id:'plan',icon:'⌘',label:'行程工作台'}, {id:'explore',icon:'⌖',label:'探索地点'}, {id:'saved',icon:'▤',label:'已保存行程'}, {id:'budget',icon:'◫',label:'预算与约束'}] as const
 const title = computed(() => ({plan:'让下一段旅程，从容出发', explore:'寻找旅程中的下一站', saved:'留住每一次出发的计划', budget:'看清预算，也看清未知'}[tab.value]))
 function report(e: unknown) { error.value = e instanceof Error ? e.message : '请求失败，请稍后重试' }
-function eventTime(value?:string) { return value ? new Date(value).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '时间未提供' }
 async function navigate(value:Tab){tab.value=value;await nextTick();pageHeading.value?.focus()}
 async function focusEditField(field:HTMLElement){const index=field.closest<HTMLElement>('[data-edit-day]')?.dataset.editDay;if(index!==undefined)selectedDay.value=Number(index)}
 async function locateTimeConstraint(field:'window'|'stops'|'stay',dayNumber:number) {
@@ -286,9 +291,10 @@ async function retryTask(event?:MouseEvent) {if(task.value?.retry_available) awa
 async function generate(event?:SubmitEvent) {
   if (busy.value || active.value) return
   if(staleDraft.value) {error.value='草案已更新，请先填入最新草案，或选择保留当前表单。';return}
+  if(handoffBlocked.value){error.value='请先核对草案起终点，或明确仅按当前表单条件规划。';return}
   error.value = ''
   const budget = typeof form.budget === 'number' && Number.isFinite(form.budget) ? form.budget : null
-  try {await submitOperation({kind:'plan',request:{...form,...validatedSchedules(form,form.days??2),...travelLimits(form),budget,user_prices:{}}},event?.submitter)}catch(e){report(e)}
+  try {await submitOperation({kind:'plan',request:{...form,stay_minutes:checkedStay(form.stay_minutes),...validatedSchedules(form,form.days??2),...travelLimits(form),budget,user_prices:{}}},event?.submitter)}catch(e){report(e)}
 }
 async function parseDescription(text:string) {
   if(busy.value||active.value) return
@@ -312,11 +318,29 @@ async function reloadDraft() {
 }
 function applyDraft(value:Draft) {
   if(busy.value||active.value) return
-  Object.assign(form,draftForm(value));tab.value='plan'
+  let next:PlanForm
+  try {next=draftForm(value)}catch(e){report(e);return}
+  Object.assign(form,next);tab.value='plan'
   appliedDraft.value={id:value.id,revision:value.revision??1};session.appliedDraft=appliedDraft.value;persist()
+  handoffDecision.value=null;delete session.handoffDecision;persist()
   notice.value='草案已填入表单。未提及的城市、关键词或日期需补全，其他空字段使用表单默认值；请核对后点击开始规划。'
 }
-function retainForm() {appliedDraft.value=null;delete session.appliedDraft;persist();notice.value='已保留当前表单的手动设置。'}
+function retainForm() {appliedDraft.value=null;handoffDecision.value=null;delete session.appliedDraft;delete session.handoffDecision;persist();notice.value='已保留当前表单的手动设置。'}
+function confirmHandoff(policy:HandoffDecision['policy']) {
+  if(!appliedSource.value||busy.value||active.value)return
+  handoffDecision.value={key:handoffKey(appliedSource.value,form),policy};session.handoffDecision=handoffDecision.value;persist()
+}
+async function locateWorkflow(step:'request'|'execution'|'itinerary') {
+  tab.value='plan';await nextTick()
+  const id={request:'planning-form-title',execution:'execution-title',itinerary:'itinerary-title'}[step]
+  const target=mainContent.value?.querySelector<HTMLElement>(`#${id}`)
+  target?.focus();target?.scrollIntoView({block:'start'})
+}
+async function locateEndpoints() {
+  tab.value='plan';await nextTick()
+  const target=mainContent.value?.querySelector<HTMLInputElement>('.planner-endpoints .endpoint-picker input')
+  target?.focus();target?.scrollIntoView({block:'center'})
+}
 async function cancel() { if (!task.value) return; try { task.value = await api.cancel(task.value.id);controller?.abort();stream?.close();busy.value=false;notice.value='任务已取消，可按原条件重试。' } catch(e) { report(e) } }
 async function search() {
   searching.value=true; error.value=''; results.value=[]
@@ -472,39 +496,19 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
       <div v-if="pending" role="status" class="config-note connection-note"><span>尚未确认上次任务是否已受理。恢复将使用上次提交条件，已受理的任务不会重复创建。</span><button class="secondary" :disabled="busy||restoring" @click="restorePending(false)">恢复上次提交</button></div>
       <div v-if="resultPending" role="status" aria-label="结果同步" class="config-note">任务已完成，结果尚未同步。{{busy?'正在读取已保存结果。':'恢复连接后继续读取同一任务的结果，无需再次提交。'}}</div>
       <div v-if="capability && !capability.configured" class="config-note">高德数据将在授权配置后启用。规划与搜索目前会明确提示数据不可用。</div>
-      <div v-if="staleDraft" role="status" class="config-note connection-note"><span>草案已更新至第 {{draft?.revision}} 版，当前表单来自第 {{appliedDraft?.revision}} 版。</span><div><button class="secondary" :disabled="busy||active" @click="draft&&applyDraft(draft)">填入最新草案</button><button class="text-button" :disabled="busy||active" @click="retainForm">保留当前表单</button></div></div>
+      <div v-if="staleDraft" role="status" class="config-note connection-note"><span>{{draft?.id!==appliedDraft?.id?'已整理一份新草案，当前表单仍来自上一份。':`草案已更新至第 ${draft?.revision} 版，当前表单来自第 ${appliedDraft?.revision} 版。`}}</span><div><button class="secondary" :disabled="busy||active" @click="draft&&applyDraft(draft)">填入最新草案</button><button class="text-button" :disabled="busy||active" @click="retainForm">保留当前表单</button></div></div>
+      <div v-if="appliedDraft&&!draft" role="status" class="config-note connection-note"><span>已应用草案尚未同步，请恢复连接读取；也可明确保留当前表单条件。</span><button class="text-button" :disabled="busy||active" @click="retainForm">保留当前表单</button></div>
 
+      <WorkflowNavigation v-if="tab==='plan'" :task="task" :itinerary="itinerary" :editing="editing" :dirty="editDirty" :active="active" @locate="locateWorkflow"/>
       <div v-if="tab==='plan'" class="workspace">
-        <section class="card planner-form">
-          <div class="section-heading"><span class="step">01</span><div><h2>这次，去哪里？</h2><p>从几个简单的选择开始</p></div></div>
-          <AccessibleForm label="旅行规划" @submit="generate">
-            <label class="planner-wide">目的地<input v-model="form.city" name="city" required maxlength="60" placeholder="输入城市，例如杭州" :disabled="busy||active"/></label>
-            <label class="planner-wide">地点关键词<textarea v-model="form.query" name="query" required maxlength="240" rows="3" placeholder="例如：博物馆、公园、咖啡" :disabled="busy||active"/><small>用于真实地点搜索，硬约束请在下方填写</small></label>
-            <label>出发日期<input v-model="form.start_date" name="start_date" type="date" required :disabled="busy||active"/></label>
-            <div class="field-row"><label>旅行天数<select v-model.number="form.days" name="days"><option v-for="n in 3" :value="n">{{n}} 天</option></select></label><label>每天站数<select v-model.number="form.stops_per_day" name="stops_per_day"><option v-for="n in 4" :value="n">{{n}} 站</option></select></label></div>
-            <JourneySchedule :value="form" :days="form.days??2" :disabled="busy||active" @change="Object.assign(form,$event)"/>
-            <label>交通方式<select v-model="form.mode" name="mode"><option value="walking">步行 · 真实步行路线</option><option value="driving">驾车 · 真实驾车路线</option></select></label>
-            <fieldset class="travel-limits"><legend>交通时长偏好（可选）</legend><p class="subtle">按当前{{form.mode==='walking'?'步行':'驾车'}}模式核验，含所选出发和返回；留空只提示负担。</p><label>单段交通上限（分钟）<input v-model.number="form.max_leg_travel_minutes" name="max_leg_travel_minutes" type="number" min="1" max="1439" step="1" placeholder="不限制"/></label><label>每日交通上限（分钟）<input v-model.number="form.max_daily_travel_minutes" name="max_daily_travel_minutes" type="number" min="1" max="1439" step="1" placeholder="不限制"/></label></fieldset>
-            <label>总预算（可选）<div class="money-input"><span>¥</span><input v-model.number="form.budget" name="budget" step="any" type="number" min="0" placeholder="输入预算上限"/></div></label>
-            <label class="check-label"><input v-model="form.compare_poi_alternatives" name="compare_poi_alternatives" type="checkbox" :disabled="busy||active"/>比较同类备选地点，减少路途</label><small>可在本次真实搜索中比较有限方案；保持站数、时段与交通条件，可能增加路线查询，评分可能降低或缺失，请核对取舍。编辑时保留你选定的地点。</small>
-            <JourneyEndpoints class="planner-endpoints" :value="form" :days="form.days??2" :city="form.city" :disabled="busy||active" :known-poi="knownPoi" @change="Object.assign(form,$event)" @loaded="rememberAnchor"/>
-            <button class="primary full" type="submit" :disabled="busy||active||Boolean(staleDraft)">{{busy||active ? '任务处理中…' : '开始规划'}}<span aria-hidden="true">↗</span></button>
-          </AccessibleForm>
-          <p class="form-footnote">路线与时间由后端算法计算。缺失的费用保留未知。</p>
-        </section>
+        <PlanningForm :form="form" :disabled="busy||active" :blocked="Boolean(staleDraft)||handoffBlocked" :known-poi="knownPoi" @change="Object.assign(form,$event)" @loaded="rememberAnchor" @submit="generate">
+          <DraftHandoff v-if="appliedSource" :draft="appliedSource" :form="form" :decision="handoffDecision" :disabled="busy||active" @decision="confirmHandoff" @locate="locateEndpoints"/>
+        </PlanningForm>
         <div class="workspace-main">
           <RequestAssistant :draft="draft" :capability="capability" :disabled="busy||active" :conflict="draftConflict" @parse="parseDescription" @apply="applyDraft" @clarify="clarifyDraft" @reload="reloadDraft"/>
-          <section class="card execution"><div class="section-title"><h2>{{task?.kind==='draft'?'需求整理过程':'规划过程'}} <span v-if="task" class="status-pill" :class="task.status">{{task.status==='running'&&task.kind==='draft'?'整理中':statusLabels[task.status]}}</span></h2><button v-if="taskActive" class="text-button" @click="cancel">取消任务</button></div>
-            <div v-if="!task" class="execution-empty"><span>◷</span>提交需求后，在这里查看真实执行进度。</div>
-            <ol v-else class="event-list"><li v-for="event in events" :key="event.id"><span class="event-dot"/><span>{{event.message}}</span><time>{{eventTime(event.timestamp)}}</time></li></ol>
-            <div v-if="task" class="task-controls"><small class="task-id">任务 {{task.id}}<span v-if="task.retry_of"> · 原任务重试</span></small><button v-if="!busy&&!pending" class="text-button" @click="resume">重新查询状态 ↻</button><button v-if="task.retry_available&&!pending" class="secondary" :disabled="busy" @click="retryTask">按原条件重试</button></div>
-            <p v-if="task?.error?.retry_after" role="status" aria-label="数据请求等待提示">服务建议等待约 {{task.error.retry_after}} 秒后手动重试；不会自动重新提交规划，等待后也可能仍受限。</p>
-            <TimeConstraintGuide v-if="task?.status==='failed'&&task.error?.code==='time_constraint_exceeded'" :details="task.error.time_constraints" :editable="timeGuideEditable" :editing="editing" @locate="locateTimeConstraint"/>
-            <TravelLoadPanel v-if="task?.status==='failed'&&task.error?.code==='travel_constraint_exceeded'" failure :details="task.error.travel_constraints" :editable="travelGuideEditable" :editing="editing" @limits="locateTravelLimits"/>
-            <small v-if="restoring" role="status">正在恢复上次的工作空间…</small>
-          </section>
+          <TaskExecution :task="task" :events="events" :task-active="taskActive" :busy="busy" :pending="Boolean(pending)" :restoring="restoring" :editing="editing" :time-guide-editable="timeGuideEditable" :travel-guide-editable="travelGuideEditable" @cancel="cancel" @resume="resume" @retry="retryTask" @time="locateTimeConstraint" @limits="locateTravelLimits"/>
           <section class="card route-workspace">
-            <div class="section-title"><div><div class="eyebrow">YOUR ITINERARY</div><h2>{{itinerary?.title || '旅程地图与时间轴'}}</h2></div><button v-if="itinerary && !editing" class="secondary" :disabled="active||busy" @click="edit">编辑行程</button></div>
+            <div class="section-title"><div><div class="eyebrow">YOUR ITINERARY</div><h2 id="itinerary-title" tabindex="-1">{{itinerary?.title || '旅程地图与时间轴'}}</h2></div><button v-if="itinerary && !editing" class="secondary" :disabled="active||busy" @click="edit">编辑行程</button></div>
             <div v-if="itinerary" class="workspace-version"><span>{{itinerary.parent_id?'调整版本':'原行程'}} <code :title="itinerary.id">#{{shortVersion(itinerary.id)}}</code> · 保存于 {{versionTime(itinerary.created_at)}}</span><button v-if="itinerary.parent_id" class="text-button" :disabled="active||busy" @click="openTrip(itinerary.parent_id,$event)">打开来源版本</button><button class="text-button" @click="navigate('saved')">浏览已保存版本</button></div>
             <p v-if="itinerary&&task&&(task.kind==='draft'||task.status!=='succeeded'||resultPending)" class="saved-version-note">当前地图与时间轴显示原行程；本次任务的结果将在同步后更新。</p>
             <DayOverview v-if="itinerary" :itinerary="itinerary" :selected="selectedDay" :preview-counts="editing?editIds.map(ids=>ids.length):undefined" @select="selectedDay=$event"/>

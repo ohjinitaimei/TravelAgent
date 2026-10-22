@@ -2,7 +2,7 @@ import type { PlanRequest, Schema } from './api'
 
 export type ScheduleInput={day_start:string;day_end:string;stay_minutes:string|number|null}
 export type ScheduleOptions={day_start?:string;day_end?:string;stay_minutes?:string|number|null;day_schedules?:ScheduleInput[]|null}
-export type PlanForm=Omit<PlanRequest,'day_schedules'>&{day_schedules?:ScheduleInput[]|null}
+export type PlanForm=Omit<PlanRequest,'day_schedules'|'stay_minutes'>&{day_schedules?:ScheduleInput[]|null;stay_minutes?:string|number|null}
 export function scheduleAt(value:ScheduleOptions,index:number):ScheduleInput|undefined {
   return value.day_schedules!=null?value.day_schedules[index]:{
     day_start:value.day_start??'09:00',day_end:value.day_end??'18:00',stay_minutes:value.stay_minutes??60,

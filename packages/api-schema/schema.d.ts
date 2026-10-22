@@ -525,7 +525,7 @@ export interface components {
             /** Updated At */
             updated_at?: string | null;
             /** Confirmed Fields */
-            confirmed_fields?: ("city" | "query" | "start_date" | "days" | "stops_per_day" | "day_start" | "day_end" | "stay_minutes" | "mode" | "budget")[];
+            confirmed_fields?: ("city" | "query" | "start_date" | "days" | "stops_per_day" | "day_start" | "day_end" | "stay_minutes" | "mode" | "budget" | "day_schedules" | "max_leg_travel_minutes" | "max_daily_travel_minutes" | "origin_hint" | "destination_hint")[];
             /** Field Sources */
             field_sources?: {
                 [key: string]: "model_extracted" | "user_input";
@@ -541,10 +541,10 @@ export interface components {
             timestamp?: string;
             /** Values */
             values: {
-                [key: string]: string | number | null;
+                [key: string]: string | number | components["schemas"]["DraftDaySchedule"][] | null;
             };
             /** Confirmed Fields */
-            confirmed_fields: ("city" | "query" | "start_date" | "days" | "stops_per_day" | "day_start" | "day_end" | "stay_minutes" | "mode" | "budget")[];
+            confirmed_fields: ("city" | "query" | "start_date" | "days" | "stops_per_day" | "day_start" | "day_end" | "stay_minutes" | "mode" | "budget" | "day_schedules" | "max_leg_travel_minutes" | "max_daily_travel_minutes" | "origin_hint" | "destination_hint")[];
         };
         /** DraftClarificationRequest */
         DraftClarificationRequest: {
@@ -552,7 +552,19 @@ export interface components {
             expected_revision: number;
             values?: components["schemas"]["DraftValues"];
             /** Confirm Fields */
-            confirm_fields?: ("city" | "query" | "start_date" | "days" | "stops_per_day" | "day_start" | "day_end" | "stay_minutes" | "mode" | "budget")[];
+            confirm_fields?: ("city" | "query" | "start_date" | "days" | "stops_per_day" | "day_start" | "day_end" | "stay_minutes" | "mode" | "budget" | "day_schedules" | "max_leg_travel_minutes" | "max_daily_travel_minutes" | "origin_hint" | "destination_hint")[];
+        };
+        /**
+         * DraftDaySchedule
+         * @description User expressions may be incomplete; no planner defaults are inferred here.
+         */
+        DraftDaySchedule: {
+            /** Day Start */
+            day_start?: string | null;
+            /** Day End */
+            day_end?: string | null;
+            /** Stay Minutes */
+            stay_minutes?: number | null;
         };
         /** DraftRequest */
         DraftRequest: {
@@ -596,6 +608,25 @@ export interface components {
             mode?: ("walking" | "driving") | null;
             /** Budget */
             budget?: number | null;
+            /**
+             * Day Schedules
+             * @description 按第1天至末日排列；未表达的子字段保留null，不继承表单默认；补充时完整替换数组
+             */
+            day_schedules?: components["schemas"]["DraftDaySchedule"][] | null;
+            /** Max Leg Travel Minutes */
+            max_leg_travel_minutes?: number | null;
+            /** Max Daily Travel Minutes */
+            max_daily_travel_minutes?: number | null;
+            /**
+             * Origin Hint
+             * @description 用户出发地原文，仅作待核对的搜索提示，不是已选POI或ID
+             */
+            origin_hint?: string | null;
+            /**
+             * Destination Hint
+             * @description 用户返回地原文，仅作待核对的搜索提示，不是已选POI或ID
+             */
+            destination_hint?: string | null;
         };
         /** EditRequest */
         EditRequest: {

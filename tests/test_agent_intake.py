@@ -73,6 +73,44 @@ class AgentTests(unittest.TestCase):
         self.assertEqual(result.coordinator_action,"ask_clarification")
         self.assertEqual(len(result.questions),3)
 
+    def test_same_function_call_extracts_daily_limits_and_literal_endpoint_hints(self):
+        text="TEST ONLY 杭州博物馆，两天，10月25日，第一天14点开始，第二天16点结束，每段最多30分钟，每天交通90分钟，从杭州东站出发，回西湖酒店"
+        arguments={"values":{"city":"杭州","query":"博物馆","days":2,"start_date":"2026-10-25",
+            "day_schedules":[{"day_start":"14:00"},{"day_end":"16:00"}],
+            "max_leg_travel_minutes":30,"max_daily_travel_minutes":90,"origin_hint":"杭州东站","destination_hint":"西湖酒店"},
+            "evidence":{"city":"杭州","query":"博物馆","days":"两天","start_date":"10月25日",
+                "day_schedules":"第一天14点开始，第二天16点结束","max_leg_travel_minutes":"每段最多30分钟",
+                "max_daily_travel_minutes":"每天交通90分钟","origin_hint":"杭州东站","destination_hint":"西湖酒店"}}
+        llm=FixtureLLM(arguments)
+        result=create_draft(DraftRequest(text=text,reference_date="2026-10-22"),lambda *_:None,llm=llm)
+        self.assertEqual(llm.calls,1)
+        self.assertEqual(result.proposal.values.day_schedules[0].day_start,"14:00")
+        self.assertIsNone(result.proposal.values.day_schedules[0].day_end)
+        self.assertEqual(result.proposal.values.max_leg_travel_minutes,30)
+        self.assertEqual(result.proposal.values.max_daily_travel_minutes,90)
+        self.assertEqual(result.field_sources["day_schedules"],"model_extracted")
+        self.assertEqual(result.field_sources["origin_hint"],"model_extracted")
+        self.assertEqual(result.confirmed_fields,[])
+        self.assertTrue(any("真实地点搜索" in question for question in result.questions))
+        tool_schema=llm.schemas[0]["function"]["parameters"]
+        values=tool_schema["$defs"]["DraftValues"]["properties"]
+        self.assertIn("day_schedules",values)
+        self.assertIn("max_leg_travel_minutes",values)
+        self.assertIn("origin_hint",values)
+        self.assertNotIn("origin_poi_id",values)
+
+    def test_new_expressions_require_original_evidence_and_reject_generated_anchor_facts(self):
+        request=DraftRequest(text="TEST ONLY 每段最多30分钟，从杭州东站出发",reference_date="2026-10-22")
+        cases=[({"values":{"max_leg_travel_minutes":30},"evidence":{}},"ungrounded_agent_output"),
+            ({"values":{"origin_hint":"编造的酒店"},"evidence":{"origin_hint":"杭州东站"}},"ungrounded_agent_output"),
+            ({"values":{"origin_hint":{"id":"made-up"}},"evidence":{"origin_hint":"杭州东站"}},"invalid_agent_output"),
+            ({"values":{"day_schedules":[{"stay_minutes":True}]},"evidence":{"day_schedules":"TEST ONLY"}},"invalid_agent_output"),
+            ({"values":{"days":1,"day_schedules":[{},{}]},"evidence":{"days":"TEST ONLY","day_schedules":"TEST ONLY"}},"invalid_agent_output")]
+        for arguments,expected in cases:
+            with self.subTest(expected=expected),self.assertRaises(TravelFailure) as error:
+                validate_submission(request,arguments)
+            self.assertEqual(error.exception.code,expected)
+
     def test_untrusted_model_output_and_tool_selection_fail_closed(self):
         cases=[(FixtureLLM({**ARGS,"values":{**ARGS["values"],"poi_ids":["invented"]}}),"invalid_agent_output"),
                (FixtureLLM({**ARGS,"evidence":{**ARGS["evidence"],"city":"上海"}}),"ungrounded_agent_output"),

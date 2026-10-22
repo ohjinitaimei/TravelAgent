@@ -457,6 +457,19 @@ class DraftRequest(Model):
         return self
 
 
+class DraftDaySchedule(Model):
+    """User expressions may be incomplete; no planner defaults are inferred here."""
+    day_start: str | None = Field(default=None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    day_end: str | None = Field(default=None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    stay_minutes: int | None = Field(default=None, strict=True, ge=10, le=360)
+
+    @model_validator(mode="after")
+    def valid_window(self):
+        if self.day_start and self.day_end and self.day_start >= self.day_end:
+            raise ValueError("逐日结束时段须晚于开始时段，不支持跨夜")
+        return self
+
+
 class DraftValues(Model):
     city: str | None = Field(default=None, min_length=1, max_length=60)
     query: str | None = Field(default=None, min_length=1, max_length=240)
@@ -468,29 +481,40 @@ class DraftValues(Model):
     stay_minutes: int | None = Field(default=None, strict=True, ge=10, le=360)
     mode: Literal["walking", "driving"] | None = None
     budget: float | None = Field(default=None, ge=0)
+    day_schedules: list[DraftDaySchedule] | None = Field(default=None, min_length=1, max_length=3,
+        description="按第1天至末日排列；未表达的子字段保留null，不继承表单默认；补充时完整替换数组")
+    max_leg_travel_minutes: int | None = Field(default=None, strict=True, ge=1, le=1439)
+    max_daily_travel_minutes: int | None = Field(default=None, strict=True, ge=1, le=1439)
+    origin_hint: str | None = Field(default=None, strict=True, min_length=1, max_length=100,
+        description="用户出发地原文，仅作待核对的搜索提示，不是已选POI或ID")
+    destination_hint: str | None = Field(default=None, strict=True, min_length=1, max_length=100,
+        description="用户返回地原文，仅作待核对的搜索提示，不是已选POI或ID")
 
     @model_validator(mode="after")
     def valid_fields(self):
-        if any(value is not None and not value.strip() for value in (self.city, self.query)):
-            raise ValueError("城市与关键词不得为空白")
+        if any(value is not None and not value.strip() for value in (self.city, self.query, self.origin_hint, self.destination_hint)):
+            raise ValueError("城市、关键词与地点提示不得为空白")
         if self.day_start and self.day_end and self.day_start >= self.day_end:
             raise ValueError("结束时段须晚于开始时段")
+        if self.days is not None and self.day_schedules is not None and len(self.day_schedules) != self.days:
+            raise ValueError("逐日时段数量须与旅行天数一致；请同时核对天数与逐日设置")
         return self
 
 
 class DraftSubmission(Model):
     values: DraftValues
-    evidence: dict[str, str] = Field(max_length=10)
+    evidence: dict[str, str] = Field(max_length=15)
     unhandled_requirements: list[str] = Field(default_factory=list, max_length=12)
 
 
-DraftField = Literal["city", "query", "start_date", "days", "stops_per_day", "day_start", "day_end", "stay_minutes", "mode", "budget"]
+DraftField = Literal["city", "query", "start_date", "days", "stops_per_day", "day_start", "day_end", "stay_minutes", "mode", "budget",
+                     "day_schedules", "max_leg_travel_minutes", "max_daily_travel_minutes", "origin_hint", "destination_hint"]
 
 
 class DraftClarificationRequest(Model):
     expected_revision: int = Field(ge=1, strict=True)
     values: DraftValues = Field(default_factory=DraftValues)
-    confirm_fields: list[DraftField] = Field(default_factory=list, max_length=10)
+    confirm_fields: list[DraftField] = Field(default_factory=list, max_length=15)
 
     @model_validator(mode="after")
     def meaningful_change(self):
@@ -504,7 +528,7 @@ class DraftClarificationRequest(Model):
 class DraftClarification(Model):
     revision: int
     timestamp: str = Field(default_factory=now)
-    values: dict[DraftField, str | int | float | None]
+    values: dict[DraftField, str | int | float | list[DraftDaySchedule] | None]
     confirmed_fields: list[DraftField]
 
 

@@ -1,4 +1,6 @@
 """User clarification of the same draft. Never invokes a model or provider."""
+import json
+
 from pydantic import ValidationError
 
 from agent.travel_intake import finish_draft
@@ -28,7 +30,7 @@ def clarify(draft: Draft, request: DraftClarificationRequest) -> Draft:
         else:
             confirmed.add(field)
             sources[field] = "user_input"
-            evidence[field] = str(value)
+            evidence[field] = json.dumps(value, ensure_ascii=False) if isinstance(value, list) else str(value)
     proposal = DraftSubmission(values=values, evidence=evidence,
                                unhandled_requirements=list(draft.proposal.unhandled_requirements))
     reviewed = finish_draft(draft.input, proposal, lambda *_: None)
