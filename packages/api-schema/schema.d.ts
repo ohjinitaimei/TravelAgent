@@ -657,15 +657,25 @@ export interface components {
              * Reason
              * @enum {string}
              */
-            reason: "improved" | "feasible_candidate" | "baseline_preferred" | "no_geographic_change";
+            reason: "improved" | "feasible_candidate" | "baseline_preferred" | "no_geographic_change" | "tool_budget_limited";
             baseline: components["schemas"]["PlanningMetrics"];
             /** Candidates */
             candidates?: components["schemas"]["PlanningMetrics"][];
             result: components["schemas"]["PlanningMetrics"];
             /** Baseline Poi Ids By Day */
             baseline_poi_ids_by_day: string[][];
-            /** Route Queries */
+            /**
+             * Route Queries
+             * @description 本任务去重后的真实路线查询数，含所选起终点
+             */
             route_queries: number;
+            /** Candidate Route Limit */
+            candidate_route_limit?: number | null;
+            /**
+             * Candidate Search Limited
+             * @default false
+             */
+            candidate_search_limited: boolean;
         };
         /** Itinerary */
         Itinerary: {
@@ -822,12 +832,12 @@ export interface components {
             };
             /**
              * Day Origin Poi Id
-             * @description 单日出发 POI；每日开始表示离开该地点
+             * @description 每日共享出发 POI；每日开始表示离开该地点
              */
             day_origin_poi_id?: string | null;
             /**
              * Day Destination Poi Id
-             * @description 单日返回 POI；每日结束约束返回到达
+             * @description 每日共享返回 POI；每日结束约束返回到达
              */
             day_destination_poi_id?: string | null;
         };
@@ -839,7 +849,7 @@ export interface components {
             travel_minutes: number;
             /**
              * Busiest Day Minutes
-             * @description 最忙一天的游览与站间交通总分钟数，不包含住宿往返
+             * @description 最忙一天的停留与全部已选交通总分钟数，含所选起终点往返
              */
             busiest_day_minutes: number;
             /** Per Day Travel Minutes */

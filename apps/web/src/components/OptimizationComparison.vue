@@ -5,6 +5,7 @@ const reasons = {
   improved: '已采用地理分组，减少交通或每日负担。',
   feasible_candidate: '原分日超出每日时段，已采用满足时间约束的分组。',
   baseline_preferred: '候选分组未同时改善交通与每日负担，保留原分日。',
+  tool_budget_limited: '为每日往返预留查询额度后，未比较额外分日候选，保留原分日。',
   no_geographic_change: '当前地理分组未找到改进候选，保留原分日。',
 }
 </script>
@@ -17,12 +18,12 @@ const reasons = {
       <caption>本次真实路线查询结果</caption>
       <thead><tr><th scope="col">指标</th><th scope="col">原分日</th><th scope="col">本次采用</th></tr></thead>
       <tbody>
-        <tr><th scope="row">站间交通距离</th><td>{{ summary.baseline.distance_km.toFixed(2) }} km</td><td>{{ summary.result.distance_km.toFixed(2) }} km</td></tr>
-        <tr><th scope="row">站间交通时间</th><td>{{ summary.baseline.travel_minutes }} 分钟</td><td>{{ summary.result.travel_minutes }} 分钟</td></tr>
+        <tr><th scope="row">已选交通距离</th><td>{{ summary.baseline.distance_km.toFixed(2) }} km</td><td>{{ summary.result.distance_km.toFixed(2) }} km</td></tr>
+        <tr><th scope="row">已选交通时间</th><td>{{ summary.baseline.travel_minutes }} 分钟</td><td>{{ summary.result.travel_minutes }} 分钟</td></tr>
         <tr><th scope="row">最忙一天总时长</th><td>{{ summary.baseline.busiest_day_minutes }} 分钟</td><td>{{ summary.result.busiest_day_minutes }} 分钟</td></tr>
       </tbody>
     </table>
-    <small>对应当前保存版本；总时长含停留与站间交通，不含住宿往返。{{ summary.baseline.feasible ? '' : '原分日不满足每日时段。' }}仅比较有限候选，不保证全局最优或未来路况。</small>
+    <small>对应当前保存版本；总时长含停留、站间交通及所选起终点往返。{{ summary.baseline.feasible ? '' : '原分日不满足每日时段。' }}{{ summary.candidate_search_limited ? `候选站间路线查询上限 ${summary.candidate_route_limit} 次，已预留每日往返额度。` : '' }}仅比较有限候选，不保证全局最优或未来路况。</small>
   </section>
 </template>
 

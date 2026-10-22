@@ -250,7 +250,6 @@ async function generate(event?:SubmitEvent) {
   if (busy.value || active.value) return
   if(staleDraft.value) {error.value='草案已更新，请先填入最新草案，或选择保留当前表单。';return}
   error.value = ''
-  if(form.days!==1&&(form.day_origin_poi_id||form.day_destination_poi_id)){error.value='起终点仅支持单日，请清除选择或改为一天。';return}
   const budget = typeof form.budget === 'number' && Number.isFinite(form.budget) ? form.budget : null
   await submitOperation({kind:'plan',request:{...form,budget,user_prices:{}}},event?.submitter)
 }
@@ -433,9 +432,8 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
             <label>每站停留（分钟）<input v-model.number="form.stay_minutes" name="stay_minutes" type="number" min="10" max="360" required/><small>这是你设定的时间，可在生成后调整</small></label>
             <label>交通方式<select v-model="form.mode" name="mode"><option value="walking">步行 · 真实步行路线</option><option value="driving">驾车 · 真实驾车路线</option></select></label>
             <label>总预算（可选）<div class="money-input"><span>¥</span><input v-model.number="form.budget" name="budget" step="any" type="number" min="0" placeholder="输入预算上限"/></div></label>
-            <div v-if="form.days===1||form.day_origin_poi_id||form.day_destination_poi_id" class="planner-endpoints">
-              <p class="subtle">单日起终点：开始时间为离开出发地，结束时间包含抵达返回地。未设置的一侧沿用首/末站时段。</p>
-              <p v-if="form.days!==1" role="alert">多日行程请先清除起终点，或改为一天。</p>
+            <div class="planner-endpoints">
+              <p class="subtle">每日使用同一出发地与返回地。开始时间为离开出发地，结束时间包含抵达返回地；未设置的一侧沿用首/末站时段。</p>
               <EndpointPicker v-model="form.day_origin_poi_id" label="出发地" :city="form.city" :disabled="busy||active" @loaded="rememberAnchor"/>
               <EndpointPicker v-model="form.day_destination_poi_id" label="返回地" :city="form.city" :disabled="busy||active" @loaded="rememberAnchor"/>
             </div>
@@ -471,11 +469,11 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
                   <div v-for="(id,i) in dayIds" :key="id" class="edit-stop" role="group" :aria-label="`第 ${dayIndex+1} 天 ${editName(id)}`" :class="{'selected-stop':selectedStopId===id}" :data-stop-id="id"><button type="button" class="edit-select" :aria-label="`地图定位 ${editName(id)}`" :aria-pressed="selectedStopId===id" @click="selectStop(id)">{{i+1}}. {{editName(id)}}</button><div class="edit-actions"><button type="button" :disabled="i===0" :aria-label="`上移 ${editName(id)}`" @click="move(i,-1)">↑</button><button type="button" :disabled="i===dayIds.length-1" :aria-label="`下移 ${editName(id)}`" @click="move(i,1)">↓</button><button type="button" :aria-label="`移除 ${editName(id)}`" @click="removeStop(i)">移除</button></div><div class="field-row"><label>停留（分钟）<input v-model.number="editDurations[id]" :data-label="`第 ${dayIndex+1} 天 ${editName(id)} 停留`" type="number" required min="10" max="360" step="1"/></label><label>用户录入费用<input v-model="editPrices[id]" :data-label="`第 ${dayIndex+1} 天 ${editName(id)} 费用`" type="number" min="0" step="any" placeholder="未知"/></label></div><div v-if="editIds.length>1" class="transfer-row"><select v-model.number="moveDays[id]" :aria-label="`移动 ${editName(id)} 到哪一天`"><option :value="undefined" disabled>选择目标日</option><option v-for="(_,index) in editIds" :value="index" :disabled="index===selectedDay">第 {{index+1}} 天</option></select><button type="button" class="text-button" @click="transfer(id)">移动</button></div></div>
                   <p v-if="!dayIds.length" class="edit-note">此日尚无地点，请从其他日期移动或搜索添加。</p></div>
                   <details class="edit-constraints" open><summary>日期与行程约束</summary><label>出发日期<input v-model="editConstraints.start_date" name="start_date" type="date" required/></label><div class="field-row"><label>每日开始<input v-model="editConstraints.day_start" name="day_start" type="time" required/></label><label>每日结束<input v-model="editConstraints.day_end" name="day_end" data-after="day_start" type="time" required/></label></div><label>交通方式<select v-model="editConstraints.mode" name="mode"><option value="walking">步行</option><option value="driving">驾车</option></select></label><label>总预算上限<input v-model.number="editConstraints.budget" name="budget" step="any" type="number" min="0" placeholder="留空取消上限"/></label><label>新增站点默认停留（分钟）<input v-model.number="editStay" type="number" required min="10" max="360" step="1"/></label></details><label class="check-label"><input v-model="optimize" type="checkbox"/>按真实距离重新排序</label>
-                  <template v-if="itinerary.request.days===1">
-                    <p class="edit-note">开始时间为离开所选出发地，结束时间包含返回；清除即取消对应边界。</p>
+                  <div class="edit-endpoints">
+                    <p class="edit-note">所有日期共用所选起终点。开始时间为离开出发地，结束时间包含返回；清除即取消所有日期的对应边界。</p>
                     <EndpointPicker v-model="editConstraints.day_origin_poi_id" label="出发地" :city="itinerary.request.city" :disabled="busy||active" @loaded="rememberAnchor"/>
                     <EndpointPicker v-model="editConstraints.day_destination_poi_id" label="返回地" :city="itinerary.request.city" :disabled="busy||active" @loaded="rememberAnchor"/>
-                  </template>
+                  </div>
                   </fieldset>
                   <div class="edit-actions"><button class="primary" type="submit" :disabled="busy||active">保存并重算</button><button class="secondary" type="button" :disabled="busy||active" @click="exitEdit">退出编辑</button></div></AccessibleForm><button class="text-button" @click="tab='explore';searchCity=itinerary.request.city">探索并添加地点 ↗</button>
                 </template>

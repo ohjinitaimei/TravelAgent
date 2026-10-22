@@ -102,7 +102,44 @@ test('single-day endpoints survive draft refresh and offline clear while saved t
   await expect(comparison.getByRole('row').filter({hasText:'返回地'})).toContainText('未设置')
 })
 
-test('endpoint time diagnostics and explicit multi-day clearing preserve selections and reject stale search results',async({page})=>{
+test('shared multiday endpoints reset daily clocks and survive restored edits without altering the source',async({page})=>{
+  await endpointQueries(page);await fillPlan(page)
+  const form=page.getByRole('form',{name:'旅行规划',exact:true})
+  await form.getByLabel('地点关键词',{exact:false}).fill('TEST ONLY shared endpoints')
+  await form.getByLabel('旅行天数').selectOption('2')
+  await chooseEndpoint(page,'出发地','TEST ONLY home');await chooseEndpoint(page,'返回地','TEST ONLY return')
+  await page.getByRole('button',{name:'开始规划',exact:true}).click()
+  await expect(page.getByText('行程已生成并保存',{exact:true})).toBeVisible()
+  const parent=await trip(page,(await task(page)).itinerary_id)
+  expect(parent.days).toHaveLength(2)
+  for(const day of parent.days){expect(day.origin_departure_time).toBe('09:00');expect(day.origin_poi.id).toBe('endpoint-home');expect(day.destination_poi.id).toBe('endpoint-return')}
+  const expected=parent.days.map((d:any)=>d.stops.reduce((sum:number,s:any)=>sum+(s.travel_to_next?.duration_min??0),0)+d.origin_segment.duration_min+d.destination_segment.duration_min)
+  for(let i=0;i<2;i++){
+    await page.getByRole('button',{name:`DAY ${i+1}`,exact:false}).click()
+    await expect(page.locator('.boundary-stop')).toHaveCount(2)
+    await expect(page.getByRole('button',{name:`DAY ${i+1}`,exact:false})).toContainText(`总交通 ${expected[i]} 分钟`)
+  }
+  await expect(page.getByRole('region',{name:'分日与交通对比'})).toContainText('含停留、站间交通及所选起终点往返')
+  await page.getByRole('button',{name:'编辑行程',exact:true}).click()
+  const editor=page.getByRole('form',{name:'行程编辑',exact:true})
+  await editor.getByRole('button',{name:'清除返回地',exact:true}).click()
+  await expect(page.getByRole('status',{name:'编辑草稿存储'})).toContainText('已保存在本机')
+  page.once('dialog',dialog=>dialog.accept());await page.reload()
+  await page.getByRole('button',{name:'恢复编辑草稿',exact:true}).click()
+  await expect(editor.getByRole('button',{name:'清除返回地',exact:true})).toHaveCount(0)
+  await expect(editor.getByRole('button',{name:'清除出发地',exact:true})).toBeVisible()
+  await page.getByRole('button',{name:'保存并重算',exact:true}).click()
+  await expect(page.getByText('行程已生成并保存',{exact:true})).toBeVisible()
+  const child=await trip(page,(await task(page)).itinerary_id)
+  expect(child.parent_id).toBe(parent.id)
+  for(const day of child.days){expect(day.origin_poi.id).toBe('endpoint-home');expect(day.destination_poi).toBeNull();expect(day.return_arrival_time).toBeNull()}
+  expect(await trip(page,parent.id)).toEqual(parent)
+  await page.reload();await expect(page.getByText('行程已生成并保存',{exact:true})).toBeVisible()
+  await page.getByRole('button',{name:'DAY 2',exact:false}).click()
+  await expect(page.locator('.boundary-stop')).toHaveCount(1)
+})
+
+test('endpoint time diagnostics preserve shared selections and reject stale search results',async({page})=>{
   await endpointQueries(page);await fillPlan(page)
   const form=page.getByRole('form',{name:'旅行规划',exact:true})
   const origin=page.getByRole('group',{name:'出发地（可选）',exact:true}).first()
@@ -112,12 +149,6 @@ test('endpoint time diagnostics and explicit multi-day clearing preserve selecti
   await pause(800)
   await expect(origin.getByRole('button',{name:'选择 TEST ONLY old-city-result',exact:true})).toHaveCount(0)
   await chooseEndpoint(page,'出发地','TEST ONLY home');await chooseEndpoint(page,'返回地','TEST ONLY return')
-  await form.getByLabel('旅行天数').selectOption('2')
-  const writes=countWrites(page)
-  await page.getByRole('button',{name:'开始规划',exact:true}).click()
-  await expect(page.getByRole('alert').filter({hasText:'起终点仅支持单日'})).toBeVisible()
-  expect(writes).toHaveLength(0)
-  await form.getByLabel('旅行天数').selectOption('1')
   await form.getByLabel('每日结束',{exact:true}).fill('12:30')
   await page.getByRole('button',{name:'开始规划',exact:true}).click()
   const guide=page.getByRole('region',{name:'时间约束调整建议'})

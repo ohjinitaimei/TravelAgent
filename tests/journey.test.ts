@@ -40,7 +40,8 @@ test('old v1 drafts normalize absent endpoints while new drafts persist only sel
   assert.equal(restored.baseline.day_origin_poi_id,null);assert.equal(restored.value.day_origin_poi_id,'home')
   assert.ok(editChanges(restored.baseline,restored.value,id=>id).some(c=>c.label==='出发地'))
   assert.throws(()=>parseEditDraft(JSON.stringify({...input,value:{...input.value,day_origin_poi_id:' '.repeat(3)}})))
-  assert.throws(()=>parseEditDraft(JSON.stringify({...input,value:{...input.value,groups:[['a'],['b']],prices:{a:null,b:null},durations:{a:60,b:60}}})))
+  const multiday={...input,baseline:{...old,groups:[['a'],['b']],prices:{a:null,b:null},durations:{a:60,b:60}},value:{...input.value,groups:[['a'],['b']],prices:{a:null,b:null},durations:{a:60,b:60}}}
+  assert.equal(parseEditDraft(JSON.stringify(multiday)).value.day_origin_poi_id,'home')
 })
 
 test('restored planner and requests retain endpoints and forward search cancellation',async()=>{

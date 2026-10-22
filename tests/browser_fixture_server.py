@@ -36,6 +36,16 @@ def browser_worker(payload, output):
     if query=="TEST ONLY geographic":
         from test_day_grouping import geographic_fixture_worker
         return geographic_fixture_worker(payload,output)
+    if query=="TEST ONLY shared endpoints":
+        from test_journey_endpoints import EndpointProvider
+        from travel.planner import plan
+        from travel.schemas import PlanRequest
+        result=plan(PlanRequest.model_validate(payload['request']),
+            lambda stage,message:output.put({'kind':'event','stage':stage,'message':message}),
+            provider=EndpointProvider(),poi_ids_by_day=payload.get('poi_ids_by_day'),
+            optimize_order=payload.get('optimize_order',True),parent_id=payload.get('parent_id'))
+        output.put({'kind':'result','data':result.model_dump(mode='json')})
+        return
     if query=="TEST ONLY retry":
         marker=Path(os.environ["TRAVEL_TEST_MARKER"])
         if not marker.exists():

@@ -150,8 +150,8 @@ class PlanRequest(Model):
     budget: float | None = Field(default=None, ge=0)
     user_prices: dict[str, float] = Field(default_factory=dict, description="用户提供的每站费用；不使用人均消费代替门票")
     stay_minutes_by_poi: StayOverrides = Field(default_factory=dict, description="用户指定的逐站停留时长，优先于默认时长", max_length=12)
-    day_origin_poi_id: str | None = Field(default=None, min_length=1, max_length=100, description="单日出发 POI；每日开始表示离开该地点")
-    day_destination_poi_id: str | None = Field(default=None, min_length=1, max_length=100, description="单日返回 POI；每日结束约束返回到达")
+    day_origin_poi_id: str | None = Field(default=None, min_length=1, max_length=100, description="每日共享出发 POI；每日开始表示离开该地点")
+    day_destination_poi_id: str | None = Field(default=None, min_length=1, max_length=100, description="每日共享返回 POI；每日结束约束返回到达")
 
     @model_validator(mode="after")
     def validate_constraints(self):
@@ -159,8 +159,6 @@ class PlanRequest(Model):
             raise ValueError("城市与关键词不得为空")
         if self.day_end <= self.day_start:
             raise ValueError("每日结束时间必须晚于开始时间")
-        if self.days != 1 and (self.day_origin_poi_id or self.day_destination_poi_id):
-            raise ValueError("出发地与返回地仅支持单日行程；多日请显式清除所选地点")
         if any(value is not None and not value.strip() for value in (self.day_origin_poi_id, self.day_destination_poi_id)):
             raise ValueError("出发地与返回地 ID 不得为空白")
         if len(self.user_prices) > 12 or any(value < 0 for value in self.user_prices.values()):
@@ -235,7 +233,7 @@ class Budget(Model):
 class PlanningMetrics(Model):
     distance_km: float = Field(ge=0)
     travel_minutes: int = Field(ge=0)
-    busiest_day_minutes: int = Field(ge=0, description="最忙一天的游览与站间交通总分钟数，不包含住宿往返")
+    busiest_day_minutes: int = Field(ge=0, description="最忙一天的停留与全部已选交通总分钟数，含所选起终点往返")
     per_day_travel_minutes: list[int]
     feasible: bool
 
@@ -243,12 +241,14 @@ class PlanningMetrics(Model):
 class GroupingOptimization(Model):
     strategy: Literal["bounded_geographic_exchange"] = "bounded_geographic_exchange"
     applied: bool
-    reason: Literal["improved", "feasible_candidate", "baseline_preferred", "no_geographic_change"]
+    reason: Literal["improved", "feasible_candidate", "baseline_preferred", "no_geographic_change", "tool_budget_limited"]
     baseline: PlanningMetrics
     candidates: list[PlanningMetrics] = Field(default_factory=list, max_length=3)
     result: PlanningMetrics
     baseline_poi_ids_by_day: list[list[str]]
-    route_queries: int = Field(ge=0, le=48)
+    route_queries: int = Field(ge=0, le=63, description="本任务去重后的真实路线查询数，含所选起终点")
+    candidate_route_limit: int | None = Field(default=None, ge=0, le=48)
+    candidate_search_limited: bool = False
 
 
 class Itinerary(Model):

@@ -1,5 +1,7 @@
 # 出发地与返回地接入设计
 
+后续已实现每日共享的多日起终点与 64 次预算裁剪，当前范围见 [MULTIDAY_ENDPOINTS.md](MULTIDAY_ENDPOINTS.md)；本文保留原阶段记录。
+
 日期：2026-10-22。以下保留实现前的接入设计；单日后端、Web 与真实往返调度已落实，当前操作、契约及实际验收见 [SINGLE_DAY_ENDPOINTS.md](SINGLE_DAY_ENDPOINTS.md)。多日总预算仍须单独验证。
 
 ## 首批能力与请求契约

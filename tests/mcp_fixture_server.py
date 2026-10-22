@@ -15,7 +15,7 @@ sys.path.insert(0,str(ROOT/"backend"))
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument("--test-fixtures-only",action="store_true",required=True)
-    parser.add_argument("--scenario",choices=["good","malformed","error","unknown_error","hang","slow_start","missing","exit","text_only","invalid_route","mismatched_poi"],default="good")
+    parser.add_argument("--scenario",choices=["good","malformed","error","unknown_error","hang","slow_start","missing","exit","text_only","invalid_route","mismatched_poi","maximum_endpoints"],default="good")
     parser.add_argument("--record",type=Path)
     args=parser.parse_args()
     if args.record and not args.record.resolve().is_relative_to((ROOT/".tmp").resolve()):
@@ -30,11 +30,15 @@ def main():
     from mcp.types import CallToolResult, TextContent
     from test_travel import FixtureProvider
     from travel.tools import TravelTools
-    if args.scenario=="good":
+    if args.scenario in {"good", "maximum_endpoints"}:
         # Exercise the production server's actual registered output schemas.
         # Only the test process replaces its provider; production has no switch.
         from travel import mcp_server
-        mcp_server.TravelTools=lambda:TravelTools(FixtureProvider())
+        if args.scenario == 'maximum_endpoints':
+            from test_journey_endpoints import LargeEndpointProvider
+            mcp_server.TravelTools=lambda:TravelTools(LargeEndpointProvider())
+        else:
+            mcp_server.TravelTools=lambda:TravelTools(FixtureProvider())
         try: mcp_server.server.run(transport="stdio")
         finally: record("stopped")
         return

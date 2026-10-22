@@ -133,8 +133,8 @@ class EndpointTests(unittest.TestCase):
                 plan(PlanRequest.model_validate(REQUEST), lambda *_: None, provider=MissingRoute())
         self.assertEqual(caught.exception.code, 'route_unavailable')
 
-    def test_multi_day_and_blank_ids_are_rejected_before_provider_calls(self):
-        for values in ({**REQUEST, 'days': 2}, {**REQUEST, 'day_origin_poi_id': ' '}, {**REQUEST, 'day_destination_poi_id': ''}):
+    def test_blank_ids_are_rejected_before_provider_calls(self):
+        for values in ({**REQUEST, 'day_origin_poi_id': ' '}, {**REQUEST, 'day_destination_poi_id': ''}):
             with self.subTest(values=values), self.assertRaises(ValidationError): PlanRequest.model_validate(values)
 
     def test_old_saved_json_remains_readable_without_inventing_boundaries(self):
@@ -146,6 +146,88 @@ class EndpointTests(unittest.TestCase):
         self.assertIsNone(old.days[0].origin_poi)
         self.assertIsNone(old.days[0].return_arrival_time)
         self.assertEqual(old.days[0].stops[0].arrival_time, '09:00')
+
+
+class LargeEndpointProvider(EndpointProvider):
+    def search(self, *_):
+        self.searches += 1
+        pois = [FixtureProvider.detail(self, f'fixture-{i}') for i in range(12)]
+        for i, poi in enumerate(pois): poi.longitude = 120 + (i % 3) * .5 + (i // 3) * .001
+        return pois
+
+
+class MultiDayEndpointTests(unittest.TestCase):
+    def test_maximum_shared_endpoints_reserve_budget_and_explain_limited_candidates(self):
+        provider = LargeEndpointProvider()
+        request = PlanRequest.model_validate({**REQUEST, 'days': 3, 'stops_per_day': 4, 'stay_minutes': 10})
+        with patch('services.route_planner._simple_estimate_distance', side_effect=AssertionError('No estimates')):
+            trip = plan(request, lambda *_: None, provider=provider)
+        self.assertEqual(provider.searches + len(provider.details) + len(provider.routes), 63)
+        self.assertEqual(len(provider.routes), len(set(provider.routes)))
+        self.assertEqual(trip.optimization.route_queries, 60)
+        self.assertEqual(trip.optimization.candidate_route_limit, 37)
+        self.assertTrue(trip.optimization.candidate_search_limited)
+        self.assertEqual(trip.optimization.reason, 'tool_budget_limited')
+        self.assertEqual(trip.optimization.candidates, [])
+        for i, day in enumerate(trip.days):
+            self.assertEqual(str(day.date), str(request.start_date.replace(day=request.start_date.day + i)))
+            self.assertEqual(day.origin_departure_time, request.day_start)
+            self.assertEqual(day.origin_poi.id, 'home')
+            self.assertEqual(day.destination_poi.id, 'hotel')
+            self.assertEqual(day.stops[0].arrival_time, '09:19')
+            self.assertEqual(day.return_arrival_time, '11:15')
+            self.assertIsNone(day.stops[-1].travel_to_next)
+        self.assertIn('第 3 天：末站至返回地：完整交通费用', trip.budget.unknown_items)
+        self.assertIsNone(trip.budget.total)
+
+    def test_fixed_order_maximum_edit_queries_only_required_edges(self):
+        provider = LargeEndpointProvider()
+        groups = [[f'fixture-{day*4+i}' for i in range(4)] for day in range(3)]
+        trip = plan(PlanRequest.model_validate({**REQUEST, 'days': 3, 'stops_per_day': 4, 'stay_minutes': 10}),
+                    lambda *_: None, provider=provider, poi_ids_by_day=groups, optimize_order=False, parent_id='TEST ONLY source')
+        self.assertEqual(provider.searches + len(provider.details) + len(provider.routes), 29)
+        self.assertEqual([[s.poi.id for s in day.stops] for day in trip.days], groups)
+        self.assertIsNone(trip.optimization)
+        self.assertNotIn(('fixture-1', 'fixture-0'), provider.routes)
+
+    def test_excessive_resort_is_rejected_without_any_provider_call(self):
+        provider = LargeEndpointProvider()
+        groups = [[f'fixture-{day*4+i}' for i in range(4)] for day in range(3)]
+        with self.assertRaises(TravelFailure) as caught:
+            plan(PlanRequest.model_validate({**REQUEST, 'days': 3, 'stops_per_day': 4}),
+                 lambda *_: None, provider=provider, poi_ids_by_day=groups, optimize_order=True)
+        self.assertEqual(caught.exception.code, 'planning_budget_exceeded')
+        self.assertEqual((provider.searches, provider.details, provider.routes), (0, [], []))
+
+    def test_smaller_multiday_resort_and_uneven_fixed_order_remain_supported(self):
+        for groups, optimize in [([['fixture-a', 'fixture-b'], ['fixture-c', 'fixture-d']], True),
+                                 ([['fixture-a'], ['fixture-b', 'fixture-c', 'fixture-d']], False)]:
+            with self.subTest(groups=groups):
+                provider = EndpointProvider()
+                trip = plan(PlanRequest.model_validate({**REQUEST, 'days': 2}), lambda *_: None,
+                            provider=provider, poi_ids_by_day=groups, optimize_order=optimize)
+                self.assertEqual([len(day.stops) for day in trip.days], [len(day) for day in groups])
+                self.assertTrue(all(day.origin_departure_time == '09:00' for day in trip.days))
+                self.assertLessEqual(len(provider.details) + len(provider.routes), 64)
+
+    def test_multiday_conflict_identifies_each_day_and_includes_shared_return(self):
+        with self.assertRaises(TravelFailure) as caught:
+            plan(PlanRequest.model_validate({**REQUEST, 'days': 2, 'day_end': '11:30'}), lambda *_: None,
+                 provider=EndpointProvider(), poi_ids_by_day=[['fixture-a', 'fixture-b'], ['fixture-c', 'fixture-d']], optimize_order=False)
+        diagnostics = caught.exception.time_constraints
+        self.assertEqual([day.day_number for day in diagnostics.days], [1, 2])
+        self.assertEqual([day.required_minutes for day in diagnostics.days], [166, 177])
+        self.assertEqual(diagnostics.days[1].destination_travel_minutes, 19)
+
+    def test_shared_point_that_is_a_visit_reuses_detail_and_never_fakes_adjacent_route(self):
+        provider = EndpointProvider()
+        trip = plan(PlanRequest.model_validate({**REQUEST, 'days': 2, 'stops_per_day': 1,
+                    'day_origin_poi_id': 'fixture-a', 'day_destination_poi_id': 'fixture-a'}),
+                    lambda *_: None, provider=provider, poi_ids_by_day=[['fixture-a'], ['fixture-b']], optimize_order=False)
+        self.assertEqual(provider.details, ['fixture-a', 'fixture-b'])
+        self.assertEqual(provider.routes, [('fixture-a', 'fixture-b'), ('fixture-b', 'fixture-a')])
+        self.assertIsNone(trip.days[0].origin_segment)
+        self.assertEqual(trip.days[1].return_arrival_time, '10:30')
 
 
 @contextmanager
@@ -198,6 +280,22 @@ class EndpointApiTests(unittest.TestCase):
             self.assertIsNone(cleared['days'][0]['origin_poi'])
             self.assertEqual(cleared['days'][0]['stops'][0]['arrival_time'], '09:00')
             self.assertEqual(client.get(path.removesuffix('/adjust')).json(), parent)
+
+    def test_multiday_edit_admission_and_null_clearing_leave_source_intact(self):
+        with api() as (client, app):
+            parent = plan(PlanRequest.model_validate({**REQUEST, 'days': 3, 'stops_per_day': 4, 'stay_minutes': 10}),
+                          lambda *_: None, provider=LargeEndpointProvider())
+            app.state.travel.store.succeed(Task(id='TEST ONLY multiday', status='running'), parent)
+            groups = [[s.poi.id for s in day.stops] for day in parent.days]
+            path = '/api/v1/travel/itineraries/' + parent.id + '/adjust'
+            with patch.object(app.state.travel, 'create') as create:
+                response = client.post(path, json={'poi_ids_by_day': groups, 'optimize_order': True})
+                self.assertEqual(response.status_code, 422)
+                self.assertEqual(response.json()['error']['code'], 'planning_budget_exceeded')
+                create.assert_not_called()
+            child = result(client, client.post(path, json={'poi_ids_by_day': groups, 'day_destination_poi_id': None}))
+            self.assertTrue(all(day['origin_poi']['id'] == 'home' and day['destination_poi'] is None for day in child['days']))
+            self.assertEqual(client.get(path.removesuffix('/adjust')).json(), parent.model_dump(mode='json'))
 
     def test_legacy_receipt_null_equivalence_and_non_null_id_conflict(self):
         with api() as (client, app):

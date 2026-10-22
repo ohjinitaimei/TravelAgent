@@ -28,16 +28,20 @@ def require(condition, label):
         raise ValueError(label)
 
 
+def request_budget(request):
+    # Budget-only callers need counts and optional IDs, not a business request.
+    from types import SimpleNamespace
+    from travel.planning_budget import planning_budget
+    return planning_budget(SimpleNamespace(days=request['days'], stops_per_day=request['stops_per_day'],
+        day_origin_poi_id=request.get('day_origin_poi_id'), day_destination_poi_id=request.get('day_destination_poi_id')))
+
+
 def route_call_bound(request):
-    days, stops = request['days'], request['stops_per_day']
-    count = days * stops
-    routes = min(48, count * (count - 1)) if days > 1 and stops > 1 else days * stops * (stops - 1)
-    return routes + count * sum(bool(request.get(field)) for field in ('day_origin_poi_id', 'day_destination_poi_id'))
+    return request_budget(request).route_calls
 
 
 def provider_call_bound(request):
-    anchors = {request.get(field) for field in ('day_origin_poi_id', 'day_destination_poi_id')} - {None, ''}
-    return 1 + route_call_bound(request) + len(anchors)
+    return request_budget(request).total_calls
 
 
 def scenarios(profile, travel_date):

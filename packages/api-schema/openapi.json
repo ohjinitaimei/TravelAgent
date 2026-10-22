@@ -4904,7 +4904,8 @@
               "improved",
               "feasible_candidate",
               "baseline_preferred",
-              "no_geographic_change"
+              "no_geographic_change",
+              "tool_budget_limited"
             ],
             "title": "Reason"
           },
@@ -4934,9 +4935,28 @@
           },
           "route_queries": {
             "type": "integer",
-            "maximum": 48.0,
+            "maximum": 63.0,
             "minimum": 0.0,
-            "title": "Route Queries"
+            "title": "Route Queries",
+            "description": "本任务去重后的真实路线查询数，含所选起终点"
+          },
+          "candidate_route_limit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 48.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Candidate Route Limit"
+          },
+          "candidate_search_limited": {
+            "type": "boolean",
+            "title": "Candidate Search Limited",
+            "default": false
           }
         },
         "additionalProperties": false,
@@ -5303,7 +5323,7 @@
               }
             ],
             "title": "Day Origin Poi Id",
-            "description": "单日出发 POI；每日开始表示离开该地点"
+            "description": "每日共享出发 POI；每日开始表示离开该地点"
           },
           "day_destination_poi_id": {
             "anyOf": [
@@ -5317,7 +5337,7 @@
               }
             ],
             "title": "Day Destination Poi Id",
-            "description": "单日返回 POI；每日结束约束返回到达"
+            "description": "每日共享返回 POI；每日结束约束返回到达"
           }
         },
         "additionalProperties": false,
@@ -5345,7 +5365,7 @@
             "type": "integer",
             "minimum": 0.0,
             "title": "Busiest Day Minutes",
-            "description": "最忙一天的游览与站间交通总分钟数，不包含住宿往返"
+            "description": "最忙一天的停留与全部已选交通总分钟数，含所选起终点往返"
           },
           "per_day_travel_minutes": {
             "items": {

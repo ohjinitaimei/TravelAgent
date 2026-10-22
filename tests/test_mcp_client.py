@@ -68,6 +68,20 @@ class McpClientTests(unittest.TestCase):
             with self.assertRaises(TravelFailure) as caught:plan(request,lambda *_:None,provider=provider)
             self.assertEqual(caught.exception.code,'tool_budget_exhausted')
 
+    def test_maximum_multiday_shared_endpoints_fit_real_stdio_default_budget(self):
+        request=PlanRequest.model_validate({**PAYLOAD,'days':3,'stops_per_day':4,'stay_minutes':10,
+                                           'day_origin_poi_id':'home','day_destination_poi_id':'hotel'})
+        with open_mcp_provider(parameters=parameters('maximum_endpoints')) as provider:
+            trip=plan(request,lambda *_:None,provider=provider)
+            self.assertEqual(provider.client.calls,63)
+            self.assertEqual(trip.optimization.route_queries,60)
+            self.assertEqual([day.origin_departure_time for day in trip.days],['09:00']*3)
+            groups=[[stop.poi.id for stop in day.stops] for day in trip.days]
+        with open_mcp_provider(parameters=parameters('maximum_endpoints')) as provider:
+            child=plan(request,lambda *_:None,provider=provider,poi_ids_by_day=groups,optimize_order=False)
+            self.assertEqual(provider.client.calls,29)
+            self.assertEqual(child.days[2].destination_poi.id,'hotel')
+
     def test_planner_and_existing_registry_use_the_same_client(self):
         events=[]
         with open_mcp_provider(parameters=parameters()) as provider:

@@ -104,7 +104,9 @@ class DayGroupingTests(unittest.TestCase):
             trip = plan(PlanRequest(**REQUEST), lambda *_: None, provider=fixture, poi_ids_by_day=groups, optimize_order=optimize)
             self.assertEqual([[s.poi.id for s in d.stops] for d in trip.days], groups)
             self.assertIsNone(trip.optimization)
-            self.assertEqual(len(fixture.calls), 4)
+            self.assertEqual(len(fixture.calls), 4 if optimize else 2)
+            if not optimize:
+                self.assertEqual(fixture.calls, [('test-03', 'test-00', 'walking'), ('test-01', 'test-02', 'walking')])
         unsorted = plan(PlanRequest(**REQUEST), lambda *_: None, provider=GeographicFixture(), optimize_order=False)
         self.assertIsNone(unsorted.optimization)
         self.assertEqual([[s.poi.id for s in d.stops] for d in unsorted.days], [['test-00', 'test-01'], ['test-02', 'test-03']])

@@ -49,6 +49,19 @@ class LiveReportTests(unittest.TestCase):
         self.assertEqual(observations['days'][0]['scheduled_minutes'],171)
         self.assertEqual(len(observations['days'][0]['legs']),3)
 
+    def test_multiday_boundaries_and_maximum_call_budget_are_reported_without_losing_schedule(self):
+        for days, stops, bound in [(2, 2, 23), (3, 4, 64)]:
+            with self.subTest(days=days):
+                request={**self.request,'days':days,'stops_per_day':stops,'stay_minutes':10,
+                         'day_origin_poi_id':'TEST ONLY home','day_destination_poi_id':'TEST ONLY hotel'}
+                raw=plan(PlanRequest.model_validate(request),lambda *_:None,provider=ReportInputProvider(12)).model_dump(mode='json')
+                report=summarize(raw,request)
+                self.assertEqual(provider_call_bound(request),bound)
+                self.assertTrue(all(day['origin_travel_minutes']==37 and day['destination_travel_minutes']==37 for day in report['days']))
+                if days==3:self.assertTrue(raw['optimization']['candidate_search_limited'])
+                bad=deepcopy(raw);bad['days'][-1]['return_arrival_time']='09:00'
+                with self.assertRaises(ValueError):summarize(bad,request)
+
     def test_boundary_inspector_rejects_missing_facts_and_fabricated_timestamps(self):
         request={**self.request,'days':1,'day_origin_poi_id':'TEST ONLY home','day_destination_poi_id':'TEST ONLY hotel'}
         original=plan(PlanRequest.model_validate(request),lambda *_:None,provider=ReportInputProvider()).model_dump(mode='json')

@@ -182,6 +182,8 @@ async def adjust(itinerary_id: str, body: EditRequest, request: Request, idempot
         validated = PlanRequest.model_validate(values)
     except ValidationError:
         raise TravelFailure("invalid_constraints", "每日结束时间须晚于开始时间，其他约束须在允许范围内", status=422) from None
+    from travel.planning_budget import planning_budget
+    planning_budget(validated, body.poi_ids_by_day, body.optimize_order)
     return manager(request).create({"request": validated.model_dump(mode="json"),
         "poi_ids_by_day": body.poi_ids_by_day, "optimize_order": body.optimize_order, "parent_id": trip.id}, idempotency_key,owner_id=owner_id(request))
 
