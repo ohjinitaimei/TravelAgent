@@ -409,6 +409,12 @@ export interface components {
             /** Configured */
             configured: boolean;
             /**
+             * Map Proxy Configured
+             * @description 运行时 JS 地图代理的 Key 与安全密钥均已配置；不代表浏览器 Key 匹配或授权、域名、网络已验证
+             * @default false
+             */
+            map_proxy_configured: boolean;
+            /**
              * Transport Modes
              * @default [
              *       "walking",

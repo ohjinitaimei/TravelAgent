@@ -54,6 +54,35 @@ def stalled_worker(payload, output):
 
 
 class ProviderTests(unittest.TestCase):
+    def test_direct_service_check_does_not_require_or_start_optional_mcp(self):
+        from travel.tool_runtime import check_service
+        unavailable=TravelFailure('mcp_dependency_unavailable','TEST ONLY optional dependency unavailable',status=503)
+        with patch.dict(os.environ,{'TRAVEL_TOOL_TRANSPORT':'direct'}),\
+            patch('travel.mcp_client.open_mcp_provider',side_effect=unavailable) as connect,\
+            patch('travel.tool_runtime.AmapClient',return_value=AmapClient(key='')),\
+            patch('travel.tools.AmapProvider',side_effect=AssertionError('No provider must be created')):
+            status=check_service()
+            self.assertEqual(status.transport,'direct')
+            self.assertEqual(status.mcp_state,'available')
+            self.assertFalse(status.provider_configured)
+            self.assertIsNone(status.error)
+            self.assertEqual(set(status.tools),{'search_pois','get_poi','get_route'})
+            connect.assert_not_called()
+
+    def test_mcp_service_check_preserves_handshake_failure_instead_of_using_direct(self):
+        from travel.tool_runtime import check_service
+        unavailable=TravelFailure('mcp_dependency_unavailable','TEST ONLY optional dependency unavailable',status=503)
+        with patch.dict(os.environ,{'TRAVEL_TOOL_TRANSPORT':'mcp'}),\
+            patch('travel.mcp_client.open_mcp_provider',side_effect=unavailable) as connect,\
+            patch('travel.tool_runtime.AmapClient',return_value=AmapClient(key='')):
+            status=check_service()
+            self.assertEqual(status.transport,'mcp')
+            self.assertEqual(status.mcp_state,'unavailable')
+            self.assertFalse(status.provider_configured)
+            self.assertEqual(status.error.code,'mcp_dependency_unavailable')
+            self.assertEqual(status.tools,[])
+            connect.assert_called_once_with()
+
     def test_function_call_gateway_is_typed_and_allowlisted(self):
         from travel.tools import TravelTools
         tools = TravelTools(FixtureProvider())

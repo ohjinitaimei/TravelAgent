@@ -4061,6 +4061,12 @@
             "type": "boolean",
             "title": "Configured"
           },
+          "map_proxy_configured": {
+            "type": "boolean",
+            "title": "Map Proxy Configured",
+            "description": "运行时 JS 地图代理的 Key 与安全密钥均已配置；不代表浏览器 Key 匹配或授权、域名、网络已验证",
+            "default": false
+          },
           "transport_modes": {
             "items": {
               "type": "string"

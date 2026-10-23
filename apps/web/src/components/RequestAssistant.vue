@@ -2,10 +2,11 @@
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import AccessibleForm from './AccessibleForm.vue'
 import DraftDailyReview from './DraftDailyReview.vue'
+import { intakeStatus } from '../serviceStatus'
 import type { Draft, Schema } from '../api'
 import { clarificationRequest, displayDraftValue, draftFields, draftScheduleInputs, type DraftAnswers, type DraftDayInput, type DraftField } from '../draft'
 
-const props=defineProps<{draft:Draft|null;capability:Schema<'Capabilities'>|null;disabled:boolean;conflict:boolean}>()
+const props=defineProps<{draft:Draft|null;capability:Schema<'Capabilities'>|null;serviceCurrent:boolean;disabled:boolean;conflict:boolean}>()
 const emit=defineEmits<{parse:[text:string];apply:[draft:Draft];clarify:[request:Schema<'DraftClarificationRequest'>];reload:[]}>()
 const text=ref('')
 const answers=reactive<DraftAnswers>({})
@@ -18,7 +19,8 @@ watch(()=>props.draft,(value,previous)=>{
   scheduleAnswers.value=value?draftScheduleInputs(value):null;selected.day_schedules=false
   localError.value=''
 },{immediate:true})
-const canParse=computed(()=>props.capability?.draft_enabled && props.capability?.helloagents_available && props.capability?.llm_configured)
+const intake=computed(()=>intakeStatus(props.capability,props.serviceCurrent))
+const canParse=computed(()=>intake.value.enabled)
 const fieldNames:Record<string,string>={...Object.fromEntries(draftFields.map(field=>[field.key,field.label])),day_schedules:'逐日时段与默认停留'}
 const fields=computed(()=>Object.entries(props.draft?.proposal.values??{}).filter(([,value])=>value!=null))
 function save() {
@@ -36,7 +38,7 @@ function selectFilled() {for(const field of draftFields) selected[field.key]=Boo
       <label for="travel-description">旅行需求<textarea id="travel-description" v-model="text" rows="3" maxlength="2000" required :disabled="disabled" placeholder="例如：10月20日去杭州玩两天，想逛博物馆，每天三站，步行，预算800元"/></label>
       <div class="assistant-actions"><p>{{draft?'重新整理会创建新草案；补充现有需求请使用下方核对区。':'整理目的地、日期与约束，核对表单后再查询真实路线。'}}</p><button class="secondary" type="submit" :disabled="disabled||!canParse||!text.trim()">{{draft?'创建新草案 ↗':'整理为草案 ↗'}}</button></div>
     </AccessibleForm>
-    <p v-if="capability&&!canParse" class="assistant-note">需求解析服务尚未启用，可直接填写左侧规划表单。</p>
+    <p v-if="!canParse" role="status" class="assistant-note">{{intake.label}}。{{intake.detail}}</p>
     <div v-if="draft" class="draft-review">
       <div class="section-title"><h3>待核对的需求草案</h3><span class="status-pill">第 {{draft.revision??1}} 版 · {{draft.questions.length?'需要补全':'待核对'}}</span></div>
       <p class="draft-original">{{draft.input.text}}</p>

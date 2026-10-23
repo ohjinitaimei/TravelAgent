@@ -19,6 +19,51 @@ async function saved(page:Page) {
   await expect(page.locator('.saved-card').first()).toBeVisible()
 }
 
+test('first-account setup can be rechecked without a login request or retaining a typed password',async({page})=>{
+  let setupRequired=true,reads=0
+  // TEST ONLY status injection for an initially empty account configuration;
+  // all login handlers and the server's seeded accounts remain unchanged.
+  await page.route('**/api/v1/travel/auth/status',async route=>{
+    reads++
+    const response=await route.fetch()
+    const actual=await response.json()
+    return route.fulfill({json:{...actual,setup_required:setupRequired}})
+  })
+  let loginPosts=0
+  page.on('request',request=>{if(request.method()==='POST'&&request.url().endsWith('/auth/login'))loginPosts++})
+  await page.reload()
+  await expect(page.getByText('服务尚未配置账号，请联系管理员。',{exact:true})).toBeVisible()
+  await expect(page.getByRole('button',{name:'登录',exact:true})).toBeDisabled()
+  await page.getByLabel('密码',{exact:true}).fill('TEST ONLY transient typed password')
+  setupRequired=false
+  await page.getByRole('button',{name:'重新检查账号配置',exact:true}).click()
+  await expect(page.getByRole('button',{name:'登录',exact:true})).toBeEnabled()
+  await expect(page.getByLabel('密码',{exact:true})).toHaveValue('')
+  await expect(page.getByText('服务尚未配置账号，请联系管理员。',{exact:true})).toHaveCount(0)
+  expect(reads).toBe(2)
+  expect(loginPosts).toBe(0)
+})
+
+test('an initial account-status connection failure can recover with an explicit read and no session creation',async({page})=>{
+  let failed=true,reads=0
+  await page.route('**/api/v1/travel/auth/status',route=>{
+    reads++
+    return failed?route.abort('failed'):route.continue()
+  })
+  let loginPosts=0
+  page.on('request',request=>{if(request.method()==='POST'&&request.url().endsWith('/auth/login'))loginPosts++})
+  await page.reload()
+  await expect(page.getByRole('alert')).toContainText('无法连接服务')
+  await expect(page.getByRole('form',{name:'账号登录',exact:true})).toHaveCount(0)
+  failed=false
+  await page.getByRole('button',{name:'重新连接',exact:true}).click()
+  await expect(page.getByRole('form',{name:'账号登录',exact:true})).toBeVisible()
+  await expect(page.getByRole('button',{name:'登录',exact:true})).toBeEnabled()
+  await expect(page.getByRole('alert')).toHaveCount(0)
+  expect(reads).toBe(2)
+  expect(loginPosts).toBe(0)
+})
+
 test('keyboard login validation focuses an error summary without sending invalid credentials',async({page})=>{
   let posts=0
   page.on('request',request=>{if(request.method()==='POST'&&request.url().endsWith('/auth/login'))posts++})
@@ -185,6 +230,8 @@ test('offline logout failure preserves account identity until an explicit succes
     await context.setOffline(true)
     await page.getByRole('button',{name:'退出登录',exact:true}).click()
     await expect(page.getByRole('alert')).toContainText('无法连接服务')
+    await expect(page.getByRole('alert')).toHaveCount(1)
+    await expect(page.getByRole('status',{name:'服务状态读取结果',exact:true})).toContainText('网络已断开')
     await expect(page.locator('.local-badge')).toHaveText('test-alpha')
     await expect(page.getByRole('button',{name:'退出登录',exact:true})).toBeEnabled()
   } finally {await context.setOffline(false)}

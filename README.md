@@ -8,6 +8,8 @@ TravelAgent 将自然语言旅行需求整理为可核对草案，再由统一 F
 
 本地发布候选将源码、生产 Web、三浏览器、HTTPS、备份恢复与同一 ZIP 绑定核对；运行步骤和验收边界见 [发布候选综合验收](docs/architecture/LOCAL_RELEASE_CANDIDATE.md)。
 
+工作台顶部“服务状态”可分别查看后端配置、地图、需求整理与数据工具；读取失败保留上次快照，显式刷新保留输入。地图绘制失败支持手动重试，首次账号配置可在登录页重新检查。说明见 [服务状态与恢复](docs/architecture/WEB_SERVICE_RECOVERY.md)。
+
 ## 当前可用范围
 
 | 模块 | 状态 |

@@ -19,7 +19,7 @@ async function check() {
     <p>检查后端工具服务是否可用。此操作不查询地点和路线。</p>
     <button class="secondary" :disabled="checking" @click="check">{{checking?'正在检查…':'检查工具连接'}}</button>
     <div v-if="status" class="tool-check-result" role="status">
-      <p>{{status.mcp_state==='available'?'工具协议检查通过':'工具服务暂不可用'}}</p>
+      <p>{{status.mcp_state==='available'?(status.transport==='mcp'?'工具协议检查通过':'后端工具检查通过'):'工具服务暂不可用'}}</p>
       <p>当前调用方式：{{status.transport==='mcp'?'MCP 工具服务':'后端直接查询'}}</p>
       <p>{{status.provider_configured?'地图数据授权已配置；实际查询仍受权限和配额限制。':'地图数据授权待配置；工具连接通过不代表可查询真实数据。'}}</p>
       <small>检查时间：{{status.checked_at?new Date(status.checked_at).toLocaleString('zh-CN'):'未提供'}}</small>

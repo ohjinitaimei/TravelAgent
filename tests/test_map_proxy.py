@@ -16,6 +16,8 @@ from fastapi.testclient import TestClient
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'backend'))
 from travel.map_proxy import PREFIX, MAX_BYTES, MapProxy, map_service
+from services.amap_client import AmapClient
+from travel.schemas import Capabilities
 from starlette.requests import Request
 
 KEY = 'TEST_ONLY_JS_KEY'
@@ -57,6 +59,50 @@ class MapProxyTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 503)
                 self.assertEqual(response.json()['error']['code'], 'map_proxy_not_configured')
         self.assertEqual(self.calls, [])
+
+    def test_capability_distinguishes_runtime_js_configuration_from_web_data_key(self):
+        self.upstream()
+        proxy=self.app.state.map_proxy
+        with patch('travel.api.AmapClient',return_value=AmapClient(key='')):
+            for key,code,expected in (('','',False),(KEY,'',False),('',CODE,False),(KEY,CODE,True)):
+                with self.subTest(key_present=bool(key),code_present=bool(code)),patch.object(proxy,'key',key),patch.object(proxy,'code',code):
+                    response=self.client.get('/api/v1/travel/capabilities')
+                    self.assertEqual(response.status_code,200)
+                    self.assertIs(response.json()['map_proxy_configured'],expected)
+                    self.assertIs(response.json()['configured'],False)
+                    self.assertNotIn(KEY,response.text)
+                    self.assertNotIn(CODE,response.text)
+        with patch('travel.api.AmapClient',return_value=AmapClient(key='TEST_ONLY_WEB_KEY')),patch.object(proxy,'key',''):
+            data=self.client.get('/api/v1/travel/capabilities').json()
+            self.assertIs(data['configured'],True)
+            self.assertIs(data['map_proxy_configured'],False)
+        self.assertEqual(self.calls,[])
+        self.assertIs(Capabilities(configured=False,limitations=[]).map_proxy_configured,False)
+
+    def test_capability_reads_active_proxy_not_environment_after_startup(self):
+        self.upstream()
+        with patch.dict(os.environ,{'AMAP_JS_KEY':'','AMAP_JS_SECURITY_CODE':''}):
+            self.assertIs(self.client.get('/api/v1/travel/capabilities').json()['map_proxy_configured'],True)
+        with patch.dict(os.environ,{'AMAP_JS_KEY':KEY,'AMAP_JS_SECURITY_CODE':CODE}),patch.object(self.app.state.map_proxy,'code',''):
+            self.assertIs(self.client.get('/api/v1/travel/capabilities').json()['map_proxy_configured'],False)
+        self.assertEqual(self.calls,[])
+
+    def test_proxy_capability_remains_authenticated_without_returning_credentials(self):
+        self.upstream()
+        auth=self.app.state.auth;auth.mode='session'
+        auth.create_user('test-capability','TEST ONLY capability password')
+        denied=self.client.get('/api/v1/travel/capabilities')
+        self.assertEqual(denied.status_code,401)
+        self.assertNotIn('map_proxy_configured',denied.json())
+        login=self.client.post('/api/v1/travel/auth/login',json={
+            'username':'test-capability','password':'TEST ONLY capability password','transport':'bearer'})
+        self.assertEqual(login.status_code,200)
+        response=self.client.get('/api/v1/travel/capabilities',headers={'Authorization':'Bearer '+login.json()['access_token']})
+        self.assertEqual(response.status_code,200)
+        self.assertIs(response.json()['map_proxy_configured'],True)
+        for value in (KEY,CODE,'TEST ONLY capability password',login.json()['access_token']):
+            self.assertNotIn(value,response.text)
+        self.assertEqual(self.calls,[])
 
     def test_fixed_upstreams_inject_server_code_and_do_not_forward_private_headers(self):
         self.upstream(lambda _: httpx.Response(200, content=b'TEST ONLY', headers={

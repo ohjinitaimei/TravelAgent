@@ -426,6 +426,7 @@ class Task(Model):
 class Capabilities(Model):
     provider: Literal["amap"] = "amap"
     configured: bool
+    map_proxy_configured: bool = Field(default=False, description="运行时 JS 地图代理的 Key 与安全密钥均已配置；不代表浏览器 Key 匹配或授权、域名、网络已验证")
     transport_modes: list[str] = ["walking", "driving"]
     agent: str = "deterministic_existing_algorithms"
     mcp_connected: bool = False

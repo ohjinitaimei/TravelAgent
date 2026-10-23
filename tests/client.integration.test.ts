@@ -5,7 +5,7 @@ import { TravelApiError, TravelClient, fetchTransport } from '../packages/api-sc
 const base = process.env.TRAVEL_TEST_URL || 'http://127.0.0.1:8000/api/v1/travel'
 const api = new TravelClient(fetchTransport(base))
 
-test('actual HTTP: MCP handshake is independent of provider authorization', async () => {
+test('actual HTTP: direct tool check is independent of provider authorization', async () => {
   const result=await api.checkToolService()
   assert.equal(result.transport,'direct')
   assert.equal(result.mcp_state,'available')

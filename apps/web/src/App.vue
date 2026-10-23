@@ -19,6 +19,8 @@ import EditComparison from './components/EditComparison.vue'
 import DiscardChangesDialog from './components/DiscardChangesDialog.vue'
 import RequestAssistant from './components/RequestAssistant.vue'
 import ToolConnection from './components/ToolConnection.vue'
+import ServiceStatusPanel from './components/ServiceStatusPanel.vue'
+import { initialServiceSnapshot, ServiceMonitor, serviceSummary } from './serviceStatus'
 import OptimizationComparison from './components/OptimizationComparison.vue'
 import PlanningComparison from './components/PlanningComparison.vue'
 import DayOverview from './components/DayOverview.vue'
@@ -45,7 +47,10 @@ function persist() {if(!disposed) writeSession(session,props.user.id)}
 const today = new Date()
 const localDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`
 const form = reactive<PlanForm>(restoreForm({ compare_poi_alternatives:false, city: '', query: '', start_date: localDate, days: 2, stops_per_day: 3, day_start: '09:00', day_end: '18:00', stay_minutes: 60, mode: 'walking', budget: null, user_prices: {}, day_schedules:null, day_endpoints:null, day_origin_poi_id:null, day_destination_poi_id:null,max_leg_travel_minutes:null,max_daily_travel_minutes:null }, session.form))
-const capability = ref<Schema<'Capabilities'> | null>(null)
+const serviceState=shallowRef(initialServiceSnapshot()),showServices=ref(false)
+const capability=computed(()=>serviceState.value.capability)
+const serviceMonitor=new ServiceMonitor(()=>api.capabilities(),value=>{serviceState.value=value;if(value.error)showServices.value=true})
+const mapState=ref<'unconfigured'|'loading'|'ready'|'error'>('unconfigured')
 const error = ref(''), notice = ref(''), busy = ref(false)
 const resultPending = ref(false)
 const task = ref<Task | null>(null), events = ref<TravelEvent[]>([])
@@ -451,7 +456,7 @@ async function synchronize() {
   if(busy.value||restoring.value) return
   restoring.value=true
   try {
-    await Promise.allSettled([api.capabilities().then(value=>{capability.value=value}).catch(report),refreshSaved().catch(report)])
+    await Promise.allSettled([refreshServices(),refreshSaved().catch(report)])
     if(typeof session.itineraryId==='string'&&!editing.value) {
       try { itinerary.value=await api.itinerary(session.itineraryId) } catch(e) {if(e instanceof TravelApiError&&e.code==='itinerary_not_found') {delete session.itineraryId;persist()} else report(e)}
     }
@@ -465,14 +470,18 @@ async function synchronize() {
     }
   } catch(e) {report(e)} finally {restoring.value=false}
 }
-function online() {if(!busy.value&&!restoring.value) {if(pending.value) void restorePending(true);else if(taskActive.value||resultPending.value) void resume()}}
-function offline() {connection.value='offline'}
+async function refreshServices() {
+  await serviceMonitor.refresh()
+  if(!disposed&&serviceState.value.phase==='ready'&&!taskActive.value&&!resultPending.value&&!pending.value)connection.value='connected'
+}
+function online() {void refreshServices();if(!busy.value&&!restoring.value) {if(pending.value) void restorePending(true);else if(taskActive.value||resultPending.value) void resume()}}
+function offline() {connection.value='offline';serviceMonitor.offline()}
 onMounted(async()=>{
   window.addEventListener('storage',editStorageChanged);window.addEventListener('pagehide',persistEdit)
   window.addEventListener('hashchange',hashChanged);window.addEventListener('online',online);window.addEventListener('offline',offline)
   await synchronize()
 })
-onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.removeEventListener('storage',editStorageChanged);window.removeEventListener('pagehide',persistEdit);window.removeEventListener('hashchange',hashChanged);window.removeEventListener('online',online);window.removeEventListener('offline',offline);window.removeEventListener('beforeunload',beforeUnload)})
+onBeforeUnmount(()=>{disposed=true;serviceMonitor.dispose();stream?.close(); controller?.abort();window.removeEventListener('storage',editStorageChanged);window.removeEventListener('pagehide',persistEdit);window.removeEventListener('hashchange',hashChanged);window.removeEventListener('online',online);window.removeEventListener('offline',offline);window.removeEventListener('beforeunload',beforeUnload)})
 </script>
 
 <template>
@@ -482,11 +491,12 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
       <a class="brand" href="#" @click.prevent="navigate('plan')"><span class="brand-mark">↗</span><span>TravelAgent<small>旅行规划工作台</small></span></a>
       <div class="nav-label">你的旅行空间</div>
       <nav aria-label="工作台导航"><button v-for="item in nav" :key="item.id" :class="{selected:tab===item.id}" :aria-label="item.label" :aria-current="tab===item.id?'page':undefined" @click="navigate(item.id)"><span aria-hidden="true">{{item.icon}}</span>{{item.label}}<span v-if="item.id==='saved'" class="count">{{savedTotal}}</span></button></nav>
-      <div class="sidebar-bottom"><span class="dot" :class="{offline:!capability?.configured}"/>{{capability?.configured ? '真实数据服务已配置' : '真实数据服务待配置'}}<small>每一个地点，都有来源</small></div>
+      <div class="sidebar-bottom"><span class="dot" :class="{offline:serviceState.phase!=='ready'||!capability?.configured}"/>{{serviceSummary(serviceState)}}<small>每一个地点，都有来源</small></div>
     </aside>
     <main id="main-content" ref="mainContent" tabindex="-1">
-      <header class="topbar"><span>TRAVEL WORKSPACE <span class="separator">/</span> {{nav.find(n=>n.id===tab)?.label}}</span><span class="local-badge">{{authEnabled?user.username:'本地旅行空间'}}</span><button v-if="authEnabled" class="text-button" title="已受理的任务会保留在自己的空间" @click="logout">退出登录</button></header>
+      <header class="topbar"><span>TRAVEL WORKSPACE <span class="separator">/</span> {{nav.find(n=>n.id===tab)?.label}}</span><span class="local-badge">{{authEnabled?user.username:'本地旅行空间'}}</span><button type="button" class="text-button" :aria-expanded="showServices" aria-controls="service-status" @click="showServices=!showServices">服务状态</button><button v-if="authEnabled" class="text-button" title="已受理的任务会保留在自己的空间" @click="logout">退出登录</button></header>
       <div class="page-heading"><div><div class="eyebrow">PLAN WITH INTENTION</div><h1 ref="pageHeading" tabindex="-1">{{title}}</h1><p>把地点、路线与时间放在一起，规划属于你的旅程。</p></div><span class="heading-tag">Web 工作台 <span>01</span></span></div>
+      <ServiceStatusPanel v-if="showServices" :state="serviceState" :map-state="mapState" :map-visible="tab==='plan'||tab==='explore'" @refresh="refreshServices"/>
       <div v-if="error" role="alert" class="alert error"><span>{{error}}</span><button aria-label="关闭错误提示" @click="error=''">×</button></div>
       <div v-if="notice" role="status" class="alert success">{{notice}}</div>
       <div v-if="!editing&&(recoverableEdit||editStorageIssue)" role="region" aria-label="本机编辑草稿" class="config-note connection-note"><span>{{editStorageIssue||'发现未提交的本机编辑草稿（保留 7 天）。恢复前会核对原行程版本和地点。'}}草稿仅保存在此浏览器、此账号下。</span><div><button v-if="recoverableEdit" class="secondary" :disabled="busy||active||editStorageConflict" @click="restoreEdit">恢复编辑草稿</button><button class="text-button" :disabled="busy||active||editStorageConflict" @click="discardLocalEdit">放弃本机草稿</button></div></div>
@@ -495,7 +505,7 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
       <div v-if="connection!=='connected'||(!capability&&error)" role="status" class="config-note connection-note"><span>{{connection==='reconnecting'?`正在恢复连接（${reconnectAttempt}）`:'连接状态待确认'}}。已提交的任务保留原记录，恢复连接只同步状态。</span><button class="secondary" :disabled="busy||restoring" @click="synchronize">恢复连接</button></div>
       <div v-if="pending" role="status" class="config-note connection-note"><span>尚未确认上次任务是否已受理。恢复将使用上次提交条件，已受理的任务不会重复创建。</span><button class="secondary" :disabled="busy||restoring" @click="restorePending(false)">恢复上次提交</button></div>
       <div v-if="resultPending" role="status" aria-label="结果同步" class="config-note">任务已完成，结果尚未同步。{{busy?'正在读取已保存结果。':'恢复连接后继续读取同一任务的结果，无需再次提交。'}}</div>
-      <div v-if="capability && !capability.configured" class="config-note">高德数据将在授权配置后启用。规划与搜索目前会明确提示数据不可用。</div>
+      <div v-if="serviceState.phase==='ready'&&capability&&!capability.configured" class="config-note">高德数据将在授权配置后启用。规划与搜索目前会明确提示数据不可用。</div>
       <div v-if="staleDraft" role="status" class="config-note connection-note"><span>{{draft?.id!==appliedDraft?.id?'已整理一份新草案，当前表单仍来自上一份。':`草案已更新至第 ${draft?.revision} 版，当前表单来自第 ${appliedDraft?.revision} 版。`}}</span><div><button class="secondary" :disabled="busy||active" @click="draft&&applyDraft(draft)">填入最新草案</button><button class="text-button" :disabled="busy||active" @click="retainForm">保留当前表单</button></div></div>
       <div v-if="appliedDraft&&!draft" role="status" class="config-note connection-note"><span>已应用草案尚未同步，请恢复连接读取；也可明确保留当前表单条件。</span><button class="text-button" :disabled="busy||active" @click="retainForm">保留当前表单</button></div>
 
@@ -505,7 +515,7 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
           <DraftHandoff v-if="appliedSource" :draft="appliedSource" :form="form" :decision="handoffDecision" :disabled="busy||active" @decision="confirmHandoff" @locate="locateEndpoints"/>
         </PlanningForm>
         <div class="workspace-main">
-          <RequestAssistant :draft="draft" :capability="capability" :disabled="busy||active" :conflict="draftConflict" @parse="parseDescription" @apply="applyDraft" @clarify="clarifyDraft" @reload="reloadDraft"/>
+          <RequestAssistant :draft="draft" :capability="capability" :service-current="serviceState.phase==='ready'" :disabled="busy||active" :conflict="draftConflict" @parse="parseDescription" @apply="applyDraft" @clarify="clarifyDraft" @reload="reloadDraft"/>
           <TaskExecution :task="task" :events="events" :task-active="taskActive" :busy="busy" :pending="Boolean(pending)" :restoring="restoring" :editing="editing" :time-guide-editable="timeGuideEditable" :travel-guide-editable="travelGuideEditable" @cancel="cancel" @resume="resume" @retry="retryTask" @time="locateTimeConstraint" @limits="locateTravelLimits"/>
           <section class="card route-workspace">
             <div class="section-title"><div><div class="eyebrow">YOUR ITINERARY</div><h2 id="itinerary-title" tabindex="-1">{{itinerary?.title || '旅程地图与时间轴'}}</h2></div><button v-if="itinerary && !editing" class="secondary" :disabled="active||busy" @click="edit">编辑行程</button></div>
@@ -538,7 +548,7 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
                   <article v-if="day?.destination_poi" class="boundary-stop" :data-stop-id="day.destination_poi.id"><button class="boundary-select text-button" :aria-label="`地图定位返回地 ${day.destination_poi.name}`" :aria-pressed="selectedStopId===day.destination_poi.id" @click="selectStop(day.destination_poi.id)">返回地 · {{day.destination_poi.name}}</button><p>{{day.return_arrival_time}} 抵达</p><p>{{day.destination_segment?`末站返回 ${day.destination_segment.duration_min} 分钟 · ${day.destination_segment.distance_km.toFixed(2)} km`:'与末站同一地点，无额外路段'}}</p></article>
                 </template>
               </div>
-              <RouteMap :itinerary="itinerary" :selected-day="selectedDay" :poi="selectedPoi" :selected-poi-id="selectedStopId" :preview="previewPois" :anchors="previewAnchors" @select="selectStop($event,true)"/>
+              <RouteMap :itinerary="itinerary" :selected-day="selectedDay" :poi="selectedPoi" :selected-poi-id="selectedStopId" :preview="previewPois" :anchors="previewAnchors" @select="selectStop($event,true)" @status="mapState=$event"/>
             </div>
           </section>
         </div>
@@ -549,7 +559,7 @@ onBeforeUnmount(()=>{disposed=true;stream?.close(); controller?.abort();window.r
           <div v-if="editing" class="add-target">加入 <select v-model.number="addDay"><option v-for="(_,i) in editIds" :value="i">第 {{i+1}} 天</option></select><button class="text-button" @click="tab='plan'">返回编辑</button></div>
           <div v-if="!results.length" class="empty-state"><span>⌖</span><h3>{{searching?'正在查找地点':'从一个关键词开始探索'}}</h3><p>搜索结果与详情来自授权接口，缺失信息会明确标记。</p></div>
           <article v-for="poi in results" :key="poi.id" class="poi-card"><div><span class="poi-category">{{poi.category || '类别未提供'}}</span><button class="poi-name" @click="detail(poi,$event)">{{poi.name}}</button><p>{{poi.address || '地址未提供'}}</p><small>评分 {{poi.rating ?? '未知'}} · 人均消费 {{poi.average_spend==null?'未知':`¥${poi.average_spend}（非门票）`}}</small></div><button v-if="editing" class="secondary" @click="add(poi)">＋ 加入行程</button></article>
-        </div><RouteMap :itinerary="itinerary" :selected-day="selectedDay" :poi="selectedPoi" :selected-poi-id="selectedStopId" :preview="previewPois" :anchors="previewAnchors" @select="selectedStopId=$event"/>
+        </div><RouteMap :itinerary="itinerary" :selected-day="selectedDay" :poi="selectedPoi" :selected-poi-id="selectedStopId" :preview="previewPois" :anchors="previewAnchors" @select="selectedStopId=$event" @status="mapState=$event"/>
       </section>
 
       <SavedTrips v-if="tab==='saved'" :trips="saved" :disabled="active||busy" @updated="updateSaved" @open="openTrip"/>

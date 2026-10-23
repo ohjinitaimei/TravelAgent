@@ -50,6 +50,10 @@ class MapProxy:
             limits=httpx.Limits(max_connections=4, max_keepalive_connections=2),
             follow_redirects=False, trust_env=False)
 
+    @property
+    def configured(self):
+        return bool(self.key and self.code)
+
     async def close(self):
         await self.client.aclose()
         logging.getLogger('httpx').removeFilter(self.log_filter)
@@ -57,7 +61,7 @@ class MapProxy:
     def parameters(self, request, path):
         if path not in UPSTREAMS:
             raise TravelFailure('map_path_rejected', '地图代理不支持此接口', status=404)
-        if not self.key or not self.code:
+        if not self.configured:
             raise TravelFailure('map_proxy_not_configured', '浏览器地图代理尚未配置', status=503)
         if len(request.scope.get('query_string', b'')) > 4096:
             raise TravelFailure('map_query_rejected', '地图请求参数过长', status=422)

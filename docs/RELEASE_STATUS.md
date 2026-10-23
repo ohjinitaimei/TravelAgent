@@ -6,6 +6,8 @@
 
 ## 已实现
 
+- Web 服务状态区分首次读取、连接失败、本次配置及上次快照，分别说明地图数据、地图组件/代理、模型整理和工具传输；只读刷新保留输入，地图首绘失败可手动恢复，首账号配置可重新检查。direct 工具检查不依赖可选 MCP，见 [WEB_SERVICE_RECOVERY.md](architecture/WEB_SERVICE_RECOVERY.md)。
+
 - 本地发布候选的源码/构建/报告/归档绑定、严格通过统计及不可覆盖的HTTPS/恢复演练；完整A/B行程、草案、收据恢复比较，正常清理后才通过。发布包拒绝旧Web和签名私钥，见 [LOCAL_RELEASE_CANDIDATE.md](architecture/LOCAL_RELEASE_CANDIDATE.md)。
 
 - 需求草案支持逐日时段/停留、交通上限与起终点原文，保持证据、来源、确认、修订和部分空值；真实选点或明确按表单规划后显式提交。PC 分组表单及流程定位贯通生成、编辑、刷新/离线恢复和来源对照，新草案或上下文缺失不会跳过核对。见 [REQUIREMENTS_WORKFLOW.md](architecture/REQUIREMENTS_WORKFLOW.md)。
@@ -51,7 +53,7 @@
 
 历史环境已验证真实模型需求提取及 Web 代理到后端的草案补充 HTTP 链路。自动验收中的成功行程使用 tests 中隔离的 FixtureProvider。2026-10-19 另以用户授权的高德 Web 服务 Key 完成直接 Provider 与 MCP 的真实 POI/路线/异步规划，以及多日调整版本、Web 保存重开与刷新复查；未使用 FixtureProvider、模拟交通或模型补事实。同日配置独立 JS API 授权后，Chromium 实测通过真实底图、编号标记、道路折线、跨天切换和刷新恢复，详细边界见 [LIVE_AMAP.md](architecture/LIVE_AMAP.md)。
 
-当前检查集规模为 443 个逻辑用例、615 次执行：Python 295、共享客户端/展示逻辑 62、页面 86 个场景 × 3 引擎 = 258。C 包完整仓库、类型/生产构建、Schema 及三引擎九份报告通过；本地 HTTPS、同一干净发布归档启动、完整记录备份恢复/回退另行核验，由候选入口统一检查源码/Web/归档 SHA 及服务退出。预备源码变动的报告明确拒绝，不混作最终证据。实际范围见 [LOCAL_RELEASE_CANDIDATE.md](architecture/LOCAL_RELEASE_CANDIDATE.md)。没有核心依赖升级、真实模型/高德新调用或GitHub上传，原 Flutter 保留。
+服务状态与恢复组当前检查集规模为 467 个逻辑用例、651 次执行：Python 300、共享客户端/展示逻辑 75、页面 92 个场景 × 3 引擎 = 276，九份完整报告通过，详见 [WEB_SERVICE_RECOVERY.md](architecture/WEB_SERVICE_RECOVERY.md)。C 包历史检查规模为 443 个逻辑用例、615 次执行：Python 295、共享客户端/展示逻辑 62、页面 86 个场景 × 3 引擎 = 258。C 包完整仓库、类型/生产构建、Schema 及三引擎九份报告通过；本地 HTTPS、同一干净发布归档启动、完整记录备份恢复/回退另行核验，由候选入口统一检查源码/Web/归档 SHA 及服务退出。预备源码变动的报告明确拒绝，不混作最终证据。实际范围见 [LOCAL_RELEASE_CANDIDATE.md](architecture/LOCAL_RELEASE_CANDIDATE.md)。没有核心依赖升级、真实模型/高德新调用或GitHub上传，原 Flutter 保留。
 
 2026-10-22 交通上限阶段历史记录：两次真实尝试，第一次验证脚本在任务仍运行时结束；第二次单日原规划、路途负担、返程超限与刷新恢复通过，清除后保存遇高德 10021 限流而失败，真实 MCP 后续复验未执行。两次预算上界 71，不是账单计数，没有继续追加外部调用。详情见 [TRAVEL_LOAD_LIMITS.md](architecture/TRAVEL_LOAD_LIMITS.md)。该交通上限阶段未重跑真实 SDK/模型、HTTPS、灾备、人工读屏或真机，未上传 GitHub。 同日共享节流阶段已手动通过原规划、超限诊断、草稿恢复、清除后新版本保存与真实 MCP，页面 POI 读取 4 次均成功，来源版本保持；详情与脚本文字断言首次失败见 [AMAP_REQUEST_PACING.md](architecture/AMAP_REQUEST_PACING.md)。
 

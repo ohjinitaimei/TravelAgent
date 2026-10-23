@@ -40,10 +40,11 @@ def trip_or_fail(request: Request, itinerary_id: str):
 
 
 @router.get("/capabilities", response_model=Capabilities)
-def capabilities():
+def capabilities(request: Request):
     import importlib.util
     from agent.travel_intake import status
-    return Capabilities(configured=AmapClient().enabled, tool_transport=transport(), mcp_available=importlib.util.find_spec("mcp") is not None, **status(), limitations=[
+    return Capabilities(configured=AmapClient().enabled, map_proxy_configured=request.app.state.map_proxy.configured,
+        tool_transport=transport(), mcp_available=importlib.util.find_spec("mcp") is not None, **status(), limitations=[
         "单 API 实例；账号模式按用户隔离，本地模式共享本地空间", "无真实评论、酒店报价、门票库存或预约能力",
         "预算仅汇总用户录入费用，未知费用不等于免费", "自然语言仅整理需求，须核对表单；无跨日全局优化",
     ])

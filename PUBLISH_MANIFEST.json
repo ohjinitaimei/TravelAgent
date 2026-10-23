@@ -30,8 +30,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 18444,
-      "sha256": "e59c6d9fe5eabef3a9f940b0591abeee650c737a7f07d70ac1f4b7ab4f9390be"
+      "bytes": 18774,
+      "sha256": "0591d5bc47d73d57391372c78203d71fbc9d308c9dc6d2ae67dd77223fbef9a4"
     },
     {
       "path": "analysis_options.yaml",
@@ -155,13 +155,13 @@
     },
     {
       "path": "apps/web/src/App.vue",
-      "bytes": 54959,
-      "sha256": "51823a79bb6b67bff2d6fc6572ee50bfbe0076df585ca736629b4db2fb9d6b2b"
+      "bytes": 56063,
+      "sha256": "fb56dd69a66c4801a84224c03ea8dc89cd85548325f19bff993feaa275e78ca4"
     },
     {
       "path": "apps/web/src/WorkspaceRoot.vue",
-      "bytes": 5406,
-      "sha256": "cd056a0ff8843498916a2d009c00541bec2ff0b4e11e9ac8c001aca576cecda8"
+      "bytes": 5619,
+      "sha256": "1916e26a48b6eab9c17837760dd590651c5de7c830c24692db95894c3a3aae72"
     },
     {
       "path": "apps/web/src/api.ts",
@@ -235,18 +235,23 @@
     },
     {
       "path": "apps/web/src/components/RequestAssistant.vue",
-      "bytes": 8672,
-      "sha256": "804aab20cc2ee018ef815bd59c24f5b5d09c9afd9a85ff25e2ceb294ce755f35"
+      "bytes": 8701,
+      "sha256": "0339fd1d1d3175a8cba733bf7d8c468a4b97e462db0b9730d5c3cfa0278889f1"
     },
     {
       "path": "apps/web/src/components/RouteMap.vue",
-      "bytes": 7705,
-      "sha256": "33228d0e450b7e28c9333bcd2f0f75fdf314bc8d4b9337d8727a658a9ec130f1"
+      "bytes": 8523,
+      "sha256": "4fe4ec0582920904173546b2da442812726d2c65d32b74e1b7e169ea0722dc48"
     },
     {
       "path": "apps/web/src/components/SavedTrips.vue",
       "bytes": 14556,
       "sha256": "4ea7eab12003c7f6853a396935a7baf7ebae33d93136d8cd6a536b26e0c4b919"
+    },
+    {
+      "path": "apps/web/src/components/ServiceStatusPanel.vue",
+      "bytes": 4495,
+      "sha256": "53f111d299618fcaa19fe9fb372ca5bf7c411280ecc931e5f187dbbd1af0c5a3"
     },
     {
       "path": "apps/web/src/components/TaskExecution.vue",
@@ -260,8 +265,8 @@
     },
     {
       "path": "apps/web/src/components/ToolConnection.vue",
-      "bytes": 1912,
-      "sha256": "43b4afe38f72576a8a51999087379377cfc5525611f5fa6ce09dc6b5e985cf02"
+      "bytes": 1966,
+      "sha256": "e166a50e9e3c9e31af2979c11d544d22c66e95a02d11be6ea75fa2ca76009440"
     },
     {
       "path": "apps/web/src/components/TravelLoadPanel.vue",
@@ -324,6 +329,11 @@
       "sha256": "f7646ce8051a6a97dcacb005c8cc84a82372a12dc9fce4dc9f2810c502424654"
     },
     {
+      "path": "apps/web/src/mapLoading.ts",
+      "bytes": 2092,
+      "sha256": "f4cf6f1c7f65da4955c8cb6c81e220c009190d798eae08f8f90213ae2ac458d6"
+    },
+    {
       "path": "apps/web/src/planning.ts",
       "bytes": 1742,
       "sha256": "1b9ace7f4c8389327f19f78603c9e2ddfd84aeabf5955d6c04c42bb52ce732fd"
@@ -332,6 +342,11 @@
       "path": "apps/web/src/schedules.ts",
       "bytes": 3043,
       "sha256": "ea2f6c6d9ec92ab792f6bd9b5b2ef9f5f73b9cc015dce4b9919f7764cabb9438"
+    },
+    {
+      "path": "apps/web/src/serviceStatus.ts",
+      "bytes": 3113,
+      "sha256": "9cc6c8777bb80db082253f16eebc00d1c4d6efba99b055be5658bfad5bd6810e"
     },
     {
       "path": "apps/web/src/session.ts",
@@ -795,8 +810,8 @@
     },
     {
       "path": "backend/travel/api.py",
-      "bytes": 9916,
-      "sha256": "1bba7b8cf6f26113895271614fb648afbb92c81f5c1e07a4dfa5cac7f0ac7493"
+      "bytes": 10001,
+      "sha256": "0a3706794d0123afb24973998328671e3a208076f7e09476e348b784c153f283"
     },
     {
       "path": "backend/travel/auth.py",
@@ -840,8 +855,8 @@
     },
     {
       "path": "backend/travel/map_proxy.py",
-      "bytes": 7055,
-      "sha256": "21889d40e27e5150ec0ddc9dc1466a2c742ad1f52574c8f98e2687a86b803d6a"
+      "bytes": 7130,
+      "sha256": "5929012a93757b7c9450a6ba40d34a96361badb9f6f14cbb40030485c23722bf"
     },
     {
       "path": "backend/travel/mcp_client.py",
@@ -885,8 +900,8 @@
     },
     {
       "path": "backend/travel/schemas.py",
-      "bytes": 23598,
-      "sha256": "9f3424eed0df21772a57400c7d70023b8ca51469bb97f5b43644c688018cb9e8"
+      "bytes": 23796,
+      "sha256": "22ea20589057453ca655b1f0ee3605219327a88e92c0a2a8d6d84ca32f653137"
     },
     {
       "path": "backend/travel/store.py",
@@ -900,8 +915,8 @@
     },
     {
       "path": "backend/travel/tool_runtime.py",
-      "bytes": 1583,
-      "sha256": "f3957430eba5d8cd257f46f3fe075639d3cc92e85f13b66de9460aad662089f1"
+      "bytes": 1981,
+      "sha256": "53aad3c2b82c589e5aa3c08d39fc07946b2ec5de4eeb19b360c873493b70a53d"
     },
     {
       "path": "backend/travel/tools.py",
@@ -955,8 +970,8 @@
     },
     {
       "path": "docs/ACCEPTANCE.md",
-      "bytes": 30051,
-      "sha256": "7af2915a5f99599ca696bbb55aa2905f5a520cf85487ec7b0224b7a2292dcf41"
+      "bytes": 30417,
+      "sha256": "ce037ce3771009f4bb3a0fe284c1fd07d30fa789adbbbbfdc56c1585633dd012"
     },
     {
       "path": "docs/README.md",
@@ -965,8 +980,8 @@
     },
     {
       "path": "docs/RELEASE_STATUS.md",
-      "bytes": 19634,
-      "sha256": "c19197c13a903778c13bae7b6e618574e57626a456731ad9388e8bacfc7144e8"
+      "bytes": 20282,
+      "sha256": "50edbd2f2adf82ae70a31a13059fccecc37c85d469c9512af6c60571daa57868"
     },
     {
       "path": "docs/TECHNICAL_REPORT.md",
@@ -980,8 +995,8 @@
     },
     {
       "path": "docs/USER_GUIDE.md",
-      "bytes": 16522,
-      "sha256": "8250b00450a573c146577801764ea5357c51c909cd7f87cb49c21a98ad24aa30"
+      "bytes": 17099,
+      "sha256": "4ba601bc6bae70a4f5089e73c2cb71adf9aaac567784fa4be160b75821dffece"
     },
     {
       "path": "docs/acceptance/POI_REVIEW_TEMPLATE.md",
@@ -1110,8 +1125,8 @@
     },
     {
       "path": "docs/architecture/OPTIMIZATION_PROGRAM.md",
-      "bytes": 20508,
-      "sha256": "e7659b2dde144a37cf45c8247834ed3c2671459bee102660f1b42b84a00507c7"
+      "bytes": 20506,
+      "sha256": "5728f6e380005317a2640e0aedfbc71b6c1e7ab1310e52f8e4198a937cc6665a"
     },
     {
       "path": "docs/architecture/POI_COMPARISON.md",
@@ -1197,6 +1212,11 @@
       "path": "docs/architecture/WEB_EDITING.md",
       "bytes": 5608,
       "sha256": "0d1531b32ff22366984c53455068597ccd8e8a5bf2221ead36749dc1b027f695"
+    },
+    {
+      "path": "docs/architecture/WEB_SERVICE_RECOVERY.md",
+      "bytes": 7871,
+      "sha256": "3c57b7a3f3d7ebd1852dc51a7d87e454807756820918e540631efee2803e9410"
     },
     {
       "path": "docs/architecture/WEB_USER_JOURNEY.md",
@@ -1320,8 +1340,8 @@
     },
     {
       "path": "package.json",
-      "bytes": 758,
-      "sha256": "eceeb51e7a2886ce0fe2a5c677a51dee420d7f3a8430306ece3a3b4a1e02c754"
+      "bytes": 813,
+      "sha256": "b010708e9e1bde60d5979a64a9a97d9d979f4b915ba4959ec11302abda251644"
     },
     {
       "path": "packages/api-schema/README.md",
@@ -1335,18 +1355,18 @@
     },
     {
       "path": "packages/api-schema/openapi.json",
-      "bytes": 185219,
-      "sha256": "8ee2ae0b405f1c504fad83e82cb33e7eab539b899e259e082cbd5c9e139dfa4a"
+      "bytes": 185532,
+      "sha256": "bac155456a0226874d29d1a358d2cff5e72fea28a8efea3ad62ff7dec3f43c4a"
     },
     {
       "path": "packages/api-schema/schema.d.ts",
-      "bytes": 123838,
-      "sha256": "ae6d059fa28b93f0cff85908dc334963745f791f915d7335e29ef58d6969134f"
+      "bytes": 124136,
+      "sha256": "117b372120bfd8b7546e161490909267f063a380346680ba0b916651480d46b6"
     },
     {
       "path": "playwright.config.ts",
-      "bytes": 1235,
-      "sha256": "7b2f89a99245a739e897ada0937ceca8f13f87098832a9abc4fc0638842930a8"
+      "bytes": 1257,
+      "sha256": "e350a635d2cd89465d234933a800dbbaf05e5c6970dbebfb7d82353024903afc"
     },
     {
       "path": "pubspec.lock",
@@ -1470,8 +1490,8 @@
     },
     {
       "path": "scripts/verify_repository.py",
-      "bytes": 5502,
-      "sha256": "f8f2c21f6315d31547e5fe9ef3de562ea53fb7dfe52ef57de22785dc0b31a67d"
+      "bytes": 5794,
+      "sha256": "6372c7db0360b9983c913c1c787238bd50f15e96e001832856b14cf4e68a96b0"
     },
     {
       "path": "scripts/verify_web_build.py",
@@ -1490,13 +1510,18 @@
     },
     {
       "path": "tests/browser/auth.spec.ts",
-      "bytes": 18251,
-      "sha256": "e2804159fae21cf252c4eddcf3d55178d23d51cff650c607df14d275b5c5f82e"
+      "bytes": 20802,
+      "sha256": "8721006b080fdf16aac41e52db3746ad43c0591eaf2932b6ef282431a8579a49"
     },
     {
       "path": "tests/browser/resilience.spec.ts",
       "bytes": 58941,
       "sha256": "28caa5b948c9c4826924e31e2d7676807014b7ff954e9401dd71d269edd97ee3"
+    },
+    {
+      "path": "tests/browser/services.spec.ts",
+      "bytes": 8513,
+      "sha256": "297a1620f0495b7b98cff6217a85921df05b855df715568038207a8db60bbd2a"
     },
     {
       "path": "tests/browser/workflow.spec.ts",
@@ -1506,7 +1531,7 @@
     {
       "path": "tests/browser/workspace.spec.ts",
       "bytes": 80765,
-      "sha256": "28ccee562b7dabb6b0ca2ed14c235a2409fbbc0a8b8044d59505d4920eda5b94"
+      "sha256": "f73d586dc51f5cc731671dc0094a0fa0cb509cf9fe5944ed0c8f6aa6337f9356"
     },
     {
       "path": "tests/browser_fixture_server.py",
@@ -1515,8 +1540,8 @@
     },
     {
       "path": "tests/client.integration.test.ts",
-      "bytes": 2780,
-      "sha256": "e23b14193ca95b94b77abd34191c6c7b89e461485a2ea382218f7ca00de9bcc7"
+      "bytes": 2784,
+      "sha256": "46e98a07d597cbe4315a97c8c2c03fda940b55c2d44e01fb60a1b70843303a05"
     },
     {
       "path": "tests/client.lifecycle.test.ts",
@@ -1549,6 +1574,11 @@
       "sha256": "707c8516808d4179338d5355b0f649e82631e763b1a999e5508df541767eb53d"
     },
     {
+      "path": "tests/map_loading.test.ts",
+      "bytes": 5846,
+      "sha256": "c8412625d5c5420358cb9e4cc3d56adcbe3998dd8ae1c04488a9ef078bc7f3ad"
+    },
+    {
       "path": "tests/maximum_fixture.py",
       "bytes": 1128,
       "sha256": "85470a0997652cc50ab844eed20a4b0c4033fc13fcddbbc29c3e280de602e43a"
@@ -1567,6 +1597,11 @@
       "path": "tests/recovery_seed.py",
       "bytes": 6266,
       "sha256": "3d063b5e37b9605db8fd0a7c09a357f2dddba315459ffe0579f68bf038d1b203"
+    },
+    {
+      "path": "tests/service_status.test.ts",
+      "bytes": 3905,
+      "sha256": "5d52815476a56461cac72f3550ee5f3da1f13f5a1f3c15045b97b82fcd64435c"
     },
     {
       "path": "tests/test_agent_intake.py",
@@ -1655,8 +1690,8 @@
     },
     {
       "path": "tests/test_map_proxy.py",
-      "bytes": 12924,
-      "sha256": "5110355fc790af49d48fea0dc87830633b565e80168f593f365108c29812b87a"
+      "bytes": 15986,
+      "sha256": "675bfb1e89771bc4cb80d53eb1500ac508612948b1f4e7709bad24507e229dba"
     },
     {
       "path": "tests/test_mcp.py",
@@ -1700,8 +1735,8 @@
     },
     {
       "path": "tests/test_travel.py",
-      "bytes": 13993,
-      "sha256": "fa23ea3194e745be3f280913061490c6431c851f800aeccc30ff8276a398373c"
+      "bytes": 15871,
+      "sha256": "68edd01af2b5f380ca9a90f9040f86c19daf87471e9230898828f78a96e5ab73"
     },
     {
       "path": "tests/test_travel_limits.py",

@@ -8,7 +8,7 @@
     "dev": "npm run dev --workspace apps/web",
     "build": "npm run build --workspace apps/web",
     "schema:generate": "openapi-typescript packages/api-schema/openapi.json -o packages/api-schema/schema.d.ts",
-    "test:client": "tsx --test tests/client.integration.test.ts tests/client.lifecycle.test.ts tests/auth_client.test.ts tests/edit_draft.test.ts tests/versions.test.ts tests/listing_client.test.ts tests/journey.test.ts tests/draft_constraints.test.ts tests/handoff.test.ts",
+    "test:client": "tsx --test tests/client.integration.test.ts tests/client.lifecycle.test.ts tests/auth_client.test.ts tests/edit_draft.test.ts tests/versions.test.ts tests/listing_client.test.ts tests/journey.test.ts tests/draft_constraints.test.ts tests/handoff.test.ts tests/service_status.test.ts tests/map_loading.test.ts",
     "test:browser": "playwright test"
   },
   "devDependencies": {

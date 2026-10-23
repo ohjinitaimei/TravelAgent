@@ -80,6 +80,10 @@ def verify():
 
 
 def main():
+    # Node's Unicode result markers must survive Windows redirected GBK consoles.
+    # Child output is already captured as UTF-8; use the same encoding when relaying it.
+    for stream in (sys.stdout,sys.stderr):
+        if hasattr(stream,'reconfigure'):stream.reconfigure(encoding='utf-8')
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--run-id');args=parser.parse_args()
     identifier=run_id(args.run_id)
     destination=ROOT/'artifacts/repository-runs'/identifier;destination.mkdir(parents=True,exist_ok=False)

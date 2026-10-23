@@ -28,7 +28,7 @@ function accept(value:Schema<'AuthStatus'>) {
 function broadcast() {try {localStorage.setItem(CHANNEL,crypto.randomUUID())} catch {}}
 async function initialize() {
   const current=++operation
-  loading.value=true;error.value=''
+  loading.value=true;error.value='';password.value=''
   try {const value=await authApi.authStatus();if(current===operation) accept(value)} catch(value) {error.value=value instanceof Error?value.message:'无法连接服务'}
   finally {loading.value=false}
 }
@@ -78,7 +78,7 @@ onBeforeUnmount(()=>{closeWorkspace();window.removeEventListener('storage',other
         <label>密码<input v-model="password" type="password" autocomplete="current-password" required maxlength="128" :disabled="busy"/></label>
         <button class="primary full" type="submit" :disabled="busy||status.setup_required">{{busy?'正在登录…':'登录'}}</button>
       </AccessibleForm>
-      <button v-else-if="!loading" class="secondary" @click="initialize">重新连接</button>
+      <button v-if="!loading&&(status?.setup_required||error||status?.mode!=='session')" type="button" class="secondary reconnect-account" :disabled="busy" @click="initialize">{{status?.setup_required?'重新检查账号配置':'重新连接'}}</button>
     </section>
   </main>
 </template>
@@ -88,6 +88,7 @@ onBeforeUnmount(()=>{closeWorkspace();window.removeEventListener('storage',other
 .auth-card{width:min(100%,440px);padding:40px;border:1px solid #dde5dc;border-radius:18px;background:white;box-shadow:0 16px 48px #183b2810}
 .auth-card h1{font-size:28px;line-height:1.4}.auth-card p{font-size:13px;color:#5e7064;line-height:1.8}
 .auth-card form{display:grid;gap:18px;margin-top:24px}.auth-error,.account-alert{color:#943f29!important}
+.reconnect-account{margin-top:16px}
 .account-alert{position:fixed;right:24px;top:64px;z-index:100;background:#fff0e9;padding:16px;border-radius:10px}
 @media(max-width:600px){.auth-card{padding:28px}}
 </style>

@@ -28,8 +28,13 @@ def open_tools(emit=lambda *_:None):
 
 
 def check_service():
-    from travel.mcp_client import open_mcp_provider
     mode=transport()
+    if mode=='direct':
+        # This is the active local typed gateway, independent of optional MCP.
+        # Generating its existing whitelist is in-memory; do not create a provider.
+        tools=[item['function']['name'] for item in TravelTools.function_definitions()]
+        return ToolServiceStatus(transport=mode,mcp_state='available',provider_configured=AmapClient().enabled,tools=tools)
+    from travel.mcp_client import open_mcp_provider
     try:
         # Handshake/catalog only: no provider request, model call or paid quota.
         with open_mcp_provider():
