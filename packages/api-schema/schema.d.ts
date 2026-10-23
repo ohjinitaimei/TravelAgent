@@ -592,6 +592,21 @@ export interface components {
             /** Unhandled Requirements */
             unhandled_requirements?: string[];
         };
+        /** DraftValidationDiagnostics */
+        DraftValidationDiagnostics: {
+            /** Issues */
+            issues: components["schemas"]["DraftValidationIssue"][];
+        };
+        /** DraftValidationIssue */
+        DraftValidationIssue: {
+            /** Path */
+            path: string;
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "missing" | "type" | "range" | "format" | "constraint" | "unexpected_field" | "ungrounded";
+        };
         /** DraftValues */
         DraftValues: {
             /** City */
@@ -694,6 +709,7 @@ export interface components {
             retry_after?: number | null;
             time_constraints?: components["schemas"]["TimeConstraintDiagnostics"] | null;
             travel_constraints?: components["schemas"]["TravelConstraintDiagnostics"] | null;
+            draft_validation?: components["schemas"]["DraftValidationDiagnostics"] | null;
         };
         /** ErrorResponse */
         ErrorResponse: {

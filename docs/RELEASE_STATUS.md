@@ -6,6 +6,8 @@
 
 ## 已实现
 
+- 需求校验采用最多八条有限字段/原因诊断，贯通工具、工作进程、任务、HTTP 和中文页面；失败刷新不自动重试，旧错误兼容。实际范围见 [INTAKE_DIAGNOSTICS.md](architecture/INTAKE_DIAGNOSTICS.md)。
+
 - 未提交原文/补充/勾选/逐日修改跨栏目保留，按账号本机备份并显式恢复；只清实际提交字段，未勾选修改保留，旧来源及跨页写入先核对。新草案即时取北京时间参考日，已受理恢复沿用原请求。真实模型验收增加全 15 字段与局部空值固定场景，见 [REQUIREMENTS_INPUT_RECOVERY.md](architecture/REQUIREMENTS_INPUT_RECOVERY.md)。
 
 - Web 服务状态区分首次读取、连接失败、本次配置及上次快照，分别说明地图数据、地图组件/代理、模型整理和工具传输；只读刷新保留输入，地图首绘失败可手动恢复，首账号配置可重新检查。direct 工具检查不依赖可选 MCP，见 [WEB_SERVICE_RECOVERY.md](architecture/WEB_SERVICE_RECOVERY.md)。
@@ -57,7 +59,7 @@
 
 历史环境已验证真实模型需求提取及 Web 代理到后端的草案补充 HTTP 链路。自动验收中的成功行程使用 tests 中隔离的 FixtureProvider。2026-10-19 另以用户授权的高德 Web 服务 Key 完成直接 Provider 与 MCP 的真实 POI/路线/异步规划，以及多日调整版本、Web 保存重开与刷新复查；未使用 FixtureProvider、模拟交通或模型补事实。同日配置独立 JS API 授权后，Chromium 实测通过真实底图、编号标记、道路折线、跨天切换和刷新恢复，详细边界见 [LIVE_AMAP.md](architecture/LIVE_AMAP.md)。
 
-需求输入保护与归档排序最终组 `requirements-portable-20261024` 当前检查集规模为 505 个逻辑用例、705 次执行：Python 310、共享客户端/展示逻辑 95、页面 100 个场景 × 3 引擎 = 300，九份完整报告通过；类型、生产构建、Schema 和源码/Web 绑定通过，同组本地 HTTPS 29 项通过。此前 704 次功能组通过后，归档因 Windows 文件排序差异被拒；修复增加一项回归并完整重跑，不绕过门禁。实际范围、预备失败和真实模型两次的分别结果见 [REQUIREMENTS_INPUT_RECOVERY.md](architecture/REQUIREMENTS_INPUT_RECOVERY.md)。没有核心依赖升级、高德新调用或 GitHub 上传，原 Flutter 保留。
+需求输入保护与归档排序最终组 `requirements-portable-20261024` 归档基线规模为 505 个逻辑用例、705 次执行：Python 310、共享客户端/展示逻辑 95、页面 100 个场景 × 3 引擎 = 300，九份完整报告通过；类型、生产构建、Schema 和源码/Web 绑定通过，同组本地 HTTPS 29 项通过。此前 704 次功能组通过后，归档因 Windows 文件排序差异被拒；修复增加一项回归并完整重跑，不绕过门禁。实际范围、预备失败和真实模型两次的分别结果见 [REQUIREMENTS_INPUT_RECOVERY.md](architecture/REQUIREMENTS_INPUT_RECOVERY.md)。没有核心依赖升级、高德新调用或 GitHub 上传，原 Flutter 保留。
 
 服务状态与恢复历史组为 467 个逻辑用例、651 次执行，详见 [WEB_SERVICE_RECOVERY.md](architecture/WEB_SERVICE_RECOVERY.md)。C 包历史检查规模为 443 个逻辑用例、615 次执行：Python 295、共享客户端/展示逻辑 62、页面 86 个场景 × 3 引擎 = 258。C 包完整仓库、类型/生产构建、Schema 及三引擎九份报告通过；本地 HTTPS、同一干净发布归档启动、完整记录备份恢复/回退另行核验，由候选入口统一检查源码/Web/归档 SHA 及服务退出。预备源码变动的报告明确拒绝，不混作最终证据。实际范围见 [LOCAL_RELEASE_CANDIDATE.md](architecture/LOCAL_RELEASE_CANDIDATE.md)。
 

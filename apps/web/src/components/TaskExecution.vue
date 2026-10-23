@@ -2,6 +2,7 @@
 import type { Task, TravelEvent } from '../api'
 import TimeConstraintGuide from './TimeConstraintGuide.vue'
 import TravelLoadPanel from './TravelLoadPanel.vue'
+import DraftValidationGuide from './DraftValidationGuide.vue'
 defineProps<{task:Task|null;events:TravelEvent[];taskActive:boolean;busy:boolean;pending:boolean;restoring:boolean;editing:boolean;timeGuideEditable:boolean;travelGuideEditable:boolean}>()
 const emit=defineEmits<{cancel:[];resume:[];retry:[event:MouseEvent];time:[field:'window'|'stops'|'stay',day:number];limits:[]}>()
 const statusLabels:Record<string,string>={queued:'排队中',running:'规划中',succeeded:'已完成',failed:'失败',cancelled:'已取消',timed_out:'已超时'}
@@ -15,6 +16,7 @@ function eventTime(value?:string){return value?new Date(value).toLocaleTimeStrin
             <p v-if="task?.error?.retry_after" role="status" aria-label="数据请求等待提示">服务建议等待约 {{task.error.retry_after}} 秒后手动重试；不会自动重新提交规划，等待后也可能仍受限。</p>
             <TimeConstraintGuide v-if="task?.status==='failed'&&task.error?.code==='time_constraint_exceeded'" :details="task.error.time_constraints" :editable="timeGuideEditable" :editing="editing" @locate="(field,day)=>emit('time',field,day)"/>
             <TravelLoadPanel v-if="task?.status==='failed'&&task.error?.code==='travel_constraint_exceeded'" failure :details="task.error.travel_constraints" :editable="travelGuideEditable" :editing="editing" @limits="emit('limits')"/>
+            <DraftValidationGuide v-if="task?.kind==='draft'&&task.status==='failed'&&task.error?.draft_validation" :details="task.error.draft_validation"/>
             <small v-if="restoring" role="status">正在恢复上次的工作空间…</small>
           </section>
 </template>

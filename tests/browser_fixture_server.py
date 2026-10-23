@@ -23,6 +23,12 @@ def browser_worker(payload, output):
         from agent.travel_intake import create_draft
         from travel.schemas import DraftRequest
         request=DraftRequest.model_validate(payload["request"])
+        if request.text == 'TEST ONLY invalid daily format':
+            from travel.worker import run
+            from unittest.mock import patch
+            original=create_draft
+            with patch('agent.travel_intake.create_draft',lambda value,emit:original(value,emit,llm=FixtureLLM({'values':{'day_schedules':[{'day_start':'TEST_ONLY_PRIVATE_VALUE'}]},'evidence':{}}))):
+                return run(payload,output)
         if request.text=="TEST ONLY 想逛博物馆，需要预约":
             arguments={"values":{"query":"博物馆"},"evidence":{"query":"博物馆"},"unhandled_requirements":["需要预约"]}
             result=create_draft(request,lambda stage,message:output.put({"kind":"event","stage":stage,"message":message}),llm=FixtureLLM(arguments))

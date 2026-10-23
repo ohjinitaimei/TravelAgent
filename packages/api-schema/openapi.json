@@ -4654,6 +4654,54 @@
         ],
         "title": "DraftSubmission"
       },
+      "DraftValidationDiagnostics": {
+        "properties": {
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/DraftValidationIssue"
+            },
+            "type": "array",
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Issues"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "issues"
+        ],
+        "title": "DraftValidationDiagnostics"
+      },
+      "DraftValidationIssue": {
+        "properties": {
+          "path": {
+            "type": "string",
+            "pattern": "^(submission|values|evidence|unhandled_requirements|values\\.(city|query|start_date|days|stops_per_day|day_start|day_end|stay_minutes|mode|budget|max_leg_travel_minutes|max_daily_travel_minutes|origin_hint|destination_hint|day_schedules)(\\.[0-2](\\.(day_start|day_end|stay_minutes))?)?)$",
+            "title": "Path"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "missing",
+              "type",
+              "range",
+              "format",
+              "constraint",
+              "unexpected_field",
+              "ungrounded"
+            ],
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "path",
+          "reason"
+        ],
+        "title": "DraftValidationIssue"
+      },
       "DraftValues": {
         "properties": {
           "city": {
@@ -5121,6 +5169,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/TravelConstraintDiagnostics"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "draft_validation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DraftValidationDiagnostics"
               },
               {
                 "type": "null"

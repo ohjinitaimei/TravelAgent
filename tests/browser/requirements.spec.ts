@@ -12,6 +12,21 @@ async function open(page:Page) {
 }
 
 const inputKey='travelagent.requirements.v1.local'
+test('failed model validation explains safe fields after refresh and preserves manual entry without automatic retry',async({page})=>{
+  await open(page)
+  const writes=mutations(page)
+  await page.getByLabel('旅行需求',{exact:true}).fill('TEST ONLY invalid daily format')
+  await page.getByRole('button',{name:'整理为草案'}).click()
+  const guide=page.getByRole('status',{name:'需求校验提示',exact:true})
+  await expect(guide).toContainText('第 1 天开始时间：格式不符合要求')
+  await expect(guide).not.toContainText('TEST_ONLY_PRIVATE_VALUE')
+  await expect(page.getByLabel('旅行需求',{exact:true})).toHaveValue('TEST ONLY invalid daily format')
+  expect(writes.filter(url=>url.endsWith('/drafts'))).toHaveLength(1)
+  await page.reload()
+  await expect(guide).toContainText('第 1 天开始时间：格式不符合要求')
+  await expect(page.getByRole('button',{name:'开始规划',exact:true})).toBeEnabled()
+  expect(writes.filter(url=>url.endsWith('/drafts'))).toHaveLength(1)
+})
 function mutations(page:Page) {
   const writes:string[]=[]
   page.on('request',request=>{

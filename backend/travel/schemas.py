@@ -69,6 +69,15 @@ class TravelConstraintDiagnostics(TravelLoad):
     basis: Literal["original_partition"] = "original_partition"
 
 
+class DraftValidationIssue(Model):
+    path: str = Field(pattern=r"^(submission|values|evidence|unhandled_requirements|values\.(city|query|start_date|days|stops_per_day|day_start|day_end|stay_minutes|mode|budget|max_leg_travel_minutes|max_daily_travel_minutes|origin_hint|destination_hint|day_schedules)(\.[0-2](\.(day_start|day_end|stay_minutes))?)?)$")
+    reason: Literal["missing", "type", "range", "format", "constraint", "unexpected_field", "ungrounded"]
+
+
+class DraftValidationDiagnostics(Model):
+    issues: list[DraftValidationIssue] = Field(min_length=1, max_length=8)
+
+
 class Error(Model):
     code: str
     message: str
@@ -76,6 +85,7 @@ class Error(Model):
     retry_after: int | None = Field(default=None, strict=True, ge=1, le=300, description="建议等待的秒数；不代表服务届时一定可用，也不触发自动提交")
     time_constraints: TimeConstraintDiagnostics | None = None
     travel_constraints: TravelConstraintDiagnostics | None = None
+    draft_validation: DraftValidationDiagnostics | None = None
 
 
 class ErrorResponse(Model):

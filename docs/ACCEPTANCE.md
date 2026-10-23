@@ -2,6 +2,10 @@
 
 验收环境：2026-10-19 至 2026-10-24，Python 3.12、Node.js、Windows、Chromium / Firefox / WebKit Headless。本轮仅在本地运行，未上传至 GitHub 或运行云端检查；仓库保留可在 Ubuntu / Node.js 22 上执行的 CI 配置。
 
+## 需求校验诊断阶段
+
+本轮新增安全字段诊断与中文恢复提示，Agent 专项 12 项、三引擎各 1 项定向流程通过，类型/构建通过。完整仓库结果与范围见 [需求校验诊断](architecture/INTAKE_DIAGNOSTICS.md)。未重跑完整浏览器矩阵、真实模型/地图、HTTPS、灾备或新归档。以下表格及完整候选结论保留为 `bea0f6c` 归档基线，不能作为新源码的完整通过记录。
+
 ## 可复现检查
 
 先按根 README 安装 Python、Node 与可选 Agent/MCP 锁定依赖，再执行：
@@ -24,7 +28,7 @@ Linux 浏览器首次安装使用 `npx playwright install --with-deps --only-she
 | Chromium / Firefox / WebKit | 300 次 | 每引擎旅行工作台及完整需求流程/服务状态/需求输入保护 58 项、账号流程 16 项、生产构建弱网/最大行程/连续流程/共享起终点/启动恢复/交通上限/限流恢复/逐日选择/时段停留/模式切换/备选比较/评分取舍与原方案恢复/带基线十二站 26 项，三个引擎合计 300 次执行 |
 | Web / Schema | — | TypeScript 检查、Vite 构建、OpenAPI 生成文件一致性 |
 
-当前检查集规模为 **505 个逻辑用例、705 次执行**。需求输入保护与归档排序最终组 `requirements-portable-20261024` 已通过 Python 310、客户端 95、类型/无密钥生产构建和 OpenAPI/TS 生成一致性；三引擎各 100 项、九份完整报告合计 300 次全部通过，零最终失败/跳过/自动重试。报告绑定当前源码和实际 Web 字节，服务正常退出通过；范围及首轮失败记录见 [需求输入保护](architecture/REQUIREMENTS_INPUT_RECOVERY.md)。同组本地 HTTPS 29 项通过；归档启动、备份恢复和同一 ZIP 的候选门禁结果单列于 `artifacts/releases/`、`artifacts/drill-runs/requirements-portable-20261024/recovery/` 与 `artifacts/candidate-runs/requirements-portable-20261024/report.json`，不混入 705 次。此前功能组 `requirements-final-20261024` 的 704 次检查通过，但归档因 Windows 文件排序差异被拒，未执行该组归档启动/恢复/候选门禁；修正后完整重跑，没有复用旧组作为新源码证据。
+归档 `bea0f6c` 的完整验收规模为 **505 个逻辑用例、705 次执行**。需求输入保护与归档排序最终组 `requirements-portable-20261024` 已通过 Python 310、客户端 95、类型/无密钥生产构建和 OpenAPI/TS 生成一致性；三引擎各 100 项、九份完整报告合计 300 次全部通过，零最终失败/跳过/自动重试。报告绑定当前源码和实际 Web 字节，服务正常退出通过；范围及首轮失败记录见 [需求输入保护](architecture/REQUIREMENTS_INPUT_RECOVERY.md)。同组本地 HTTPS 29 项通过；归档启动、备份恢复和同一 ZIP 的候选门禁结果单列于 `artifacts/releases/`、`artifacts/drill-runs/requirements-portable-20261024/recovery/` 与 `artifacts/candidate-runs/requirements-portable-20261024/report.json`，不混入 705 次。此前功能组 `requirements-final-20261024` 的 704 次检查通过，但归档因 Windows 文件排序差异被拒，未执行该组归档启动/恢复/候选门禁；修正后完整重跑，没有复用旧组作为新源码证据。
 
 真实模型使用独立空库固定调用两次：`complete15` 通过，`partial-daily` 以 `invalid_agent_output` 失败，整体真实模型检查按失败保留；没有追加重试或模拟补齐，合计一份草案、零行程，无高德/SDK 调用。日志缺少具体校验路径，不能判断是哪一个字段导致失败，后续诊断与复验计划见上述需求输入保护说明。自动回归通过不代表该真实失败已解决。
 

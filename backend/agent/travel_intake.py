@@ -10,11 +10,12 @@ from uuid import uuid4
 
 from pydantic import ValidationError
 
+from agent.intake_diagnostics import diagnostics
 from agent.coordinator import RouteCoordinator
 from agent.tool_layer import ToolRegistry, ToolResult
 from core.schemas import ParsedIntent
 from travel.provider import TravelFailure
-from travel.schemas import Draft, DraftRequest, DraftSubmission
+from travel.schemas import Draft, DraftRequest, DraftSubmission, DraftValidationDiagnostics, DraftValidationIssue
 
 SUPPORTED_VERSION = "0.2.9"
 
@@ -49,15 +50,19 @@ def status():
 def validate_submission(request: DraftRequest, arguments: dict) -> DraftSubmission:
     try:
         proposal = DraftSubmission.model_validate(arguments)
-    except ValidationError:
-        raise TravelFailure("invalid_agent_output", "模型草案不符合字段契约，请重新描述或直接填写表单", status=422) from None
+    except ValidationError as error:
+        raise TravelFailure("invalid_agent_output", "模型草案不符合字段契约，请重新描述或直接填写表单", status=422,
+                            draft_validation=diagnostics(error.errors(include_input=False,include_context=False,include_url=False))) from None
     fields = {key for key,value in proposal.values.model_dump().items() if value is not None}
     if set(proposal.evidence) != fields or any(not quote.strip() or quote not in request.text for quote in proposal.evidence.values()):
-        raise TravelFailure("ungrounded_agent_output", "模型字段缺少原始需求依据，请直接核对表单", status=422)
+        raise TravelFailure("ungrounded_agent_output", "模型字段缺少原始需求依据，请直接核对表单", status=422,
+                            draft_validation=DraftValidationDiagnostics(issues=[DraftValidationIssue(path="evidence",reason="ungrounded")]))
     if any(not item.strip() or item not in request.text for item in proposal.unhandled_requirements):
-        raise TravelFailure("ungrounded_agent_output", "未处理需求必须引用用户原文", status=422)
+        raise TravelFailure("ungrounded_agent_output", "未处理需求必须引用用户原文", status=422,
+                            draft_validation=DraftValidationDiagnostics(issues=[DraftValidationIssue(path="unhandled_requirements",reason="ungrounded")]))
     if any(hint is not None and hint not in request.text for hint in (proposal.values.origin_hint, proposal.values.destination_hint)):
-        raise TravelFailure("ungrounded_agent_output", "起终点提示必须保留用户原文，选点须使用真实搜索", status=422)
+        raise TravelFailure("ungrounded_agent_output", "起终点提示必须保留用户原文，选点须使用真实搜索", status=422,
+                            draft_validation=DraftValidationDiagnostics(issues=[DraftValidationIssue(path="values",reason="ungrounded")]))
     return proposal
 
 
@@ -117,10 +122,11 @@ def create_draft(request: DraftRequest, emit, *, llm=None) -> Draft:
     client = llm._client
     proposal = None
     called = False
+    submission_failure = None
     registry = ToolRegistry()
 
     def submit(**arguments):
-        nonlocal proposal, called
+        nonlocal proposal, called, submission_failure
         if called:
             return ToolResult(tool="submit_draft",status="failed",error="duplicate_draft_submission")
         called = True
@@ -128,6 +134,7 @@ def create_draft(request: DraftRequest, emit, *, llm=None) -> Draft:
             proposal = validate_submission(request, arguments)
             return ToolResult(tool="submit_draft",payload={"accepted":True},fallback_used=False)
         except TravelFailure as error:
+            submission_failure = error
             return ToolResult(tool="submit_draft",status="failed",error=error.code)
     registry.register("submit_draft", submit)
 
@@ -144,6 +151,9 @@ def create_draft(request: DraftRequest, emit, *, llm=None) -> Draft:
                 raise TravelFailure("unknown_tool", "需求解析工具不允许查询数据或执行规划", status=422)
             result = registry.run(name,**arguments)
             if result.status != "ok":
+                if submission_failure is not None:
+                    emit("draft_rejected", "模型需求未通过校验，请核对提示或直接填写规划表单")
+                    raise submission_failure
                 raise TravelFailure(result.error or "invalid_agent_output", "需求草案校验失败，请重新描述或直接填写表单", status=422)
             emit("draft_validated", "草案字段及原文依据已通过 Schema 校验")
             return json.dumps(result.payload)

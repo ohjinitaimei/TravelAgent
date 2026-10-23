@@ -53,6 +53,53 @@ def draft_fixture_worker(payload, output):
 
 
 class AgentTests(unittest.TestCase):
+    def test_worker_serializes_safe_diagnostics_and_grounding_uses_same_contract(self):
+        from queue import Queue
+        from travel.worker import run
+        original=create_draft
+        output=Queue()
+        with patch('agent.travel_intake.create_draft',lambda request,emit:original(request,emit,llm=FixtureLLM({'values':{'days':True},'evidence':{}}))):
+            run({'kind':'draft','request':PAYLOAD},output)
+        records=[]
+        while not output.empty():records.append(output.get_nowait())
+        error=next(record['data'] for record in records if record['kind']=='error')
+        self.assertEqual(error['draft_validation'],{'issues':[{'path':'values.days','reason':'type'}]})
+        self.assertFalse(error['retryable'])
+        self.assertFalse(any(record['kind']=='result' for record in records))
+        with self.assertRaises(TravelFailure) as failure:
+            validate_submission(DraftRequest.model_validate(PAYLOAD),{'values':{'city':'杭州'},'evidence':{'city':'PRIVATE_NOT_IN_TEXT'}})
+        self.assertEqual(failure.exception.draft_validation.issues[0].reason,'ungrounded')
+        self.assertNotIn('PRIVATE',failure.exception.draft_validation.model_dump_json())
+
+    def test_diagnostics_limit_and_old_errors_remain_readable(self):
+        from travel.schemas import DraftValues, Error
+        arguments={'values':{key:[] for key in DraftValues.model_fields},'evidence':{}}
+        with self.assertRaises(TravelFailure) as error:
+            validate_submission(DraftRequest.model_validate(PAYLOAD),arguments)
+        self.assertEqual(len(error.exception.draft_validation.issues),8)
+        self.assertIsNone(Error.model_validate({'code':'old_error','message':'旧任务'}).draft_validation)
+
+    def test_rejection_diagnostics_are_bounded_and_never_echo_model_data(self):
+        marker='TEST_ONLY_PRIVATE_ENDPOINT_OR_INPUT'
+        arguments={'values':{'day_schedules':[{'day_start':marker,'stay_minutes':True}],marker:marker},'evidence':{}}
+        with self.assertRaises(TravelFailure) as error:
+            validate_submission(DraftRequest.model_validate(PAYLOAD),arguments)
+        details=error.exception.draft_validation
+        self.assertNotIn(marker,details.model_dump_json())
+        self.assertIn({'path':'values.day_schedules.0.day_start','reason':'format'},details.model_dump()['issues'])
+        self.assertIn({'path':'values.day_schedules.0.stay_minutes','reason':'type'},details.model_dump()['issues'])
+        self.assertLessEqual(len(details.issues),8)
+
+    def test_real_framework_preserves_safe_rejection_and_emits_one_event_without_retry(self):
+        llm=FixtureLLM({'values':{'days':True},'evidence':{}})
+        events=[]
+        with self.assertRaises(TravelFailure) as error:
+            create_draft(DraftRequest.model_validate(PAYLOAD),lambda stage,message:events.append((stage,message)),llm=llm)
+        self.assertEqual(error.exception.draft_validation.model_dump(),{'issues':[{'path':'values.days','reason':'type'}]})
+        self.assertEqual(sum(stage=='draft_rejected' for stage,_ in events),1)
+        self.assertEqual(llm.calls,1)
+        self.assertTrue(llm._client.is_closed())
+
     def test_real_framework_function_call_and_existing_coordinator(self):
         llm=FixtureLLM()
         events=[]

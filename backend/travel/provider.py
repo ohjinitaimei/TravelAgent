@@ -8,15 +8,16 @@ from typing import Any
 import httpx
 
 from services.amap_client import AmapClient
-from travel.schemas import Poi, Point, Segment, Source, TimeConstraintDiagnostics, TravelConstraintDiagnostics
+from travel.schemas import Poi, Point, Segment, Source, DraftValidationDiagnostics, TimeConstraintDiagnostics, TravelConstraintDiagnostics
 
 
 class TravelFailure(Exception):
-    def __init__(self, code: str, message: str, retryable: bool = False, status: int = 502, *, time_constraints: TimeConstraintDiagnostics | None = None, travel_constraints: TravelConstraintDiagnostics | None = None, retry_after: int | None = None):
+    def __init__(self, code: str, message: str, retryable: bool = False, status: int = 502, *, time_constraints: TimeConstraintDiagnostics | None = None, travel_constraints: TravelConstraintDiagnostics | None = None, retry_after: int | None = None, draft_validation: DraftValidationDiagnostics | None = None):
         super().__init__(message)
         self.code, self.message, self.retryable, self.status = code, message, retryable, status
         self.time_constraints = time_constraints
         self.travel_constraints = travel_constraints
+        self.draft_validation = draft_validation
         self.retry_after = retry_after
 
 

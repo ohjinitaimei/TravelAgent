@@ -149,3 +149,5 @@ npx playwright install --only-shell chromium firefox webkit
 日常需备份后端 SQLite 业务库；不要把浏览器草稿当备份。已有在线快照、校验和恢复命令，按 [运维说明](architecture/OPERATIONS.md) 与 [发布包/备份说明](architecture/RELEASE_BACKUP.md) 操作，恢复到新路径并验证后再切换。
 
 提交源码不包含 `.env`、安全密钥、SQLite、个人行程、缓存和本机验收 artifacts。当前操作以本地验收和发布包为准；GitHub 上传另行执行。
+
+需求整理若显示“需求校验提示”，可查看具体日期/字段和原因。这是对模型返回内容的校验，不一定是输入有误；原文保留，可修改后手动整理或直接填写规划表单。刷新不会自动重试，具体范围见 [需求校验诊断](architecture/INTAKE_DIAGNOSTICS.md)。
