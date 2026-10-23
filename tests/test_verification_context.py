@@ -1,5 +1,6 @@
 """TEST ONLY Git/source/build fixtures; no credentials, npm or external API calls."""
 from copy import deepcopy
+import hashlib
 import json
 from pathlib import Path
 import subprocess
@@ -155,6 +156,24 @@ class VerificationContextTests(unittest.TestCase):
         (self.dist / "index.html").unlink()
         with self.assertRaises(ValueError):
             tree_digest(self.dist)
+
+    def test_build_entries_use_case_sensitive_posix_order_for_mixed_case_asset_hashes(self):
+        # TEST ONLY Vite-shaped names reproduce Windows Path's case-insensitive
+        # ordering, which differs from the archive's POSIX string inventory.
+        files = {
+            "assets/index-DbXCfATh.js": b"// TEST ONLY mixed case JS hash\n",
+            "assets/index-DL2Xdrmd.css": b"/* TEST ONLY mixed case CSS hash */\n",
+            "assets/app.js": b"// TEST ONLY compiled fixture\n",
+            "index.html": b"<html>TEST ONLY production-shaped build</html>\n",
+        }
+        for name, data in files.items():
+            (self.dist / name).write_bytes(data)
+        canonical = ["assets/app.js", "assets/index-DL2Xdrmd.css", "assets/index-DbXCfATh.js", "index.html"]
+        result = tree_digest(self.dist)
+        self.assertEqual(result["files"], [
+            {"path": name, "bytes": len(files[name]), "sha256": hashlib.sha256(files[name]).hexdigest()}
+            for name in canonical
+        ])
 
     def test_build_symlink_entries_and_root_are_rejected_before_following(self):
         # Deterministic symlink metadata fault injection also runs on Windows

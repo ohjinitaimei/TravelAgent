@@ -53,7 +53,7 @@ def tree_digest(folder):
     folder=Path(folder)
     if folder.is_symlink():raise ValueError('Build root cannot be a symlink')
     folder=folder.resolve();files=[]
-    for path in sorted(folder.rglob('*')):
+    for path in sorted(folder.rglob('*'),key=lambda path:path.relative_to(folder).as_posix()):
         if path.is_symlink():raise ValueError('Build cannot contain symlinks')
         if not path.is_file():continue
         data=path.read_bytes()

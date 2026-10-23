@@ -58,6 +58,7 @@
 | 北京时间参考日 | `apps/web/src/referenceDate.ts` |
 | 真实提取核验 | `scripts/verify_live_clarification.py`、`live_requirements_cases.py` |
 | 回归 | `tests/requirements_input.test.ts`、`reference_date.test.ts`、`test_live_clarification.py`、`tests/browser/requirements.spec.ts`、`auth.spec.ts` |
+| 归档构建清单的跨平台排序 | `scripts/verification_context.py`、`tests/test_verification_context.py` |
 | 执行和说明 | `package.json`、`playwright.config.ts`、README、使用手册、验收/范围说明和源码清单 |
 
 安装和启动仍按 [README](../../README.md) 与 [Web 使用手册](../USER_GUIDE.md)。统一 API Schema、后端草案字段和业务算法继续复用原实现；没有引入新的 Agent、核心依赖或移动端工程。
@@ -68,11 +69,21 @@
 
 保存部分字段后丢失未勾选修改，也已先在 `requirements-ack-preflight-20261024` 复现。修正后 `requirements-ack-targeted-20261024-01` 单项通过，保留了预算单独保存、未勾选城市/逐日输入、刷新恢复及下一次显式保存的证据。
 
-预备完整组 `requirements-accepted-20261024` 在执行期间新增上述回归，源码指纹发生变化，不能作为最终通过。该组 WebKit 本地套件的断言通过，但服务退出未通过，临时日志删除遇 Windows 文件占用；原失败元数据和目录保留。没有放宽退出期限或强制终止来计作通过。最终组使用新的 `requirements-final-20261024`，完整记录与结论以该组为准。
+预备完整组 `requirements-accepted-20261024` 在执行期间新增上述回归，源码指纹发生变化，不能作为最终通过。该组 WebKit 本地套件的断言通过，但服务退出未通过，临时日志删除遇 Windows 文件占用；原失败元数据和目录保留。没有放宽退出期限或强制终止来计作通过。输入保护功能随后使用新的 `requirements-final-20261024` 完整复验。
 
-最终组 Python 309、TypeScript 95、三引擎各 58 项本地工作台 + 16 项账号 + 26 项生产构建恢复流程全部通过，合计 504 个逻辑用例、704 次执行；零跳过/自动重试，九套浏览器服务均正常退出。本次 WebKit 的关闭异常未复现。类型、无密钥生产构建、OpenAPI/TS 一致性及源码/Web 字节绑定通过，本地 HTTPS 另有 29 项通过，未修改系统证书信任。
+该功能组 Python 309、TypeScript 95、三引擎各 58 项本地工作台 + 16 项账号 + 26 项生产构建恢复流程全部通过，合计 504 个逻辑用例、704 次执行；零跳过/自动重试，九套浏览器服务均正常退出。本次 WebKit 的关闭异常未复现。类型、无密钥生产构建、OpenAPI/TS 一致性及源码/Web 字节绑定通过，本地 HTTPS 另有 29 项通过，未修改系统证书信任。
 
-证据入口为 `artifacts/repository-runs/requirements-final-20261024/report.json`、`artifacts/browser-runs/requirements-final-20261024/summary.json` 和同组九套完整报告，以及 `artifacts/drill-runs/requirements-final-20261024/deployment/`。同一干净提交的 ZIP、SHA256SUMS 与启动结果在 `artifacts/releases/`；恢复和候选门禁使用同一 run ID 与归档 SHA，分别保存在 `artifacts/drill-runs/requirements-final-20261024/recovery/` 和 `artifacts/candidate-runs/requirements-final-20261024/report.json`。这些入口只有报告明确通过才构成验收证据，不将其他归档或历史记录拼接为当前通过。
+该功能组证据入口为 `artifacts/repository-runs/requirements-final-20261024/report.json`、`artifacts/browser-runs/requirements-final-20261024/summary.json` 和同组九套完整报告，以及 `artifacts/drill-runs/requirements-final-20261024/deployment/`。首次归档没有生成，因此未执行该组的归档启动、恢复或候选门禁；以下排序修复后的新组才用于最终交付。
+
+## 归档清单的 Windows 排序修复
+
+输入保护提交 `a2d0475` 的上述 704 次检查通过后，首次归档被严格构建比较拒绝，没有生成 ZIP。原因是 Windows `Path` 自然排序忽略大小写，而归档按 POSIX 路径字符串排序；本次 Vite 的 JS/CSS 哈希名称混合大小写，出现相同文件、大小和 SHA256，列表顺序却不同。原失败依据单独保留在 `artifacts/requirements-package-preflight-20261024.json`。
+
+新增一个混合大小写资源名称用例，旧实现先失败；`tree_digest` 统一按相对 POSIX 字符串排序后，相关源码/构建、归档和候选证据回归共 31 项通过。没有修改文件内容、哈希算法或符号链接拒绝规则，也没有直接改写原通过报告。由于验收工具源码发生变化，重新使用 `requirements-portable-20261024` 执行完整仓库、三引擎和 HTTPS 检查；最终归档、恢复及候选门禁须采用该新组。
+
+该最终组 Python 310、TypeScript 95、三引擎各 58 + 16 + 26 项全部通过，共 505 个逻辑用例、705 次执行，零跳过/自动重试。类型/构建、OpenAPI/TS 一致性、九套服务正常退出及源码/Web 字节绑定通过；同组 HTTPS 29 项通过，临时资源清理完成，外部调用为零、系统证书信任未修改。
+
+最终证据入口为 `artifacts/repository-runs/requirements-portable-20261024/report.json`、`artifacts/browser-runs/requirements-portable-20261024/summary.json` 和九套完整报告，以及 `artifacts/drill-runs/requirements-portable-20261024/deployment/`。干净提交的 ZIP、SHA256SUMS 与四项归档独立启动结果在 `artifacts/releases/`；同一 ZIP 的恢复与候选门禁分别保存在 `artifacts/drill-runs/requirements-portable-20261024/recovery/` 和 `artifacts/candidate-runs/requirements-portable-20261024/report.json`。这些入口只有报告明确通过才构成证据，不将其他归档、旧源码或历史模型记录混为当前通过。真实模型结果继续单列如下。
 
 ## 真实模型结果与能力边界
 
