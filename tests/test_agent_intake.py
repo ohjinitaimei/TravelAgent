@@ -53,6 +53,30 @@ def draft_fixture_worker(payload, output):
 
 
 class AgentTests(unittest.TestCase):
+    def test_evidence_value_types_fail_without_coercion_or_silent_dropping(self):
+        for evidence in ({'city':None},{'city':['杭州']},{'city':{'quote':'杭州'}}):
+            llm=FixtureLLM({'values':{'city':'杭州'},'evidence':evidence})
+            with self.subTest(evidence_type=type(evidence['city']).__name__),self.assertRaises(TravelFailure) as failure:
+                create_draft(DraftRequest.model_validate(PAYLOAD),lambda *_:None,llm=llm)
+            self.assertEqual(failure.exception.code,'invalid_agent_output')
+            self.assertEqual(failure.exception.draft_validation.issues[0].path,'evidence')
+            self.assertEqual(failure.exception.draft_validation.issues[0].reason,'type')
+            self.assertEqual(llm.calls,1)
+
+    def test_partial_unknowns_with_sparse_string_evidence_keep_nulls(self):
+        text='TEST ONLY 杭州博物馆，两天，第一天14点开始，第二天16点结束'
+        arguments={'values':{'city':'杭州','query':'博物馆','days':2,'budget':None,'mode':None,
+            'day_schedules':[{'day_start':'14:00','day_end':None,'stay_minutes':None},{'day_start':None,'day_end':'16:00','stay_minutes':None}]},
+            'evidence':{'city':'杭州','query':'博物馆','days':'两天','day_schedules':'第一天14点开始，第二天16点结束'}}
+        llm=FixtureLLM(arguments)
+        result=create_draft(DraftRequest(text=text,reference_date='2026-10-24'),lambda *_:None,llm=llm)
+        self.assertIsNone(result.proposal.values.mode)
+        self.assertIsNone(result.proposal.values.budget)
+        self.assertIsNone(result.proposal.values.day_schedules[0].day_end)
+        self.assertNotIn('budget',result.proposal.evidence)
+        self.assertEqual(result.confirmed_fields,[])
+        self.assertEqual(llm.calls,1)
+
     def test_worker_serializes_safe_diagnostics_and_grounding_uses_same_contract(self):
         from queue import Queue
         from travel.worker import run

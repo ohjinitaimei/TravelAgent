@@ -455,8 +455,8 @@
     },
     {
       "path": "backend/agent/travel_intake.py",
-      "bytes": 13004,
-      "sha256": "70d6b8de379cc86f451ed2d54f286f9c7ab842385e7bc1bf2d191b5906a721ef"
+      "bytes": 13387,
+      "sha256": "4becddb5b407186645fed8a0929af9ef0c9b19414f0cf79d56322e7410baed8c"
     },
     {
       "path": "backend/agent/travel_tool_bridge.py",
@@ -990,8 +990,8 @@
     },
     {
       "path": "docs/ACCEPTANCE.md",
-      "bytes": 32261,
-      "sha256": "35d68a209a1701a126752ededc7536090c0134a9974fa0b01a6ec7d4c1583e59"
+      "bytes": 32803,
+      "sha256": "db1ec67be1a9e7377ee7fae8d3e6f5ffd2ef6b24893fd930309580960223fe07"
     },
     {
       "path": "docs/README.md",
@@ -1000,8 +1000,8 @@
     },
     {
       "path": "docs/RELEASE_STATUS.md",
-      "bytes": 22012,
-      "sha256": "1777e4d881692fab1884eec1f922a91d6cc64ee32cfa27a9de6f618ea195e180"
+      "bytes": 22498,
+      "sha256": "91ac5f5ebb91bfeb0ea75c22dbc1770bcf4f3d72d0d7d324675fa37054124999"
     },
     {
       "path": "docs/TECHNICAL_REPORT.md",
@@ -1100,8 +1100,8 @@
     },
     {
       "path": "docs/architecture/INTAKE_DIAGNOSTICS.md",
-      "bytes": 3799,
-      "sha256": "810c9d55c3b6a011aa884b8b4a231a6fd3e33e3c4113649873417e73c31b3197"
+      "bytes": 6620,
+      "sha256": "211d954f8c16c9f7d9329d72bc4b56b382e226e1827d1345873c3fe87df49321"
     },
     {
       "path": "docs/architecture/JOURNEY_ENDPOINTS_DESIGN.md",
@@ -1150,8 +1150,8 @@
     },
     {
       "path": "docs/architecture/OPTIMIZATION_PROGRAM.md",
-      "bytes": 21671,
-      "sha256": "b61949476eba90d9bdc9df69283cd9db7362667a224fed70649d5554568f39c4"
+      "bytes": 22035,
+      "sha256": "7e9bdac8a7a855f874fe8879e1118a90dabdd07ea3fff2441576b3d6d7db9928"
     },
     {
       "path": "docs/architecture/POI_COMPARISON.md",
@@ -1655,8 +1655,8 @@
     },
     {
       "path": "tests/test_agent_intake.py",
-      "bytes": 13838,
-      "sha256": "111ec6b7c2ce1639492da44bfebf826e58bf0c779f187d001ff6fc0ed1fe4b3e"
+      "bytes": 15633,
+      "sha256": "efcef73b20caf41b67508167791dd1eff14e3239a423773afe8f882b27ee9f93"
     },
     {
       "path": "tests/test_auth.py",

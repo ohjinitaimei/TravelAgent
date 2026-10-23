@@ -173,6 +173,9 @@ def create_draft(request: DraftRequest, emit, *, llm=None) -> Draft:
 day_schedules/max_leg_travel_minutes/max_daily_travel_minutes/origin_hint/destination_hint。
 未明确表达的字段设为 null，不填默认值，不生成地点、坐标、价格、交通或营业信息。
 每个非 null 字段必须在 evidence 中提供用户原文连续引用，键名与 values 字段一致。
+evidence 是“字段名: 原文字符串”的对象，所有值只能是字符串，不能是 null、数组或嵌套对象。
+values 中未知字段可为 null，但 evidence 中必须完全省略这些未知字段的键；不能用 null 占位。
+逐日安排的 evidence.day_schedules 也只能是一段覆盖逐日要求的原文字符串，不是逐日引用数组或对象。
 无法落入字段的要求在 unhandled_requirements 中逐项引用原文，不宣称满足这些要求。
 walking=步行，driving=驾车。出发日期可参考给定日期解析，但有歧义应设 null。
 day_schedules按第1天至末日排列，项内day_start/day_end/stay_minutes只填明确表达的值，缺项为null。
