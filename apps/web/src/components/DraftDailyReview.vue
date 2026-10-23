@@ -10,9 +10,9 @@ function change(index:number,key:keyof DraftDayInput,event:Event) {
   if(!next?.[index])return
   if(key==='stay_minutes')next[index].stay_minutes=raw===''?null:Number(raw)
   else next[index][key]=raw
-  emit('change',next);emit('select',true)
+  emit('change',next)
 }
-function set(value:DraftDayInput[]|null) {emit('change',value);emit('select',true)}
+function set(value:DraftDayInput[]|null) {emit('change',value)}
 </script>
 
 <template>

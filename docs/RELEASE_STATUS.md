@@ -1,10 +1,12 @@
 # 功能范围与后续计划
 
-更新日期：2026-10-23。本文记录可运行范围、可复现验收和后续交付条件；逐项验收步骤见 [ACCEPTANCE.md](ACCEPTANCE.md)。
+更新日期：2026-10-24。本文记录可运行范围、可复现验收和后续交付条件；逐项验收步骤见 [ACCEPTANCE.md](ACCEPTANCE.md)。
 
 使用入口：[Web 使用手册](USER_GUIDE.md)。完整用户流程见 [WEB_USER_JOURNEY.md](architecture/WEB_USER_JOURNEY.md)，路途负担及交通上限见 [TRAVEL_LOAD_LIMITS.md](architecture/TRAVEL_LOAD_LIMITS.md)，共享节流见 [AMAP_REQUEST_PACING.md](architecture/AMAP_REQUEST_PACING.md)，逐日选择见 [DAILY_ENDPOINTS.md](architecture/DAILY_ENDPOINTS.md)，最新逐日时段和真实 Web/MCP 复验见 [DAILY_SCHEDULES.md](architecture/DAILY_SCHEDULES.md)。
 
 ## 已实现
+
+- 未提交原文/补充/勾选/逐日修改跨栏目保留，按账号本机备份并显式恢复；只清实际提交字段，未勾选修改保留，旧来源及跨页写入先核对。新草案即时取北京时间参考日，已受理恢复沿用原请求。真实模型验收增加全 15 字段与局部空值固定场景，见 [REQUIREMENTS_INPUT_RECOVERY.md](architecture/REQUIREMENTS_INPUT_RECOVERY.md)。
 
 - Web 服务状态区分首次读取、连接失败、本次配置及上次快照，分别说明地图数据、地图组件/代理、模型整理和工具传输；只读刷新保留输入，地图首绘失败可手动恢复，首账号配置可重新检查。direct 工具检查不依赖可选 MCP，见 [WEB_SERVICE_RECOVERY.md](architecture/WEB_SERVICE_RECOVERY.md)。
 
@@ -49,11 +51,15 @@
 
 ## 验证边界
 
+2026-10-24 真实模型固定两次草案调用：完整 15 字段场景通过；局部逐日场景返回 `invalid_agent_output`，没有生成草案或默认补齐结果。未追加调用，整体真实模型检查按失败记录。现有日志缺少具体校验路径，后续先增加安全诊断，再在明确预算内复验；用户可直接填写表单。任务共保存一份草案、零行程，没有高德/SDK 调用；服务正常退出，精确临时目录清理完成，见 [REQUIREMENTS_INPUT_RECOVERY.md](architecture/REQUIREMENTS_INPUT_RECOVERY.md)。
+
 2026-10-22 逐日时段阶段：南京两日真实 Web 原规划、按日修改默认/显式应用/刷新恢复/保存与来源对照通过，同一原请求的真实 MCP 通过来源、往返和逐日调度核验。页面 8 次 POI 读取成功，服务正常退出；调用预留上限 36，不是账单计数。长步行负担仍如实提示。详细时间和未重跑范围见 [DAILY_SCHEDULES.md](architecture/DAILY_SCHEDULES.md)。本轮只保存在本地。
 
 历史环境已验证真实模型需求提取及 Web 代理到后端的草案补充 HTTP 链路。自动验收中的成功行程使用 tests 中隔离的 FixtureProvider。2026-10-19 另以用户授权的高德 Web 服务 Key 完成直接 Provider 与 MCP 的真实 POI/路线/异步规划，以及多日调整版本、Web 保存重开与刷新复查；未使用 FixtureProvider、模拟交通或模型补事实。同日配置独立 JS API 授权后，Chromium 实测通过真实底图、编号标记、道路折线、跨天切换和刷新恢复，详细边界见 [LIVE_AMAP.md](architecture/LIVE_AMAP.md)。
 
-服务状态与恢复组当前检查集规模为 467 个逻辑用例、651 次执行：Python 300、共享客户端/展示逻辑 75、页面 92 个场景 × 3 引擎 = 276，九份完整报告通过，详见 [WEB_SERVICE_RECOVERY.md](architecture/WEB_SERVICE_RECOVERY.md)。C 包历史检查规模为 443 个逻辑用例、615 次执行：Python 295、共享客户端/展示逻辑 62、页面 86 个场景 × 3 引擎 = 258。C 包完整仓库、类型/生产构建、Schema 及三引擎九份报告通过；本地 HTTPS、同一干净发布归档启动、完整记录备份恢复/回退另行核验，由候选入口统一检查源码/Web/归档 SHA 及服务退出。预备源码变动的报告明确拒绝，不混作最终证据。实际范围见 [LOCAL_RELEASE_CANDIDATE.md](architecture/LOCAL_RELEASE_CANDIDATE.md)。没有核心依赖升级、真实模型/高德新调用或GitHub上传，原 Flutter 保留。
+需求输入保护最终组当前检查集规模为 504 个逻辑用例、704 次执行：Python 309、共享客户端/展示逻辑 95、页面 100 个场景 × 3 引擎 = 300，九份完整报告通过；类型、生产构建、Schema 和源码/Web 绑定通过，同组本地 HTTPS 29 项通过。实际范围、预备失败和真实模型两次的分别结果见 [REQUIREMENTS_INPUT_RECOVERY.md](architecture/REQUIREMENTS_INPUT_RECOVERY.md)。没有核心依赖升级、高德新调用或 GitHub 上传，原 Flutter 保留。
+
+服务状态与恢复历史组为 467 个逻辑用例、651 次执行，详见 [WEB_SERVICE_RECOVERY.md](architecture/WEB_SERVICE_RECOVERY.md)。C 包历史检查规模为 443 个逻辑用例、615 次执行：Python 295、共享客户端/展示逻辑 62、页面 86 个场景 × 3 引擎 = 258。C 包完整仓库、类型/生产构建、Schema 及三引擎九份报告通过；本地 HTTPS、同一干净发布归档启动、完整记录备份恢复/回退另行核验，由候选入口统一检查源码/Web/归档 SHA 及服务退出。预备源码变动的报告明确拒绝，不混作最终证据。实际范围见 [LOCAL_RELEASE_CANDIDATE.md](architecture/LOCAL_RELEASE_CANDIDATE.md)。
 
 2026-10-22 交通上限阶段历史记录：两次真实尝试，第一次验证脚本在任务仍运行时结束；第二次单日原规划、路途负担、返程超限与刷新恢复通过，清除后保存遇高德 10021 限流而失败，真实 MCP 后续复验未执行。两次预算上界 71，不是账单计数，没有继续追加外部调用。详情见 [TRAVEL_LOAD_LIMITS.md](architecture/TRAVEL_LOAD_LIMITS.md)。该交通上限阶段未重跑真实 SDK/模型、HTTPS、灾备、人工读屏或真机，未上传 GitHub。 同日共享节流阶段已手动通过原规划、超限诊断、草稿恢复、清除后新版本保存与真实 MCP，页面 POI 读取 4 次均成功，来源版本保持；详情与脚本文字断言首次失败见 [AMAP_REQUEST_PACING.md](architecture/AMAP_REQUEST_PACING.md)。
 

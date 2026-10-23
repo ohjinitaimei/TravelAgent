@@ -21,6 +21,8 @@ import RequestAssistant from './components/RequestAssistant.vue'
 import ToolConnection from './components/ToolConnection.vue'
 import ServiceStatusPanel from './components/ServiceStatusPanel.vue'
 import { initialServiceSnapshot, ServiceMonitor, serviceSummary } from './serviceStatus'
+import { intakeReferenceDate } from './referenceDate'
+import { RequirementsInputStore, RequirementsInputConflict, requirementsInputKey, emptyRequirementsInput, requirementsHasChanges, requirementsSourceMatches, ackRequirementsText, ackRequirementsReview, clearRequirementsReview } from './requirementsInput'
 import OptimizationComparison from './components/OptimizationComparison.vue'
 import PlanningComparison from './components/PlanningComparison.vue'
 import DayOverview from './components/DayOverview.vue'
@@ -57,6 +59,13 @@ const task = ref<Task | null>(null), events = ref<TravelEvent[]>([])
 const itinerary = ref<Itinerary | null>(null), saved = ref<Itinerary[]>([]), savedTotal=ref(0)
 const draft = ref<Draft|null>(null)
 const draftConflict = ref(false)
+const requirementsInput=ref(emptyRequirementsInput())
+let requirementsStore=new RequirementsInputStore(props.user.id)
+const recoverableRequirements=ref(requirementsStore.draft),requirementsIssue=ref(requirementsStore.issue),requirementsStorageConflict=ref(false)
+const requirementsRecoveryPending=ref(Boolean(requirementsStore.draft||requirementsStore.issue&&!requirementsStore.unavailable))
+const requirementsMismatch=computed(()=>Boolean(requirementsInput.value.clarification&&!requirementsSourceMatches(requirementsInput.value,draft.value)))
+const requirementsDirty=computed(()=>requirementsHasChanges(requirementsInput.value))
+const requirementsUnsafe=computed(()=>requirementsDirty.value&&Boolean(requirementsIssue.value||requirementsRecoveryPending.value||requirementsStorageConflict.value))
 const pending = ref<PendingSubmission|null>(restoreSubmission(session.pendingSubmission))
 const appliedDraft=ref(session.appliedDraft??null)
 const staleDraft=computed(()=>Boolean(appliedDraft.value&&draft.value&&(appliedDraft.value.id!==draft.value.id||appliedDraft.value.revision!==(draft.value.revision??1))))
@@ -205,6 +214,58 @@ function editStorageChanged(event:StorageEvent) {
   if(editing.value) {persistEdit();return}
   editStore=new EditDraftStore(props.user.id);recoverableEdit.value=editStore.draft;editStorageIssue.value=editStore.issue;editStorageConflict.value=false
 }
+function requirementsStorageFailure(value:unknown) {
+  if(value instanceof RequirementsInputConflict) {requirementsStorageConflict.value=true;requirementsIssue.value='需求输入已在其他页面变化。本页内容保留，请读取最新需求备份后核对。'}
+  else requirementsIssue.value='需求输入未能保存到本机，请保持页面打开；仍可直接整理或保存补充。'
+}
+function persistRequirements() {
+  if(disposed||requirementsRecoveryPending.value||requirementsStorageConflict.value)return
+  try {
+    if(requirementsDirty.value)requirementsStore.write({version:1,input:requirementsInput.value,updatedAt:Date.now()})
+    else if(requirementsStore.draft)requirementsStore.clear()
+    requirementsIssue.value=''
+  }catch(value){requirementsStorageFailure(value)}
+}
+function restoreRequirements() {
+  const backup=recoverableRequirements.value
+  if(!backup||busy.value||active.value||requirementsStorageConflict.value)return
+  try {
+    requirementsStore.check()
+    requirementsRecoveryPending.value=false;recoverableRequirements.value=null
+    requirementsInput.value=JSON.parse(JSON.stringify(backup.input))
+    requirementsIssue.value='';notice.value='已恢复本机需求输入，请核对后显式提交；没有自动整理或保存补充。'
+    persistRequirements()
+  }catch(value){requirementsStorageFailure(value)}
+}
+function discardRequirementsBackup() {
+  if(busy.value||active.value||requirementsStorageConflict.value)return
+  try {
+    requirementsStore.clear();recoverableRequirements.value=null;requirementsRecoveryPending.value=false;requirementsIssue.value=''
+    notice.value='已放弃本机需求备份，服务器草案不变。'
+  }catch(value){requirementsStorageFailure(value)}
+}
+function readLatestRequirements() {
+  requirementsStore=new RequirementsInputStore(props.user.id)
+  recoverableRequirements.value=requirementsStore.draft;requirementsIssue.value=requirementsStore.issue;requirementsStorageConflict.value=false
+  requirementsRecoveryPending.value=Boolean(requirementsStore.draft||requirementsStore.issue&&!requirementsStore.unavailable)
+  if(!requirementsRecoveryPending.value)notice.value='当前没有可恢复的需求备份；本页输入保留。'
+}
+function requirementsStorageChanged(event:StorageEvent) {
+  if(event.key!==null&&event.key!==requirementsInputKey(props.user.id))return
+  try{requirementsStore.check()}catch(value){requirementsStorageFailure(value)}
+}
+function acknowledgeRequirementsText(value:Draft) {
+  requirementsInput.value=ackRequirementsText(requirementsInput.value,value.input.text)
+  const backup=recoverableRequirements.value
+  if(requirementsRecoveryPending.value&&backup&&!backup.input.clarification&&backup.input.text===value.input.text) {
+    // A recovered task receipt proves this exact raw text is already stored by the server.
+    try{requirementsStore.clear();recoverableRequirements.value=null;requirementsRecoveryPending.value=false;requirementsIssue.value=''}catch(error){requirementsStorageFailure(error)}
+  }
+}
+function discardRequirementsReview() {
+  requirementsInput.value=clearRequirementsReview(requirementsInput.value)
+  notice.value='已放弃未保存补充，请核对当前服务器草案；需求原文保留。'
+}
 function requestLeave(run:()=>void|Promise<void>,action:string,trigger?:EventTarget|null) {
   if(editDirty.value) {discardIntent.value={run,action,returnFocus:trigger instanceof HTMLElement?trigger:document.activeElement as HTMLElement|null};return}
   void run()
@@ -216,7 +277,7 @@ function discardAndContinue() {
 }
 function exitEdit(event?:MouseEvent) {requestLeave(()=>{if(clearLocalEdit()){clearEditor();notice.value='已退出编辑，显示已保存版本。'}},'放弃修改并退出编辑',event?.currentTarget)}
 function logout(event?:MouseEvent) {requestLeave(()=>{clearEditor();emit('logout')},'放弃修改并退出登录',event?.currentTarget)}
-function beforeUnload(event:BeforeUnloadEvent) {persistEdit();if(editDirty.value){event.preventDefault();event.returnValue=''}}
+function beforeUnload(event:BeforeUnloadEvent) {persistEdit();persistRequirements();if(editDirty.value||requirementsUnsafe.value){event.preventDefault();event.returnValue=''}}
 async function selectStop(id:string,fromMap=false) {
   if(![...visiblePois.value,mapAnchors.value.origin,mapAnchors.value.destination].some(poi=>poi?.id===id)) return
   selectedStopId.value=id
@@ -224,7 +285,8 @@ async function selectStop(id:string,fromMap=false) {
 }
 watch([selectedDay,()=>itinerary.value?.id],()=>{selectedStopId.value=null})
 watch(visiblePois,pois=>{if(selectedStopId.value&&![...pois,mapAnchors.value.origin,mapAnchors.value.destination].some(poi=>poi?.id===selectedStopId.value))selectedStopId.value=null})
-watch(editDirty,value=>{if(value)window.addEventListener('beforeunload',beforeUnload);else window.removeEventListener('beforeunload',beforeUnload)})
+watch(()=>editDirty.value||requirementsUnsafe.value,value=>{if(value)window.addEventListener('beforeunload',beforeUnload);else window.removeEventListener('beforeunload',beforeUnload)})
+watch(requirementsInput,persistRequirements,{deep:true})
 watch([captureEdit,editing,selectedDay],persistEdit,{deep:true})
 function mergeEvents(items: TravelEvent[]) { events.value = [...new Map([...events.value,...items].map(e=>[e.id,e])).values()].sort((a,b)=>a.id-b.id) }
 function updateSaved(value:{items:Itinerary[];total?:number|null}) {saved.value=value.items;savedTotal.value=value.total??value.items.length}
@@ -245,7 +307,7 @@ async function follow(created: Task) {
     task.value = final
     resultPending.value = final.status === 'succeeded'
     if (final.status === 'succeeded' && final.kind==='draft' && final.draft_id) {
-      draft.value=await api.draft(final.draft_id);session.draftId=draft.value.id;persist()
+      draft.value=await api.draft(final.draft_id);session.draftId=draft.value.id;acknowledgeRequirementsText(draft.value);persist()
       resultPending.value=false
       draftConflict.value=false
       notice.value='需求草案已生成，请核对后填入表单'
@@ -304,13 +366,15 @@ async function generate(event?:SubmitEvent) {
 async function parseDescription(text:string) {
   if(busy.value||active.value) return
   error.value=''
-  await submitOperation({kind:'draft',request:{text,reference_date:localDate}})
+  await submitOperation({kind:'draft',request:{text,reference_date:intakeReferenceDate()}})
 }
 async function clarifyDraft(request:Schema<'DraftClarificationRequest'>) {
   if(!draft.value||busy.value||active.value) return
   busy.value=true;error.value='';notice.value=''
+  const source=draft.value
   try {
     draft.value=await api.clarifyDraft(draft.value.id,request);draftConflict.value=false
+    requirementsInput.value=ackRequirementsReview(requirementsInput.value,source,draft.value,request)
     notice.value=`第 ${draft.value.revision} 版草案已保存，请重新填入表单并核对；尚未启动规划。`
   } catch(e) {draftConflict.value=e instanceof Error&&'code' in e&&e.code==='draft_revision_conflict';report(e)}
   finally {busy.value=false}
@@ -318,7 +382,7 @@ async function clarifyDraft(request:Schema<'DraftClarificationRequest'>) {
 async function reloadDraft() {
   if(!draft.value||busy.value||active.value) return
   busy.value=true;error.value=''
-  try {draft.value=await api.draft(draft.value.id);draftConflict.value=false;notice.value='已加载最新草案，请重新核对补充字段。'}
+  try {draft.value=await api.draft(draft.value.id);requirementsInput.value=clearRequirementsReview(requirementsInput.value);draftConflict.value=false;notice.value='已加载最新草案，请重新核对补充字段。'}
   catch(e) {report(e)} finally {busy.value=false}
 }
 function applyDraft(value:Draft) {
@@ -478,10 +542,11 @@ function online() {void refreshServices();if(!busy.value&&!restoring.value) {if(
 function offline() {connection.value='offline';serviceMonitor.offline()}
 onMounted(async()=>{
   window.addEventListener('storage',editStorageChanged);window.addEventListener('pagehide',persistEdit)
+  window.addEventListener('storage',requirementsStorageChanged);window.addEventListener('pagehide',persistRequirements)
   window.addEventListener('hashchange',hashChanged);window.addEventListener('online',online);window.addEventListener('offline',offline)
   await synchronize()
 })
-onBeforeUnmount(()=>{disposed=true;serviceMonitor.dispose();stream?.close(); controller?.abort();window.removeEventListener('storage',editStorageChanged);window.removeEventListener('pagehide',persistEdit);window.removeEventListener('hashchange',hashChanged);window.removeEventListener('online',online);window.removeEventListener('offline',offline);window.removeEventListener('beforeunload',beforeUnload)})
+onBeforeUnmount(()=>{disposed=true;serviceMonitor.dispose();stream?.close(); controller?.abort();window.removeEventListener('storage',editStorageChanged);window.removeEventListener('pagehide',persistEdit);window.removeEventListener('storage',requirementsStorageChanged);window.removeEventListener('pagehide',persistRequirements);window.removeEventListener('hashchange',hashChanged);window.removeEventListener('online',online);window.removeEventListener('offline',offline);window.removeEventListener('beforeunload',beforeUnload)})
 </script>
 
 <template>
@@ -497,6 +562,8 @@ onBeforeUnmount(()=>{disposed=true;serviceMonitor.dispose();stream?.close(); con
       <header class="topbar"><span>TRAVEL WORKSPACE <span class="separator">/</span> {{nav.find(n=>n.id===tab)?.label}}</span><span class="local-badge">{{authEnabled?user.username:'本地旅行空间'}}</span><button type="button" class="text-button" :aria-expanded="showServices" aria-controls="service-status" @click="showServices=!showServices">服务状态</button><button v-if="authEnabled" class="text-button" title="已受理的任务会保留在自己的空间" @click="logout">退出登录</button></header>
       <div class="page-heading"><div><div class="eyebrow">PLAN WITH INTENTION</div><h1 ref="pageHeading" tabindex="-1">{{title}}</h1><p>把地点、路线与时间放在一起，规划属于你的旅程。</p></div><span class="heading-tag">Web 工作台 <span>01</span></span></div>
       <ServiceStatusPanel v-if="showServices" :state="serviceState" :map-state="mapState" :map-visible="tab==='plan'||tab==='explore'" @refresh="refreshServices"/>
+      <section v-if="requirementsRecoveryPending||requirementsIssue||requirementsStorageConflict" class="config-note connection-note" aria-label="本机需求输入"><div><p role="status">{{requirementsIssue||(recoverableRequirements?'发现未提交的需求输入备份（保留 7 天），恢复后须核对并显式提交。':'本机需求备份无法恢复，可明确放弃后继续。')}}备份仅属于此浏览器、此账号。</p><small v-if="recoverableRequirements">备份时间：{{new Date(recoverableRequirements.updatedAt).toLocaleString('zh-CN')}}</small></div><div><button v-if="requirementsStorageConflict" class="secondary" @click="readLatestRequirements">读取最新需求备份</button><template v-else-if="requirementsRecoveryPending"><button v-if="recoverableRequirements" class="secondary" :disabled="busy||active" @click="restoreRequirements">恢复需求输入</button><button class="text-button" :disabled="busy||active" @click="discardRequirementsBackup">放弃本机需求备份</button></template></div></section>
+      <section v-if="requirementsMismatch" class="config-note connection-note" aria-label="需求补充来源变化"><p role="status">草案版本已变化，未保存补充仍保留供核对，不会套用到新草案。请先核对来源；明确放弃后才按当前版本补充。</p><button class="secondary" :disabled="busy||active" @click="discardRequirementsReview">放弃未保存补充</button></section>
       <div v-if="error" role="alert" class="alert error"><span>{{error}}</span><button aria-label="关闭错误提示" @click="error=''">×</button></div>
       <div v-if="notice" role="status" class="alert success">{{notice}}</div>
       <div v-if="!editing&&(recoverableEdit||editStorageIssue)" role="region" aria-label="本机编辑草稿" class="config-note connection-note"><span>{{editStorageIssue||'发现未提交的本机编辑草稿（保留 7 天）。恢复前会核对原行程版本和地点。'}}草稿仅保存在此浏览器、此账号下。</span><div><button v-if="recoverableEdit" class="secondary" :disabled="busy||active||editStorageConflict" @click="restoreEdit">恢复编辑草稿</button><button class="text-button" :disabled="busy||active||editStorageConflict" @click="discardLocalEdit">放弃本机草稿</button></div></div>
@@ -515,7 +582,7 @@ onBeforeUnmount(()=>{disposed=true;serviceMonitor.dispose();stream?.close(); con
           <DraftHandoff v-if="appliedSource" :draft="appliedSource" :form="form" :decision="handoffDecision" :disabled="busy||active" @decision="confirmHandoff" @locate="locateEndpoints"/>
         </PlanningForm>
         <div class="workspace-main">
-          <RequestAssistant :draft="draft" :capability="capability" :service-current="serviceState.phase==='ready'" :disabled="busy||active" :conflict="draftConflict" @parse="parseDescription" @apply="applyDraft" @clarify="clarifyDraft" @reload="reloadDraft"/>
+          <RequestAssistant v-model:input="requirementsInput" :draft="draft" :capability="capability" :service-current="serviceState.phase==='ready'" :disabled="busy||active||requirementsRecoveryPending||requirementsStorageConflict" :conflict="draftConflict" @parse="parseDescription" @apply="applyDraft" @clarify="clarifyDraft" @reload="reloadDraft"/>
           <TaskExecution :task="task" :events="events" :task-active="taskActive" :busy="busy" :pending="Boolean(pending)" :restoring="restoring" :editing="editing" :time-guide-editable="timeGuideEditable" :travel-guide-editable="travelGuideEditable" @cancel="cancel" @resume="resume" @retry="retryTask" @time="locateTimeConstraint" @limits="locateTravelLimits"/>
           <section class="card route-workspace">
             <div class="section-title"><div><div class="eyebrow">YOUR ITINERARY</div><h2 id="itinerary-title" tabindex="-1">{{itinerary?.title || '旅程地图与时间轴'}}</h2></div><button v-if="itinerary && !editing" class="secondary" :disabled="active||busy" @click="edit">编辑行程</button></div>

@@ -3,6 +3,7 @@ import type { PendingSubmission } from './submissions'
 import { editDraftKey } from './editDraft'
 import { parseEndpoints } from './endpoints'
 import type { HandoffDecision } from './handoff'
+import { requirementsInputKey } from './requirementsInput'
 
 const KEY = 'travelagent.workspace.v1'
 function key(ownerId:string) {return ownerId==='local'?KEY:`${KEY}.user.${encodeURIComponent(ownerId)}`}
@@ -18,7 +19,7 @@ export function writeSession(value: WorkspaceSession,ownerId='local') {
   try { localStorage.setItem(key(ownerId), JSON.stringify(value)) } catch { /* Private mode/storage quota must not break the workspace. */ }
 }
 
-export function clearSession(ownerId:string) {try {localStorage.removeItem(key(ownerId));localStorage.removeItem(editDraftKey(ownerId))} catch {}}
+export function clearSession(ownerId:string) {try {localStorage.removeItem(key(ownerId));localStorage.removeItem(editDraftKey(ownerId));localStorage.removeItem(requirementsInputKey(ownerId))} catch {}}
 
 export function restoreForm(defaults: PlanForm, stored: unknown): PlanForm {
   if (!stored || typeof stored !== 'object') return defaults

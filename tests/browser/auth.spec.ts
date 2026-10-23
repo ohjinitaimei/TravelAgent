@@ -100,6 +100,42 @@ test('expired session retains an editor draft only for its owner and explicit lo
   await expect(page.getByRole('region',{name:'本机编辑草稿'})).toHaveCount(0)
 })
 
+test('expired session isolates requirement input by owner and explicit logout removes only its owner backup',async({page})=>{
+  await login(page,'test-draft-alpha')
+  const raw='TEST ONLY alpha 未提交的私人需求原文'
+  await page.getByLabel('旅行需求',{exact:true}).fill(raw)
+  const status=await(await page.request.get('/api/v1/travel/auth/status')).json()
+  const key=`travelagent.requirements.v1.${encodeURIComponent(status.user.id)}`
+  await expect.poll(()=>page.evaluate(key=>localStorage.getItem(key),key)).toContain(raw)
+  // TEST ONLY server revocation deliberately bypasses the UI logout cleanup;
+  // expiry must keep an isolated recoverable copy for the same account.
+  expect((await page.request.post('/api/v1/travel/auth/logout',{headers:{'X-CSRF-Token':status.csrf_token}})).ok()).toBeTruthy()
+  await page.getByRole('navigation',{name:'工作台导航',exact:true}).getByRole('button',{name:'已保存行程',exact:true}).click()
+  await expect(page.getByRole('heading',{name:'登录旅行空间',exact:true})).toBeVisible()
+  expect(await page.evaluate(key=>localStorage.getItem(key),key)).toContain(raw)
+  await login(page,'test-draft-beta')
+  await page.getByRole('navigation',{name:'工作台导航',exact:true}).getByRole('button',{name:'行程工作台',exact:true}).click()
+  await expect(page.getByRole('region',{name:'本机需求输入',exact:true})).toHaveCount(0)
+  await expect(page.getByLabel('旅行需求',{exact:true})).toHaveValue('')
+  await expect(page.locator('body')).not.toContainText(raw)
+  await page.getByLabel('旅行需求',{exact:true}).fill('TEST ONLY beta 独立需求')
+  const betaStatus=await(await page.request.get('/api/v1/travel/auth/status')).json()
+  const betaKey=`travelagent.requirements.v1.${encodeURIComponent(betaStatus.user.id)}`
+  await expect.poll(()=>page.evaluate(key=>localStorage.getItem(key),betaKey)).toContain('TEST ONLY beta 独立需求')
+  await page.getByRole('button',{name:'退出登录',exact:true}).click()
+  await expect(page.getByRole('heading',{name:'登录旅行空间',exact:true})).toBeVisible()
+  expect(await page.evaluate(key=>localStorage.getItem(key),betaKey)).toBeNull()
+  expect(await page.evaluate(key=>localStorage.getItem(key),key)).toContain(raw)
+  await login(page,'test-draft-alpha')
+  await page.getByRole('navigation',{name:'工作台导航',exact:true}).getByRole('button',{name:'行程工作台',exact:true}).click()
+  await expect(page.getByLabel('旅行需求',{exact:true})).toBeDisabled()
+  await page.getByRole('region',{name:'本机需求输入',exact:true}).getByRole('button',{name:'恢复需求输入',exact:true}).click()
+  await expect(page.getByLabel('旅行需求',{exact:true})).toHaveValue(raw)
+  await page.getByRole('button',{name:'退出登录',exact:true}).click()
+  await expect(page.getByRole('heading',{name:'登录旅行空间',exact:true})).toBeVisible()
+  expect(await page.evaluate(key=>localStorage.getItem(key),key)).toBeNull()
+})
+
 test('login, refresh and logout use HttpOnly cookies without exposing tokens',async({page,context,browserName},testInfo)=>{
   await page.screenshot({path:testInfo.outputPath('auth-login-test-only.png'),fullPage:true})
   await page.getByLabel('账号',{exact:true}).fill('test-alpha')
