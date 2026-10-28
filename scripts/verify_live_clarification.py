@@ -9,13 +9,13 @@ from urllib.parse import quote
 import httpx
 from browser_runs import run_id
 from live_requirements_cases import (SCENARIOS,CLEAR_FIELDS,USER_UPDATE,RequirementCheckFailed,require,
-    scenario,validate_initial,validate_events,validate_confirmation,validate_user_update,validate_clear)
+    scenario,extraction_mismatches,validate_initial,validate_events,validate_confirmation,validate_user_update,validate_clear)
 
 ROOT=Path(__file__).resolve().parents[1]
 
 
 def verify_http(client,record,*,name,city,departure,reference):
-    case=scenario(name,city,departure);task=None
+    case=scenario(name,city,departure,reference=reference);task=None
     record.update(scenario=name,request={'text':case['text'],'reference_date':reference},expected=case['expected'],
         draft_submission_attempts=0,model_call_upper_bound=1,agent_call_events=None,
         model_call_evidence='persisted adapter event; pinned single-request/no-retry boundary, not provider billing',
@@ -44,6 +44,7 @@ def verify_http(client,record,*,name,city,departure,reference):
         record['live_model']=True
         url='/drafts/'+quote(task['draft_id'],safe='')
         initial=client.get(url).raise_for_status().json();record['initial']=initial
+        record['extraction_mismatches']=extraction_mismatches(initial,case)
         require(initial.get('id')==task['draft_id'],'task_draft_identity')
         require(initial.get('input',{}).get('reference_date')==reference,'reference_date_preserved')
         validate_initial(initial,case,name)

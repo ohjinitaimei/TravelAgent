@@ -15,7 +15,7 @@ from fastapi.testclient import TestClient
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"backend"))
-from agent.travel_intake import create_draft, status, validate_submission
+from agent.travel_intake import create_draft, status, validate_submission, reference_calendar
 from agent.travel_tool_bridge import online_registry
 from travel.provider import AmapClient, AmapProvider, TravelFailure
 from travel.schemas import DraftRequest
@@ -28,13 +28,15 @@ PAYLOAD={"text":TEXT,"reference_date":"2026-10-11"}
 
 
 class FixtureLLM:
-    def __init__(self, arguments=None, name="submit_draft", *, duplicate=False, free_text=False, network_error=False):
+    def __init__(self, arguments=None, name="submit_draft", *, duplicate=False, free_text=False, network_error=False, error_status=None):
         self.model,self.provider,self.temperature,self.max_tokens="test-only","custom",0,1600
         self.calls=0
         def respond(request):
             self.calls+=1
             if network_error:
                 raise httpx.ConnectError("TEST ONLY secret API token upstream URL",request=request)
+            if error_status is not None:
+                return httpx.Response(error_status,json={'error':{'message':'TEST_ONLY_PRIVATE_TOKEN https://private.invalid/secret'}})
             body=json.loads(request.content)
             self.schemas=body["tools"]
             self.messages=body["messages"]
@@ -53,6 +55,55 @@ def draft_fixture_worker(payload, output):
 
 
 class AgentTests(unittest.TestCase):
+    def test_calendar_context_uses_reference_across_year_and_leap_boundaries_without_filling_values(self):
+        from datetime import date
+        for reference,tomorrow in (('2026-12-31','2027-01-01'),('2028-02-28','2028-02-29'),('2028-02-29','2028-03-01')):
+            llm=FixtureLLM({'values':{},'evidence':{}})
+            request=DraftRequest(text='TEST ONLY 日期尚未决定',reference_date=reference)
+            draft=create_draft(request,lambda *_:None,llm=llm)
+            message=json.loads(next(message['content'] for message in llm.messages if message['role']=='user'))
+            with self.subTest(reference=reference):
+                self.assertEqual(message['reference_calendar']['今天'],reference)
+                self.assertEqual(message['reference_calendar']['明天'],tomorrow)
+                self.assertEqual(message['user_text'],request.text)
+                self.assertEqual(message['timezone'],'Asia/Shanghai')
+                self.assertIsNone(draft.proposal.values.start_date)
+                self.assertNotIn('start_date',draft.proposal.evidence)
+                self.assertEqual(llm.calls,1)
+        self.assertEqual(reference_calendar(date.max),{'今天':'9999-12-31'})
+
+    def test_model_service_failures_have_safe_actionable_messages_and_no_sdk_retry(self):
+        for status,message,retryable in ((401,'授权未通过',False),(403,'授权未通过',False),
+                (400,'拒绝了需求整理请求',False),(429,'限制调用',True),(500,'模型调用失败',True)):
+            llm=FixtureLLM(error_status=status)
+            with self.subTest(status=status),self.assertRaises(TravelFailure) as caught:
+                create_draft(DraftRequest.model_validate(PAYLOAD),lambda *_:None,llm=llm)
+            self.assertEqual(caught.exception.code,'llm_call_failed')
+            self.assertIn(message,caught.exception.message)
+            self.assertEqual(caught.exception.retryable,retryable)
+            self.assertNotIn('PRIVATE',caught.exception.message)
+            self.assertNotIn('private.invalid',caught.exception.message)
+            self.assertEqual(llm.calls,1)
+            self.assertTrue(llm._client.is_closed())
+
+    def test_review_cases_cross_real_framework_without_defaults_or_automatic_confirmation(self):
+        sys.path.insert(0,str(ROOT/'scripts'))
+        from live_requirements_cases import REVIEW_SCENARIOS,scenario,validate_initial
+        for name in REVIEW_SCENARIOS:
+            case=scenario(name,'杭州','2027-01-03',reference='2026-12-31')
+            arguments={'values':case['expected'],
+                'evidence':{field:case['text'] for field,value in case['expected'].items() if value is not None},
+                'unhandled_requirements':case['required_unhandled']}
+            llm=FixtureLLM(arguments);events=[]
+            with self.subTest(name=name):
+                result=create_draft(DraftRequest(text=case['text'],reference_date='2026-12-31'),lambda stage,_:events.append(stage),llm=llm)
+                validate_initial(result.model_dump(mode='json'),case,name)
+                self.assertEqual(llm.calls,1)
+                self.assertTrue(llm._client.is_closed())
+                self.assertEqual(events.count('agent_call'),1)
+                self.assertEqual(events.count('draft_validated'),1)
+                self.assertEqual(result.confirmed_fields,[])
+
     def test_evidence_value_types_fail_without_coercion_or_silent_dropping(self):
         for evidence in ({'city':None},{'city':['杭州']},{'city':{'quote':'杭州'}}):
             llm=FixtureLLM({'values':{'city':'杭州'},'evidence':evidence})

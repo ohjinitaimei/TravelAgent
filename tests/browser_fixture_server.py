@@ -23,6 +23,18 @@ def browser_worker(payload, output):
         from agent.travel_intake import create_draft
         from travel.schemas import DraftRequest
         request=DraftRequest.model_validate(payload["request"])
+        if request.text.startswith('TEST ONLY 去杭州逛博物馆，玩2天。日期还没定。'):
+            sys.path.insert(0,str(ROOT/'scripts'))
+            from live_requirements_cases import scenario
+            case=scenario('ambiguous-constraints','杭州','2026-10-30')
+            if request.text != 'TEST ONLY '+case['text']:
+                raise AssertionError('Unexpected TEST ONLY ambiguity input')
+            arguments={'values':case['expected'],
+                'evidence':{field:case['text'] for field,value in case['expected'].items() if value is not None},
+                'unhandled_requirements':case['required_unhandled']}
+            result=create_draft(request,lambda stage,message:output.put({'kind':'event','stage':stage,'message':message}),llm=FixtureLLM(arguments))
+            output.put({'kind':'result','data':result.model_dump(mode='json')})
+            return
         if request.text == 'TEST ONLY invalid daily format':
             from travel.worker import run
             from unittest.mock import patch

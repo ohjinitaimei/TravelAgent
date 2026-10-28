@@ -80,12 +80,22 @@ def verify(suite,browser,grep=None,identifier=None):
             finally:
                 stop.touch()
                 graceful=True
-                for process in processes:
+                metadata['service_exits']=[]
+                for index,process in enumerate(processes):
+                    forced=False
                     try:
                         process.wait(timeout=10)
                         graceful=graceful and process.returncode==0
                     except subprocess.TimeoutExpired:
-                        graceful=False;process.terminate();process.wait(timeout=5)
+                        forced=True;graceful=False;process.terminate();process.wait(timeout=5)
+                    metadata['service_exits'].append({'service':'api' if index==0 else 'web',
+                        'returncode':process.returncode,'forced':forced})
+                if not graceful:
+                    # Preserve shutdown evidence before TemporaryDirectory attempts
+                    # cleanup; a locked SQLite file must not erase the root logs.
+                    api_log.flush();web_log.flush()
+                    shutil.copyfile(folder/'api.log',destination/'api.log')
+                    shutil.copyfile(folder/'web.log',destination/'web.log')
                 metadata["services_stopped_gracefully"]=graceful
                 metadata["passed"]=bool(metadata["passed"] and graceful)
                 metadata["completed_at"]=datetime.now(timezone.utc).isoformat()

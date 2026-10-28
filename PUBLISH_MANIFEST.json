@@ -30,8 +30,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 19346,
-      "sha256": "14d03962a768b2aaee85c64e75fc0ffdaee6bf67bc2c52c42f32dbbb87b5b2e9"
+      "bytes": 19544,
+      "sha256": "9b831b7c577635a2c8cef7b47a96b6738c39f93d544421c64fd3fc91244af2be"
     },
     {
       "path": "analysis_options.yaml",
@@ -240,8 +240,8 @@
     },
     {
       "path": "apps/web/src/components/RequestAssistant.vue",
-      "bytes": 11573,
-      "sha256": "a3fa1a0820a69b72fdcd17e7b1bcf279298ba10dcbfd28b0563108103611214f"
+      "bytes": 11998,
+      "sha256": "1f9423472ed90787d690fd693e132e83707d513e017b8000fc06b43c63911288"
     },
     {
       "path": "apps/web/src/components/RouteMap.vue",
@@ -455,8 +455,8 @@
     },
     {
       "path": "backend/agent/travel_intake.py",
-      "bytes": 13387,
-      "sha256": "4becddb5b407186645fed8a0929af9ef0c9b19414f0cf79d56322e7410baed8c"
+      "bytes": 15683,
+      "sha256": "a97dd9e6eb623b63b4dc74314ae1c07d249722f139fb3c15bf652c1939090d50"
     },
     {
       "path": "backend/agent/travel_tool_bridge.py",
@@ -990,8 +990,8 @@
     },
     {
       "path": "docs/ACCEPTANCE.md",
-      "bytes": 32803,
-      "sha256": "db1ec67be1a9e7377ee7fae8d3e6f5ffd2ef6b24893fd930309580960223fe07"
+      "bytes": 33686,
+      "sha256": "863b4872efe3ba93476718c925a2712d550bea95ab4615f41022ae561380782b"
     },
     {
       "path": "docs/README.md",
@@ -1000,8 +1000,8 @@
     },
     {
       "path": "docs/RELEASE_STATUS.md",
-      "bytes": 22498,
-      "sha256": "91ac5f5ebb91bfeb0ea75c22dbc1770bcf4f3d72d0d7d324675fa37054124999"
+      "bytes": 22983,
+      "sha256": "ad66f3c4364634e88715cd918e325a239b9d381709e807354012e5fb60770276"
     },
     {
       "path": "docs/TECHNICAL_REPORT.md",
@@ -1015,8 +1015,8 @@
     },
     {
       "path": "docs/USER_GUIDE.md",
-      "bytes": 18037,
-      "sha256": "133491651d49d3383ef036cf619ce7ac4d17f986ae6fe8dcd02f7b2db1ab1778"
+      "bytes": 18423,
+      "sha256": "4112968d544562b2e777bc7e671ca71f52f1fa3c17a02d449edd7252d449cd76"
     },
     {
       "path": "docs/acceptance/POI_REVIEW_TEMPLATE.md",
@@ -1104,6 +1104,11 @@
       "sha256": "211d954f8c16c9f7d9329d72bc4b56b382e226e1827d1345873c3fe87df49321"
     },
     {
+      "path": "docs/architecture/INTAKE_REVIEW_MATRIX.md",
+      "bytes": 8618,
+      "sha256": "f45b4e17bf56f0d77ca34563379c4ede810cef22f22da447f100d658f95502e1"
+    },
+    {
       "path": "docs/architecture/JOURNEY_ENDPOINTS_DESIGN.md",
       "bytes": 6446,
       "sha256": "046c6d6378248421e0ab5cbe9d38ef0591fadc506c773d9f3963666bd589a5fd"
@@ -1150,8 +1155,8 @@
     },
     {
       "path": "docs/architecture/OPTIMIZATION_PROGRAM.md",
-      "bytes": 22035,
-      "sha256": "7e9bdac8a7a855f874fe8879e1118a90dabdd07ea3fff2441576b3d6d7db9928"
+      "bytes": 22466,
+      "sha256": "1a7b251c5aadbd6d40c5c6e1abead50b59cb9e5c5ca0423d938379b8a71dd1e9"
     },
     {
       "path": "docs/architecture/POI_COMPARISON.md",
@@ -1435,8 +1440,8 @@
     },
     {
       "path": "scripts/live_requirements_cases.py",
-      "bytes": 6753,
-      "sha256": "b2a487d6993437eb62d20461a434ffde0c215c2166dca926d2127416f61403ad"
+      "bytes": 9029,
+      "sha256": "83f209e4f37144a3333857d78033d9c9aecff884c6a8bfa635e149858f215bd5"
     },
     {
       "path": "scripts/package_release.py",
@@ -1480,8 +1485,8 @@
     },
     {
       "path": "scripts/verify_browser.py",
-      "bytes": 7038,
-      "sha256": "8163f660aa63fe6726ebe1cf0fca47684c6d22f53d99467ca6860ca40c7ac1af"
+      "bytes": 7716,
+      "sha256": "2c872772261a918415b8caf8cdbe3448a65fc3aa4f992e21bdeb930ac6fe152f"
     },
     {
       "path": "scripts/verify_candidate.py",
@@ -1495,8 +1500,8 @@
     },
     {
       "path": "scripts/verify_live_clarification.py",
-      "bytes": 8961,
-      "sha256": "02d8c36ac00125b49c6adc996fb0c8d55f85a39f2f34fe6e461c34dcf09c3334"
+      "bytes": 9079,
+      "sha256": "407c4dc816310d08f871feca6205e1c2ad251a5d7caabe0098b18b37fd2a5e7f"
     },
     {
       "path": "scripts/verify_live_intake.py",
@@ -1507,6 +1512,11 @@
       "path": "scripts/verify_live_quality.py",
       "bytes": 35474,
       "sha256": "6380a38e29da970184d2854d76a3e7c0fc5d7aea9eede463ae98b8b2e2ec49a1"
+    },
+    {
+      "path": "scripts/verify_live_requirements.py",
+      "bytes": 13249,
+      "sha256": "7d0657a5001a42b1fc3b5fd7baa55a5245cff86d4740170cd08f4aea30c55711"
     },
     {
       "path": "scripts/verify_live_travel.py",
@@ -1550,8 +1560,8 @@
     },
     {
       "path": "tests/browser/requirements.spec.ts",
-      "bytes": 17706,
-      "sha256": "27bd5b19adc406f66802d479e18dade72c922f08452de7d7061fcd19cc6ceace"
+      "bytes": 21189,
+      "sha256": "58a71e2d21174972c2adc7a0f35bafdec0d22e58563b7ec34965551e6aaaaacc"
     },
     {
       "path": "tests/browser/resilience.spec.ts",
@@ -1575,8 +1585,8 @@
     },
     {
       "path": "tests/browser_fixture_server.py",
-      "bytes": 7316,
-      "sha256": "356a440234d815c2cad92bc26694e404e894e60a97b5c8da1bdffe513b0526c3"
+      "bytes": 8215,
+      "sha256": "bcce5327b6fbcccbe06337502e44200b9685043af1ec33599cea0aebc2ff9150"
     },
     {
       "path": "tests/client.integration.test.ts",
@@ -1655,8 +1665,8 @@
     },
     {
       "path": "tests/test_agent_intake.py",
-      "bytes": 15633,
-      "sha256": "efcef73b20caf41b67508167791dd1eff14e3239a423773afe8f882b27ee9f93"
+      "bytes": 19208,
+      "sha256": "3467c7c88c7a0ee1930ed933fdfa4c785ffea671f6cd43919c71b8e27d4f9e4d"
     },
     {
       "path": "tests/test_auth.py",
@@ -1735,13 +1745,18 @@
     },
     {
       "path": "tests/test_live_clarification.py",
-      "bytes": 10422,
-      "sha256": "07246a6859c39ccc8be48418fea3856d94a947d522bfd26c718ff8bf9f0ff1a8"
+      "bytes": 12914,
+      "sha256": "489a864e805080febe35f22a3219ad2181ab6aa8643caf0af8b8672cda984ca7"
     },
     {
       "path": "tests/test_live_quality.py",
       "bytes": 17703,
       "sha256": "97446aefb00bf1e70916543824805fe586c028cc5f7a72c12e29ed94d0790f12"
+    },
+    {
+      "path": "tests/test_live_requirements.py",
+      "bytes": 2921,
+      "sha256": "a6805877429e3b0b924fc3aa4c849dbb6c702e1910013f1a85851bdfdd2bdcb4"
     },
     {
       "path": "tests/test_map_proxy.py",

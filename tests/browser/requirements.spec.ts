@@ -12,6 +12,56 @@ async function open(page:Page) {
 }
 
 const inputKey='travelagent.requirements.v1.local'
+test('undecided requirements stay empty until explicit clarification and clearing survives refresh without model resubmission',async({page},testInfo)=>{
+  await open(page)
+  const writes=mutations(page)
+  const text='TEST ONLY 去杭州逛博物馆，玩2天。日期还没定。预算600元或800元，还没决定；步行还是驾车还没决定；开始时间09:00或11:00，还没决定。需要提前预约。'
+  await page.getByLabel('旅行需求',{exact:true}).fill(text)
+  await page.getByRole('button',{name:'整理为草案'}).click()
+  await expect(page.getByRole('heading',{name:'待核对的需求草案'})).toBeVisible()
+  const taskId=(await page.locator('.task-id').innerText()).replace(/^任务\s+/,'').split(' · ')[0].trim()
+  const task=await(await page.request.get(`/api/v1/travel/tasks/${taskId}`)).json()
+  const path=`/api/v1/travel/drafts/${task.draft_id}`
+  const before=await(await page.request.get(path)).json()
+  const unresolved=page.getByRole('region',{name:'仍需人工处理的要求',exact:true})
+  await expect(unresolved).toContainText('保存或确认字段不会自动验证这些要求')
+  for(const label of ['草案预算上限','草案交通方式','草案每日开始'])await expect(page.getByLabel(label,{exact:true})).toHaveValue('')
+  for(const field of ['budget','mode','day_start']){
+    expect(before.proposal.values[field]).toBeNull()
+    expect(before.proposal.evidence).not.toHaveProperty(field)
+  }
+  await page.getByLabel('草案预算上限',{exact:true}).fill('600')
+  await page.getByLabel('草案交通方式',{exact:true}).selectOption('walking')
+  await page.getByRole('button',{name:'保存补充与确认'}).click()
+  await expect(page.locator('.draft-review .status-pill')).toContainText('第 2 版')
+  const updated=await(await page.request.get(path)).json()
+  expect(updated.field_sources.budget).toBe('user_input')
+  expect(updated.field_sources.mode).toBe('user_input')
+  expect(updated.proposal.values.budget).toBe(600)
+  expect(updated.proposal.values.mode).toBe('walking')
+  expect(updated.proposal.unhandled_requirements).toEqual(before.proposal.unhandled_requirements)
+  await page.reload()
+  await expect(page.getByLabel('草案预算上限',{exact:true})).toHaveValue('600')
+  await expect(unresolved).toContainText('当前采用的条件以已保存字段为准')
+  await page.getByLabel('草案预算上限',{exact:true}).fill('')
+  await page.getByRole('button',{name:'保存补充与确认'}).click()
+  await expect(page.locator('.draft-review .status-pill')).toContainText('第 3 版')
+  await page.reload()
+  await expect(page.getByLabel('草案预算上限',{exact:true})).toHaveValue('')
+  const cleared=await(await page.request.get(path)).json()
+  expect(cleared.proposal.values.budget).toBeNull()
+  expect(cleared.field_sources).not.toHaveProperty('budget')
+  expect(cleared.proposal.evidence).not.toHaveProperty('budget')
+  expect(cleared.confirmed_fields).not.toContain('budget')
+  expect(cleared.proposal.values.mode).toBe('walking')
+  expect(cleared.input.text).toBe(text)
+  expect(writes.filter(url=>url.endsWith('/drafts'))).toHaveLength(1)
+  expect(writes.filter(url=>url.endsWith('/plans'))).toHaveLength(0)
+  const events=await(await page.request.get(`/api/v1/travel/tasks/${taskId}/events`)).json()
+  expect(events.items.filter((item:any)=>item.stage==='agent_call')).toHaveLength(1)
+  await unresolved.screenshot({path:testInfo.outputPath('unhandled-requirements-test-only.png')})
+})
+
 test('failed model validation explains safe fields after refresh and preserves manual entry without automatic retry',async({page})=>{
   await open(page)
   const writes=mutations(page)

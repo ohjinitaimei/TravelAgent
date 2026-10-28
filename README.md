@@ -202,3 +202,5 @@ npm run build
 历史文档中的本机路径、任务 ID、截图及 artifacts 不随仓库上传，不代表克隆后已有验收产物。本地发布包不决定 GitHub 仓库可见性，以 GitHub 仓库设置为准。项目尚未指定新的开源许可证；公开前需确认原始代码和第三方数据的来源与授权。
 
 需求整理校验失败时可查看字段级中文提示，原文与手动填写入口保留；安全诊断和本轮验收边界见 [需求校验诊断](docs/architecture/INTAKE_DIAGNOSTICS.md)。
+
+相对日期、歧义条件及明确改口的固定验收场景、独立三次模型核验命令和实际结果见 [需求理解与连续使用验收](docs/architecture/INTAKE_REVIEW_MATRIX.md)。

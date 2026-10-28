@@ -77,7 +77,12 @@ function selectFilled(){if(props.draft&&!sourceMismatch.value)emit('update:input
       </details>
       <div v-if="conflict" class="draft-conflict" role="alert"><p>本次补充尚未保存。请记下补充内容，加载最新草案后重新核对。</p><button class="secondary" :disabled="disabled" @click="emit('reload')">加载最新草案（替换未保存补充）</button></div>
       <p v-if="draft.clarifications?.length" class="assistant-note">已保存 {{draft.clarifications.length}} 次补充。更新草案后，请重新填入规划表单并核对。</p>
-      <div v-if="draft.proposal.unhandled_requirements?.length" class="draft-unhandled"><strong>仍需人工处理的要求</strong><ul class="warning-list"><li v-for="item in draft.proposal.unhandled_requirements" :key="item">{{item}}</li></ul></div>
+      <section v-if="draft.proposal.unhandled_requirements?.length" class="draft-unhandled" aria-label="仍需人工处理的要求">
+        <strong>仍需人工处理的要求</strong>
+        <p class="assistant-note">以下原文尚未自动转为规划条件。尚未决定的条件请在上方补充；预约、营业等要求仍需另行核实。保存或确认字段不会自动验证这些要求。</p>
+        <ul class="warning-list"><li v-for="item in draft.proposal.unhandled_requirements" :key="item">{{item}}</li></ul>
+        <p class="assistant-note">补充后仍保留原文作为记录，当前采用的条件以已保存字段为准。</p>
+      </section>
       <p v-for="warning in draft.warnings" :key="warning" class="assistant-note">{{warning}}</p>
       <button class="primary" :disabled="disabled" @click="emit('apply',draft)">填入表单并核对 ↗</button>
     </div>

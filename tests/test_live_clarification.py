@@ -16,18 +16,18 @@ from agent.travel_intake import finish_draft
 from travel.drafts import clarify
 from travel.provider import TravelFailure
 from travel.schemas import DraftRequest,DraftSubmission,DraftClarificationRequest
-from live_requirements_cases import scenario,validate_initial,validate_events,RequirementCheckFailed
+from live_requirements_cases import SCENARIOS,scenario,extraction_mismatches,validate_initial,validate_events,RequirementCheckFailed
 import verify_live_clarification as live
 
 REFERENCE='2026-10-24';DEPARTURE='2026-10-25'
 
 
 def fixture(name):
-    case=scenario(name,'杭州',DEPARTURE)
+    case=scenario(name,'杭州',DEPARTURE,reference=REFERENCE)
     values=case['expected']
     evidence={field:case['text'] for field,value in values.items() if value is not None}
     return case,finish_draft(DraftRequest(text=case['text'],reference_date=REFERENCE),
-        DraftSubmission(values=values,evidence=evidence,unhandled_requirements=['需要提前预约']),lambda *_:None)
+        DraftSubmission(values=values,evidence=evidence,unhandled_requirements=case.get('required_unhandled',['需要提前预约'])),lambda *_:None)
 
 
 class FixtureHttp:
@@ -63,6 +63,40 @@ class FixtureHttp:
 
 
 class LiveClarificationTests(unittest.TestCase):
+    def test_report_lists_all_wrong_fields_instead_of_only_the_first_failure(self):
+        case,draft=fixture('relative-date');body=draft.model_dump(mode='json')
+        body['proposal']['values'].update(start_date=None,day_start='14:00',day_end='16:00',day_schedules=None)
+        self.assertEqual(extraction_mismatches(body,case),['start_date','day_start','day_end','day_schedules'])
+        body['proposal']['values']['TEST_ONLY_PRIVATE_FIELD']='TEST_ONLY_PRIVATE_VALUE'
+        self.assertNotIn('PRIVATE',str(extraction_mismatches(body,case)))
+
+    def test_relative_calendar_boundaries_use_supplied_reference_not_host_or_departure(self):
+        for reference,expected in (('2026-12-31','2027-01-01'),('2028-02-28','2028-02-29'),('2028-02-29','2028-03-01')):
+            with self.subTest(reference=reference):
+                case=scenario('relative-date','杭州','2030-01-01',reference=reference)
+                self.assertEqual(case['expected']['start_date'],expected)
+                self.assertIsNone(case['expected']['budget'])
+        with self.assertRaises(ValueError):scenario('relative-date','杭州',DEPARTURE)
+
+    def test_undecided_values_and_obsolete_corrections_cannot_pass_the_quality_gate(self):
+        mutations=(('ambiguous-constraints','budget',600),('ambiguous-constraints','mode','walking'),
+            ('ambiguous-constraints','day_start','09:00'),('explicit-correction','days',1),
+            ('explicit-correction','mode','driving'),('explicit-correction','budget',800),
+            ('relative-date','start_date',REFERENCE))
+        for name,field,value in mutations:
+            case,draft=fixture(name);body=draft.model_dump(mode='json')
+            validate_initial(body,case,name)
+            body['proposal']['values'][field]=value
+            with self.subTest(name=name,field=field),self.assertRaisesRegex(RequirementCheckFailed,'extracted_'+field):
+                validate_initial(body,case,name)
+
+    def test_all_ambiguous_clauses_must_be_preserved_not_only_reservation(self):
+        case,draft=fixture('ambiguous-constraints');body=draft.model_dump(mode='json')
+        for quote in case['required_unhandled'][1:]:
+            broken=deepcopy(body);broken['proposal']['unhandled_requirements'].remove(quote)
+            with self.subTest(quote=quote),self.assertRaisesRegex(RequirementCheckFailed,'unhandled_clause_'):
+                validate_initial(broken,case,'ambiguous-constraints')
+
     def test_both_new_cases_require_actual_values_and_preserve_partial_unknowns(self):
         for name in ('complete15','partial-daily'):
             case,draft=fixture(name);body=draft.model_dump(mode='json')
@@ -93,7 +127,7 @@ class LiveClarificationTests(unittest.TestCase):
             with self.subTest(kind=kind),self.assertRaises(RequirementCheckFailed):validate_initial(broken,case,'complete15')
 
     def test_http_scenarios_post_one_draft_clear_fields_and_preserve_revision_without_planning(self):
-        for name in ('complete15','partial-daily','legacy'):
+        for name in SCENARIOS:
             fake=FixtureHttp(name);record={'run_id':'TEST-ONLY-'+name}
             with fake.client() as client:live.verify_http(client,record,name=name,city='杭州',departure=DEPARTURE,reference=REFERENCE)
             self.assertEqual(record['draft_submission_attempts'],1)

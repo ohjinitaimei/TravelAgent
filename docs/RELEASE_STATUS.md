@@ -1,6 +1,6 @@
 # 功能范围与后续计划
 
-更新日期：2026-10-24。本文记录可运行范围、可复现验收和后续交付条件；逐项验收步骤见 [ACCEPTANCE.md](ACCEPTANCE.md)。
+更新日期：2026-10-28。本文记录可运行范围、可复现验收和后续交付条件；逐项验收步骤见 [ACCEPTANCE.md](ACCEPTANCE.md)。
 
 使用入口：[Web 使用手册](USER_GUIDE.md)。完整用户流程见 [WEB_USER_JOURNEY.md](architecture/WEB_USER_JOURNEY.md)，路途负担及交通上限见 [TRAVEL_LOAD_LIMITS.md](architecture/TRAVEL_LOAD_LIMITS.md)，共享节流见 [AMAP_REQUEST_PACING.md](architecture/AMAP_REQUEST_PACING.md)，逐日选择见 [DAILY_ENDPOINTS.md](architecture/DAILY_ENDPOINTS.md)，最新逐日时段和真实 Web/MCP 复验见 [DAILY_SCHEDULES.md](architecture/DAILY_SCHEDULES.md)。
 
@@ -52,6 +52,8 @@
 - 同源高德 JS 安全密钥代理：密钥留在后端，固定 SDK 接口、账号会话、来源/参数校验、现有配额与并发限制，以及有界响应和日志脱敏；本地与登录模式均通过真实地图验证，见 [AMAP_PROXY.md](architecture/AMAP_PROXY.md)。
 
 ## 验证边界
+
+2026-10-28 固定三场景真实核验：明确改口通过，相对日期遗漏且逐日时段误合并，歧义场景调用失败；整体保留失败。随后补充日历上下文、逐日说明及安全调用提示，没有追加真实调用。可复用隔离核验入口、Web 人工要求说明、离线/浏览器验证与后续标准见 [需求理解与连续使用验收](architecture/INTAKE_REVIEW_MATRIX.md)。不把之前单个样本通过当作所有表达稳定通过。
 
 最新原文依据格式复验：带诊断首次定位为 `evidence/type`；加强同一工具的字符串依据和未知字段省略规则后，同一个局部逐日场景一次真实复验通过，包括空值、确认/修改/清空及冲突校验。合计仅两次调用，零高德/行程，服务正常退出并清理；不代表所有表达稳定通过，详情见 [INTAKE_DIAGNOSTICS.md](architecture/INTAKE_DIAGNOSTICS.md)。下文之前的失败仍作为历史记录保留。
 
