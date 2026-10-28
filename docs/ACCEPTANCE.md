@@ -1,6 +1,10 @@
 # Web 验收记录
 
-验收环境：2026-10-19 至 2026-10-28，Python 3.12、Node.js、Windows、Chromium / Firefox / WebKit Headless。本轮仅在本地运行，未上传至 GitHub 或运行云端检查；仓库保留可在 Ubuntu / Node.js 22 上执行的 CI 配置。
+验收环境：2026-10-19 至 2026-10-29，Python 3.12、Node.js、Windows、Chromium / Firefox / WebKit Headless。本轮仅在本地运行，未上传至 GitHub 或运行云端检查；仓库保留可在 Ubuntu / Node.js 22 上执行的 CI 配置。
+
+## 相对日期显式确认
+
+原文相对日期候选须选用并保存才写入草案，来源为用户填写；跨年、闰日、日期上界、清空、旧记录和刷新恢复纳入检查。真实两次模型调用均未完成整项语义验收，第二次仅日期遗漏，失败不以离线测试覆盖。最终检查与调用范围见 [日期确认记录](architecture/INTAKE_REVIEW_MATRIX.md#相对日期诊断与显式确认)，该组浏览器为三引擎定向检查，旧完整归档基线仍单独保留。
 
 ## 需求理解与连续使用矩阵
 

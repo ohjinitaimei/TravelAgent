@@ -55,6 +55,40 @@ def draft_fixture_worker(payload, output):
 
 
 class AgentTests(unittest.TestCase):
+    def test_tool_schema_exposes_only_supported_evidence_fields_without_changing_public_schema(self):
+        from travel.schemas import DraftSubmission,DraftValues
+        before=DraftSubmission.model_json_schema()
+        llm=FixtureLLM()
+        create_draft(DraftRequest.model_validate(PAYLOAD),lambda *_:None,llm=llm)
+        evidence=llm.schemas[0]['function']['parameters']['properties']['evidence']
+        self.assertIs(evidence['additionalProperties'],False)
+        self.assertEqual(set(evidence['properties']),set(DraftValues.model_fields))
+        self.assertFalse(evidence.get('required'))
+        for field in ('budget','mode','stay_minutes'):
+            self.assertEqual(evidence['properties'][field]['type'],'string')
+            self.assertIn('null',evidence['properties'][field]['description'])
+        self.assertEqual(DraftSubmission.model_json_schema(),before)
+        self.assertEqual(llm.calls,1)
+
+    def test_unknown_fields_cannot_keep_evidence_but_unhandled_original_is_preserved(self):
+        text='TEST ONLY 去杭州，交通方式、预算和每站停留都还没定'
+        values={'city':'杭州','mode':None,'budget':None,'stay_minutes':None}
+        unknown='交通方式、预算和每站停留都还没定'
+        request=DraftRequest(text=text,reference_date='2026-10-28')
+        for field in ('budget','mode','stay_minutes'):
+            llm=FixtureLLM({'values':values,'evidence':{'city':'杭州',field:unknown}})
+            with self.subTest(field=field),self.assertRaises(TravelFailure) as caught:
+                create_draft(request,lambda *_:None,llm=llm)
+            self.assertEqual(caught.exception.code,'ungrounded_agent_output')
+            self.assertEqual(caught.exception.draft_validation.issues[0].path,'values.'+field)
+            self.assertEqual(llm.calls,1)
+        llm=FixtureLLM({'values':values,'evidence':{'city':'杭州'},'unhandled_requirements':[unknown]})
+        draft=create_draft(request,lambda *_:None,llm=llm)
+        self.assertEqual(draft.proposal.unhandled_requirements,[unknown])
+        self.assertEqual(draft.proposal.evidence,{'city':'杭州'})
+        for field in ('budget','mode','stay_minutes'):self.assertIsNone(getattr(draft.proposal.values,field))
+        self.assertEqual(llm.calls,1)
+
     def test_grounding_rejection_identifies_known_fields_without_echoing_quotes_or_unknown_keys(self):
         arguments={'values':{'city':'杭州','start_date':'2026-10-29'},
             'evidence':{'start_date':'TEST_ONLY_PRIVATE_QUOTE','TEST_ONLY_PRIVATE_KEY':'杭州'}}

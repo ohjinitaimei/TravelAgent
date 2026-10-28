@@ -37,6 +37,7 @@ def clarify(draft: Draft, request: DraftClarificationRequest) -> Draft:
     entry = DraftClarification(revision=draft.revision + 1, values=changes,
                                confirmed_fields=sorted(set(request.confirm_fields) | {field for field,value in changes.items() if value is not None}))
     return draft.model_copy(update={"proposal": proposal, "questions": reviewed.questions,
+        "date_options":reviewed.date_options,
         "warnings": reviewed.warnings, "coordinator_action": reviewed.coordinator_action,
         "revision": entry.revision, "updated_at": now(), "confirmed_fields": sorted(confirmed),
         "field_sources": sources, "clarifications": [*draft.clarifications, entry]})

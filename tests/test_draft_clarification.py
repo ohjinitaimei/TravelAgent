@@ -25,6 +25,34 @@ def partial_draft():
 
 
 class ClarificationTests(unittest.TestCase):
+    def test_relative_candidates_are_not_values_and_require_explicit_user_save(self):
+        request=DraftRequest(text='TEST ONLY 明天去杭州，后天或今天也可以，明天还要核对',reference_date='2026-12-31')
+        seed=finish_draft(request,DraftSubmission(values={'city':'杭州'},evidence={'city':'杭州'}),lambda *_:None)
+        self.assertEqual([(option.expression,str(option.date)) for option in seed.date_options],
+            [('明天','2027-01-01'),('后天','2027-01-02'),('今天','2026-12-31')])
+        self.assertIsNone(seed.proposal.values.start_date)
+        self.assertNotIn('start_date',seed.proposal.evidence)
+        self.assertNotIn('start_date',seed.field_sources)
+        selected=clarify(seed,DraftClarificationRequest(expected_revision=1,values={'start_date':'2027-01-01'}))
+        self.assertEqual(selected.field_sources['start_date'],'user_input')
+        self.assertIn('start_date',selected.confirmed_fields)
+        self.assertEqual(selected.date_options,[])
+        cleared=clarify(selected,DraftClarificationRequest(expected_revision=2,values={'start_date':None}))
+        self.assertEqual(cleared.date_options,seed.date_options)
+        self.assertNotIn('start_date',cleared.field_sources)
+        self.assertEqual(cleared.input,seed.input)
+
+    def test_relative_candidates_handle_leap_day_limits_and_old_records_without_guessing_longer_phrases(self):
+        def draft(text,reference='2028-02-28',values=None):
+            return finish_draft(DraftRequest(text='TEST ONLY '+text,reference_date=reference),
+                DraftSubmission(values=values or {},evidence={}),lambda *_:None)
+        self.assertEqual(str(draft('明天出发').date_options[0].date),'2028-02-29')
+        self.assertEqual(draft('大后天或大大后天，后天性疾病').date_options,[])
+        self.assertEqual(draft('明天出发','9999-12-31').date_options,[])
+        self.assertEqual(draft('明天出发',values={'start_date':'2028-02-29'}).date_options,[])
+        old=draft('明天出发').model_dump(mode='json');old.pop('date_options')
+        self.assertEqual(Draft.model_validate(old).date_options,[])
+
     def test_same_id_multiple_rounds_confirmation_clear_and_restart(self):
         from main import app
         with tempfile.TemporaryDirectory(dir=ROOT/".tmp") as directory, patch.dict(os.environ,{"TRAVEL_DB_PATH":str(Path(directory)/"draft.sqlite3")}), patch("agent.travel_intake.create_draft",side_effect=AssertionError("No model call")), patch("travel.tools.TravelTools",side_effect=AssertionError("No data call")):

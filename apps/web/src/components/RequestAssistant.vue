@@ -32,6 +32,16 @@ function changeAnswer(key:ScalarDraftField,event:Event){if(props.draft&&!sourceM
 function changeSelected(key:DraftField,value:boolean){if(props.draft&&!sourceMismatch.value)emit('update:input',setRequirementsSelected(props.input,props.draft,key,value))}
 function changeSchedules(value:DraftDayInput[]|null){if(props.draft&&!sourceMismatch.value)emit('update:input',setRequirementsSchedules(props.input,props.draft,value))}
 function selectFilled(){if(props.draft&&!sourceMismatch.value)emit('update:input',selectRequirementsFilled(props.input,props.draft))}
+function chooseDate(date:string){
+  if(props.draft&&!props.disabled&&!props.conflict&&!sourceMismatch.value){
+    emit('update:input',setRequirementsAnswer(props.input,props.draft,'start_date',date))
+    void nextTick(()=>{
+      const field=document.getElementById('draft-start_date'),panel=field?.closest('details')
+      if(panel)panel.open=true
+      field?.focus()
+    })
+  }
+}
 </script>
 
 <template>
@@ -50,6 +60,12 @@ function selectFilled(){if(props.draft&&!sourceMismatch.value)emit('update:input
       <dl class="draft-fields"><template v-for="([name,value]) in fields" :key="name"><dt>{{fieldNames[name]||name}}</dt><dd>{{displayDraftValue(name,value)}}<small>{{draft.field_sources?.[name as DraftField]==='user_input'?'用户填写':'原文'}}：{{draft.proposal.evidence[name]}}</small><small>{{draft.confirmed_fields?.includes(name as DraftField)?(name==='day_schedules'?'所填内容已确认，空项仍需补全':'已确认'):'待确认'}}</small></dd></template></dl>
       <p v-if="draft.proposal.values.origin_hint||draft.proposal.values.destination_hint" class="assistant-note">出发与返回仅保留用户地点线索。填入表单后须在出发与返回区域搜索并选择真实地点；线索不会自动成为地点 ID 或路线。</p>
       <ul v-if="draft.questions.length" class="warning-list"><li v-for="question in draft.questions" :key="question">{{question}}</li></ul>
+      <section v-if="draft.date_options?.length" class="draft-date-options" aria-label="出发日期候选">
+        <strong>核对原文中的相对日期</strong>
+        <p class="assistant-note">以下日期按本份草案的参考日 {{draft.input.reference_date}} 换算。请先确认原文中的日期词是否指出发日期；它们尚未写入草案。</p>
+        <div class="date-option-actions"><button v-for="option in draft.date_options" :key="option.expression" class="secondary" type="button" :disabled="disabled||conflict||sourceMismatch" @click="chooseDate(option.date)">选用“{{option.expression}}”：{{option.date}}</button></div>
+        <p class="assistant-note">选择后会填入下方出发日期，并勾选保存此项；点击“保存补充与确认”后才生效，不会自动规划。</p>
+      </section>
       <div v-if="sourceMismatch&&input.clarification" role="region" aria-label="保留的需求补充" class="draft-conflict requirement-source-conflict">
         <p>未保存补充来自草案 #{{input.clarification.sourceId}} 第 {{input.clarification.sourceRevision}} 版，未套用到当前草案。请先核对或放弃原补充；填写内容仍保留。</p>
         <p v-if="Object.values(input.clarification.selected).some(Boolean)">已勾选待保存：{{Object.entries(input.clarification.selected).filter(([,selected])=>selected).map(([key])=>fieldNames[key]||key).join('、')}}。这些选择未确认到当前版本。</p>
@@ -90,6 +106,8 @@ function selectFilled(){if(props.draft&&!sourceMismatch.value)emit('update:input
 </template>
 
 <style scoped>
+.draft-date-options{border:1px solid var(--line);border-radius:10px;padding:16px;margin:16px 0}
+.date-option-actions{display:flex;flex-wrap:wrap;gap:8px}
 .clarification-panel{border:1px solid var(--line);border-radius:10px;padding:16px;margin:18px 0}
 .clarification-panel summary{cursor:pointer;font-weight:600;font-size:13px}
 .clarification-panel .assistant-note{margin:12px 0}

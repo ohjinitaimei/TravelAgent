@@ -543,6 +543,11 @@ class DraftClarification(Model):
     confirmed_fields: list[DraftField]
 
 
+class DraftDateOption(Model):
+    expression: Literal["今天", "明天", "后天"]
+    date: date
+
+
 class Draft(Model):
     id: str
     created_at: str = Field(default_factory=now)
@@ -557,3 +562,5 @@ class Draft(Model):
     confirmed_fields: list[DraftField] = Field(default_factory=list)
     field_sources: dict[DraftField, Literal["model_extracted", "user_input"]] = Field(default_factory=dict)
     clarifications: list[DraftClarification] = Field(default_factory=list)
+    date_options: list[DraftDateOption] = Field(default_factory=list, max_length=3,
+        description="仅当出发日期为空时，按请求参考日换算原文提到的日期词；不是模型提取值或已确认出发日，须用户明确选择保存")

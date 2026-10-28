@@ -6,6 +6,7 @@ booking, local fixtures or arbitrary tools, and never executes the planner.
 import importlib.metadata
 import json
 import os
+import re
 from datetime import date, timedelta
 from uuid import uuid4
 
@@ -16,15 +17,36 @@ from agent.coordinator import RouteCoordinator
 from agent.tool_layer import ToolRegistry, ToolResult
 from core.schemas import ParsedIntent
 from travel.provider import TravelFailure
-from travel.schemas import Draft, DraftRequest, DraftSubmission, DraftValidationDiagnostics, DraftValidationIssue
+from travel.schemas import Draft, DraftRequest, DraftSubmission, DraftValues, DraftDateOption, DraftValidationDiagnostics, DraftValidationIssue
 
 SUPPORTED_VERSION = "0.2.9"
+
+
+def intake_tool_schema():
+    """Describe the existing evidence boundary to the model; keep API DTOs stable."""
+    schema=DraftSubmission.model_json_schema()
+    schema['properties']['evidence'].update(
+        additionalProperties=False,
+        properties={field:{'type':'string','minLength':1,
+            'description':f'仅在 values.{field} 非 null 时填写支持该值的用户原文连续引用；该值为 null 时必须省略此键。'}
+            for field in DraftValues.model_fields},
+        description='只包含 values 中非 null 字段的依据。未决定、未说明的字段省略键，不能用未定原文、空字符串或 null 占位。')
+    return schema
 
 
 def reference_calendar(reference: date) -> dict[str, str]:
     """Calendar context only, never a default or a mutation of extracted values."""
     return {label:(reference+timedelta(days=offset)).isoformat()
             for offset,label in enumerate(('今天','明天','后天')) if offset <= (date.max-reference).days}
+
+
+def date_options(request: DraftRequest, proposal: DraftSubmission) -> list[DraftDateOption]:
+    if proposal.values.start_date is not None:return []
+    calendar=reference_calendar(request.reference_date)
+    # Mention candidates only, not interpretation of the user's departure intent.
+    # Consume longer unsupported phrases so 大后天 never becomes 后天 (+2 days).
+    mentions=dict.fromkeys(re.findall(r'大+后天|大+前天|后天性|后天|明天|今天',request.text))
+    return [DraftDateOption(expression=word,date=calendar[word]) for word in mentions if word in calendar]
 
 
 def model_failure(error):
@@ -121,6 +143,7 @@ def finish_draft(request: DraftRequest, proposal: DraftSubmission, emit) -> Draf
         warnings.append("日期可能由相对时间推算，请核对；参考日期为 " + request.reference_date.isoformat())
     emit("coordinator", "已有 RouteCoordinator 要求补全信息" if action == "ask_clarification" else "已有 RouteCoordinator 允许进入表单核对")
     return Draft(id=uuid4().hex,input=request,proposal=proposal,questions=questions,warnings=warnings,coordinator_action=action,
+                 date_options=date_options(request,proposal),
                  field_sources={field:"model_extracted" for field,value in values.model_dump().items() if value is not None})
 
 
@@ -167,7 +190,7 @@ def create_draft(request: DraftRequest, emit, *, llm=None) -> Draft:
 
         def _build_tool_schemas(self):
             return [{"type":"function","function":{"name":"submit_draft","description":"提交有用户原文依据的表单草案",
-                     "parameters":DraftSubmission.model_json_schema()}}]
+                     "parameters":intake_tool_schema()}}]
 
         def _execute_tool_call(self, name, arguments):
             if name != "submit_draft":
@@ -198,6 +221,7 @@ day_schedules/max_leg_travel_minutes/max_daily_travel_minutes/origin_hint/destin
 每个非 null 字段必须在 evidence 中提供用户原文连续引用，键名与 values 字段一致。
 evidence 是“字段名: 原文字符串”的对象，所有值只能是字符串，不能是 null、数组或嵌套对象。
 values 中未知字段可为 null，但 evidence 中必须完全省略这些未知字段的键；不能用 null 占位。
+“交通方式、预算和每站停留都还没定”表示 mode/budget/stay_minutes 为 null，evidence 省略这三个键；这段未定原文可放入 unhandled_requirements，不是这些字段的取值依据。
 逐日安排的 evidence.day_schedules 也只能是一段覆盖逐日要求的原文字符串，不是逐日引用数组或对象。
 无法落入字段的要求在 unhandled_requirements 中逐项引用原文，不宣称满足这些要求。
 walking=步行，driving=驾车。出发日期可参考给定日期解析，但有歧义应设 null。

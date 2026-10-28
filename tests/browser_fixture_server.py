@@ -23,6 +23,12 @@ def browser_worker(payload, output):
         from agent.travel_intake import create_draft
         from travel.schemas import DraftRequest
         request=DraftRequest.model_validate(payload["request"])
+        if request.text=='TEST ONLY 明天去杭州逛博物馆，玩2天':
+            arguments={'values':{'city':'杭州','query':'博物馆','days':2},
+                'evidence':{'city':'杭州','query':'博物馆','days':'2天'}}
+            result=create_draft(request,lambda stage,message:output.put({'kind':'event','stage':stage,'message':message}),llm=FixtureLLM(arguments))
+            output.put({'kind':'result','data':result.model_dump(mode='json')})
+            return
         if request.text.startswith('TEST ONLY 去杭州逛博物馆，玩2天。日期还没定。'):
             sys.path.insert(0,str(ROOT/'scripts'))
             from live_requirements_cases import scenario

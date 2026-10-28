@@ -4411,6 +4411,15 @@
             },
             "type": "array",
             "title": "Clarifications"
+          },
+          "date_options": {
+            "items": {
+              "$ref": "#/components/schemas/DraftDateOption"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "title": "Date Options",
+            "description": "仅当出发日期为空时，按请求参考日换算原文提到的日期词；不是模型提取值或已确认出发日，须用户明确选择保存"
           }
         },
         "additionalProperties": false,
@@ -4556,6 +4565,31 @@
           "expected_revision"
         ],
         "title": "DraftClarificationRequest"
+      },
+      "DraftDateOption": {
+        "properties": {
+          "expression": {
+            "type": "string",
+            "enum": [
+              "今天",
+              "明天",
+              "后天"
+            ],
+            "title": "Expression"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expression",
+          "date"
+        ],
+        "title": "DraftDateOption"
       },
       "DraftDaySchedule": {
         "properties": {

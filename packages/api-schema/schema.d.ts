@@ -538,6 +538,11 @@ export interface components {
             };
             /** Clarifications */
             clarifications?: components["schemas"]["DraftClarification"][];
+            /**
+             * Date Options
+             * @description 仅当出发日期为空时，按请求参考日换算原文提到的日期词；不是模型提取值或已确认出发日，须用户明确选择保存
+             */
+            date_options?: components["schemas"]["DraftDateOption"][];
         };
         /** DraftClarification */
         DraftClarification: {
@@ -559,6 +564,19 @@ export interface components {
             values?: components["schemas"]["DraftValues"];
             /** Confirm Fields */
             confirm_fields?: ("city" | "query" | "start_date" | "days" | "stops_per_day" | "day_start" | "day_end" | "stay_minutes" | "mode" | "budget" | "day_schedules" | "max_leg_travel_minutes" | "max_daily_travel_minutes" | "origin_hint" | "destination_hint")[];
+        };
+        /** DraftDateOption */
+        DraftDateOption: {
+            /**
+             * Expression
+             * @enum {string}
+             */
+            expression: "今天" | "明天" | "后天";
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
         };
         /**
          * DraftDaySchedule

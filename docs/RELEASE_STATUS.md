@@ -1,10 +1,12 @@
 # 功能范围与后续计划
 
-更新日期：2026-10-28。本文记录可运行范围、可复现验收和后续交付条件；逐项验收步骤见 [ACCEPTANCE.md](ACCEPTANCE.md)。
+更新日期：2026-10-29。本文记录可运行范围、可复现验收和后续交付条件；逐项验收步骤见 [ACCEPTANCE.md](ACCEPTANCE.md)。
 
 使用入口：[Web 使用手册](USER_GUIDE.md)。完整用户流程见 [WEB_USER_JOURNEY.md](architecture/WEB_USER_JOURNEY.md)，路途负担及交通上限见 [TRAVEL_LOAD_LIMITS.md](architecture/TRAVEL_LOAD_LIMITS.md)，共享节流见 [AMAP_REQUEST_PACING.md](architecture/AMAP_REQUEST_PACING.md)，逐日选择见 [DAILY_ENDPOINTS.md](architecture/DAILY_ENDPOINTS.md)，最新逐日时段和真实 Web/MCP 复验见 [DAILY_SCHEDULES.md](architecture/DAILY_SCHEDULES.md)。
 
 ## 已实现
+
+- 缺少出发日期的草案可显示原文相对日期候选，用户显式选用、保存和刷新恢复，记录为用户填写，兼容旧草案。两次真实模型复验仍未全部通过：第二次仅出发日期遗漏，不能将人工确认能力视为自动提取已修复。实现与验证范围见 [日期确认记录](architecture/INTAKE_REVIEW_MATRIX.md#相对日期诊断与显式确认)。
 
 - 需求校验采用最多八条有限字段/原因诊断，贯通工具、工作进程、任务、HTTP 和中文页面；失败刷新不自动重试，旧错误兼容。实际范围见 [INTAKE_DIAGNOSTICS.md](architecture/INTAKE_DIAGNOSTICS.md)。
 
