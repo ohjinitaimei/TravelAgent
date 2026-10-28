@@ -71,3 +71,45 @@
 - 新增浏览器流程实际确认了未决定字段为空、原文要求可见、补充来源更新、清空/刷新保持和仅一次模型任务。截图 `unhandled-requirements-test-only.png` 已检查，没有文字裁切。
 
 报告分别在 `artifacts/repository-runs/intake-review-repository-20261028/report.json` 与 `artifacts/browser-runs/intake-review-final-20261028/<engine>/local/`。三份 local 是完整本地工作台套件，**不是 local/auth/resilience 九份发布矩阵**。本包未重跑真实地图、auth/resilience、HTTPS、灾备或新归档；旧 ZIP 仍仅代表旧提交。首组计时失败及先前服务退出失败的原因未完全确定，保留为后续运行稳定性核验项。
+
+## 接续：两次真实复验与运行边界修正
+
+日期：2026-10-28；起点为 `c52f917`。本次提前限定 relative-date 与 ambiguous-constraints 各一次，不重跑已通过的改口场景。
+
+`verify_live_requirements.py` 新增 `--scenario`，可从原三类中选取子集，重复项在启动服务之前拒绝；报告记录计划列表及对应调用上限。以下命令最多两次调用，仍使用新隔离库，不修改个人配置或业务记录：
+
+```powershell
+.\.venv\Scripts\python.exe scripts/verify_live_requirements.py --allow-model-call --scenario relative-date ambiguous-constraints --reference-date 2026-10-28 --date 2026-10-30 --run-id intake-followup-example
+```
+
+实际运行 `intake-followup-20261028`：
+
+- **ambiguous-constraints 通过**：预算、模式、共用开始时间保持未知，三条歧义原文保留；字段确认、0 元预算修改、清空、409/422 不覆盖与零追加模型调用均通过。
+- **relative-date 失败**：被 `ungrounded_agent_output` 拒绝，安全诊断为 `evidence/ungrounded`，没有保存草案；无法由该汇总确定具体缺项或不匹配的引用，不能宣称日期/逐日时段已正确提取。
+- 合计两次草案请求、两个 agent_call 事件、一份草案、零行程；地图能力关闭，没有高德、SDK 或路线调用。API 正常退出且临时资源清理成功，运行期间源码和环境文件未变化。整体报告保持 failed，未追加第三次模型调用。
+
+真实证据在 `artifacts/live-requirements-runs/intake-followup-20261028/`。之后仅细化诊断：缺失、额外或不匹配的依据映射到已知 `values.<字段>`，未知键折叠为 evidence，最多八项；保持原来的拒绝标准，不输出字段值、原文、模型回复或未知键。新增回归先复现旧诊断无法区分字段，再验证安全映射。该诊断修正没有再次真实调用。
+
+### 请求节流的延迟提交
+
+隔离测试人为让 SQLite 提交后的返回延迟 0.2 秒，超过配置的 0.05 秒准入间隔，旧代码仍成功返回，记录为 `artifacts/stability-gate-preflight-20261028.log`。这复现了一类已过期准入被释放的问题，但不能证明上轮所有间隔压缩都由这一原因造成。
+
+现在按单调时钟记录本次准入的有效期限，在提交和关闭连接后再次核对；超过间隔或总等待期限便返回 `provider_busy`，不调用 HTTP、不自动重新排队、不延长等待、不改配额或默认间隔。数据库锁仍不跨 HTTP/等待持有。原多进程测试保留 0.13 秒返回间隔断言，并额外记录事务写入和返回两个采样点，便于区分准入与后续调度延迟。节流专项 9 项通过，包括延迟拒绝和连接关闭。
+
+此保护不承诺操作系统抢占后的硬实时网络发包间隔，也不把未复现的首次并发问题标成全部根治。
+
+### 浏览器退出和清理
+
+新增失败回归证明旧矩阵汇总接受 `cleanup_completed=false` 的报告；记录为 `artifacts/stability-cleanup-preflight-20261028.log`。现在终态报告在临时目录清理之后写入；清理失败会持久化 passed=false 和安全异常类型，成功断言不能覆盖清理失败。服务日志在清理前保留，即使服务已正常退出，也能诊断后续文件清理错误。
+
+退出过程复用已有演练的 `close_service`：保留原 10 秒正常退出等待，必要时终止/强制结束并记录，仍按失败处理；某个进程退出异常不会跳过另一进程的收尾。发布矩阵要求 cleanup_completed 明确为 true，缺字段的旧报告不能作为新门禁通过证据。旧报告原样保留，需要发布时生成新矩阵。
+
+离线生命周期检查覆盖清理失败、业务检查失败、通过状态只在清理后写入，以及缺失/失败清理证据的矩阵拒绝。前次浏览器退出异常的具体起因仍无原始日志，不能声称已经还原；这次修复的是可确定的收尾和证据漏洞。
+
+### 接续最终验收
+
+`intake-stability-20261028` 完整仓库 **331 项 Python、95 项客户端**通过，类型/生产构建、Schema 一致性及源码与构建绑定通过，API 正常退出。三引擎各两项需求补充/清空/刷新与模型失败提示的定向检查通过，六个 API/Web 服务正常退出且三个临时目录清理成功，共 **432 次**通过执行；专项回归已包含在 Python 总数，不重复计数。
+
+记录在 `artifacts/repository-runs/intake-stability-20261028/report.json` 及 `artifacts/browser-runs/intake-stability-20261028/<engine>/local/`。浏览器标记 complete_suite=false，是定向检查，不能作为九套完整发布矩阵。前述两次真实调用属于诊断细化和运行修正前的源码记录，本轮没有再次调用模型验证最终源码。未调用高德，未生成新 ZIP，未重跑 HTTPS/灾备，未上传 GitHub。
+
+仍需完成：相对日期固定样本的真实依据核验；在新的完整发布矩阵与实际负载中继续观察进程退出及准入/返回两处计时。自动检查通过不代表这些边界下的长期稳定性或自然语言全表达准确率已得到证明。

@@ -74,8 +74,12 @@ def validate_submission(request: DraftRequest, arguments: dict) -> DraftSubmissi
                             draft_validation=diagnostics(error.errors(include_input=False,include_context=False,include_url=False))) from None
     fields = {key for key,value in proposal.values.model_dump().items() if value is not None}
     if set(proposal.evidence) != fields or any(not quote.strip() or quote not in request.text for quote in proposal.evidence.values()):
+        invalid=fields.symmetric_difference(proposal.evidence) | {
+            key for key,quote in proposal.evidence.items() if not quote.strip() or quote not in request.text}
+        known=set(type(proposal.values).model_fields)
+        paths=sorted({'values.'+key if key in known else 'evidence' for key in invalid})[:8]
         raise TravelFailure("ungrounded_agent_output", "模型字段缺少原始需求依据，请直接核对表单", status=422,
-                            draft_validation=DraftValidationDiagnostics(issues=[DraftValidationIssue(path="evidence",reason="ungrounded")]))
+                            draft_validation=DraftValidationDiagnostics(issues=[DraftValidationIssue(path=path,reason="ungrounded") for path in paths]))
     if any(not item.strip() or item not in request.text for item in proposal.unhandled_requirements):
         raise TravelFailure("ungrounded_agent_output", "未处理需求必须引用用户原文", status=422,
                             draft_validation=DraftValidationDiagnostics(issues=[DraftValidationIssue(path="unhandled_requirements",reason="ungrounded")]))

@@ -19,8 +19,14 @@ from travel.provider import AmapProvider, TravelFailure
 def admission(path,ready,start,output,interval):
     ready.put(True)
     start.wait(10)
-    ProviderGate(path,interval=interval,max_wait=3).acquire()
-    output.put(time.time())
+    gate=ProviderGate(path,interval=interval,max_wait=3)
+    connect=gate._connect;grants=[]
+    def observed_connect():
+        connection=connect()
+        connection.set_trace_callback(lambda statement:grants.append(time.time()) if statement.startswith('INSERT OR REPLACE INTO pacing') else None)
+        return connection
+    with patch.object(gate,'_connect',observed_connect):gate.acquire()
+    output.put({'grant':grants[-1],'returned':time.time()})
 
 
 def blocked(path,ready):
@@ -42,6 +48,19 @@ class ProviderGateTests(unittest.TestCase):
         self.addCleanup(self.directory.cleanup)
         self.path=Path(self.directory.name)/'rate.sqlite3'
 
+    def test_commit_stall_cannot_release_an_already_expired_admission(self):
+        class SlowCommit(sqlite3.Connection):
+            def commit(self):
+                super().commit()
+                time.sleep(.2)  # TEST ONLY storage/scheduler stall after durable write.
+        connection=sqlite3.connect(self.path,isolation_level=None,factory=SlowCommit)
+        connection.execute('CREATE TABLE pacing (id INTEGER PRIMARY KEY, next_at REAL, cooldown_until REAL)')
+        gate=ProviderGate(self.path,interval=.05,max_wait=1)
+        with patch.object(gate,'_connect',return_value=connection),self.assertRaises(GateFailure) as caught:
+            gate.acquire()
+        self.assertEqual(caught.exception.code,'provider_busy')
+        with self.assertRaises(sqlite3.ProgrammingError):connection.execute('SELECT 1')
+
     def test_spawned_processes_share_start_spacing(self):
         context=mp.get_context('spawn');ready=context.Queue();output=context.Queue();start=context.Event()
         children=[context.Process(target=admission,args=(str(self.path),ready,start,output,.15)) for _ in range(4)]
@@ -49,8 +68,11 @@ class ProviderGateTests(unittest.TestCase):
             for child in children:child.start()
             for _ in children:ready.get(timeout=15)
             start.set()
-            starts=sorted(output.get(timeout=10) for _ in children)
-            self.assertTrue(all(b-a>=.13 for a,b in zip(starts,starts[1:])),starts)
+            samples=[output.get(timeout=10) for _ in children]
+            grants=sorted(sample['grant'] for sample in samples)
+            starts=sorted(sample['returned'] for sample in samples)
+            self.assertTrue(all(b-a>=.13 for a,b in zip(grants,grants[1:])),samples)
+            self.assertTrue(all(b-a>=.13 for a,b in zip(starts,starts[1:])),samples)
             for child in children:child.join(5);self.assertEqual(child.exitcode,0)
         finally:
             for child in children:

@@ -15,6 +15,7 @@ def summarize(identifier,root=None):
             meta=json.loads((path/'run.json').read_text(encoding='utf-8'))
             if meta.get('run_id')!=identifier or meta.get('browser')!=browser or meta.get('suite')!=suite or not meta.get('complete_suite') or not meta.get('passed') or not meta.get('services_stopped_gracefully'):
                 raise ValueError('Incomplete or mismatched run metadata')
+            if meta.get('cleanup_completed') is not True:raise ValueError('Browser cleanup was not verified')
             assert_context(meta.get('context'),context)
             if meta.get('report_sha256')!=digest((path/'report.json').read_bytes()):raise ValueError('Browser report changed after verification')
             count=verify_report(json.loads((path/'report.json').read_text(encoding='utf-8')),meta['planned_cases'])

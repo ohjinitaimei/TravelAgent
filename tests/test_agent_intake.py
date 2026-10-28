@@ -55,6 +55,17 @@ def draft_fixture_worker(payload, output):
 
 
 class AgentTests(unittest.TestCase):
+    def test_grounding_rejection_identifies_known_fields_without_echoing_quotes_or_unknown_keys(self):
+        arguments={'values':{'city':'杭州','start_date':'2026-10-29'},
+            'evidence':{'start_date':'TEST_ONLY_PRIVATE_QUOTE','TEST_ONLY_PRIVATE_KEY':'杭州'}}
+        with self.assertRaises(TravelFailure) as caught:
+            validate_submission(DraftRequest(text='明天去杭州',reference_date='2026-10-28'),arguments)
+        issues=caught.exception.draft_validation.model_dump()['issues']
+        self.assertIn({'path':'values.city','reason':'ungrounded'},issues)
+        self.assertIn({'path':'values.start_date','reason':'ungrounded'},issues)
+        self.assertIn({'path':'evidence','reason':'ungrounded'},issues)
+        self.assertNotIn('PRIVATE',str(issues))
+
     def test_calendar_context_uses_reference_across_year_and_leap_boundaries_without_filling_values(self):
         from datetime import date
         for reference,tomorrow in (('2026-12-31','2027-01-01'),('2028-02-28','2028-02-29'),('2028-02-29','2028-03-01')):

@@ -60,6 +60,7 @@ class ProviderGate:
         deadline = time.monotonic() + self.max_wait
         while True:
             delay = .025
+            admission_deadline = None
             try:
                 with closing(self._connect()) as connection:
                     connection.execute('BEGIN IMMEDIATE')
@@ -72,10 +73,17 @@ class ProviderGate:
                     if delay <= 0:
                         if time.monotonic() >= deadline:
                             raise GateFailure('provider_busy', '数据请求正在排队，请稍后手动重试', 429, 1)
+                        admission_deadline = min(deadline,time.monotonic()+self.interval)
                         connection.execute('INSERT OR REPLACE INTO pacing VALUES (1,?,?)', (now+self.interval, cooldown))
                         connection.commit()
-                        return
-                    connection.commit()
+                    else:
+                        connection.commit()
+                if admission_deadline is not None:
+                    # Commit/close can stall after the slot was recorded. Never
+                    # release a stale slot into HTTP or replay it automatically.
+                    if time.monotonic() >= admission_deadline:
+                        raise GateFailure('provider_busy', '数据请求准入已过期，请稍后手动重试', 429, 1)
+                    return
             except (OSError, sqlite3.Error) as error:
                 if not isinstance(error, sqlite3.Error) or getattr(error, 'sqlite_errorcode', 0) & 255 not in {sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED}:
                     raise GateFailure('provider_gate_unavailable', '高德请求调度暂不可用，请稍后重试') from None

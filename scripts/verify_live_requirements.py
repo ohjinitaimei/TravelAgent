@@ -78,7 +78,11 @@ def main(argv=None):
     parser.add_argument('--reference-date',required=True)
     parser.add_argument('--date',required=True)
     parser.add_argument('--run-id')
+    parser.add_argument('--scenario',nargs='+',choices=REVIEW_SCENARIOS,
+                        help='Run each selected scenario once; omitted means all three')
     args=parser.parse_args(argv)
+    scenarios=tuple(args.scenario or REVIEW_SCENARIOS)
+    if len(set(scenarios))!=len(scenarios):parser.error('Duplicate scenarios would repeat model calls')
     try:
         reference=date.fromisoformat(args.reference_date).isoformat()
         departure=date.fromisoformat(args.date).isoformat()
@@ -91,9 +95,9 @@ def main(argv=None):
     context = capture(ROOT)
     original_env = env_snapshot()
     summary = {'status': 'running', 'started_at': now(), 'context': context,
-               'run_id':identifier,'planned_scenarios':list(REVIEW_SCENARIOS),
+               'run_id':identifier,'planned_scenarios':list(scenarios),
                'reference_date':reference,'departure_date':departure,
-               'model_call_upper_bound': len(REVIEW_SCENARIOS),
+               'model_call_upper_bound': len(scenarios),
                'model_call_evidence': 'persisted adapter events plus fixed one-request/no-retry code boundary; not provider billing',
                'scenarios': [], 'planning_requests': 0, 'personal_database_touched': False,
                'system_trust_modified': False, 'configuration_file_modified': False,
@@ -154,7 +158,7 @@ def main(argv=None):
             if capability.get('configured') or capability.get('map_proxy_configured'):
                 raise RuntimeError('travel_service_must_be_unconfigured')
         print(json.dumps({'preflight': 'passed', 'configuration': summary['configuration']}), flush=True)
-        for name in REVIEW_SCENARIOS:
+        for name in scenarios:
             report_path = output / (name + '.json')
             entry = {'scenario': name, 'started_at': now(), 'report': report_path.relative_to(ROOT).as_posix()}
             summary['scenarios'].append(entry)
@@ -226,12 +230,12 @@ def main(argv=None):
         summary['agent_call_events'] = db.get('agent_call_events')
         summary['external_travel_calls'] = 0 if summary.get('configuration', {}).get('travel_credentials_blank') else None
         summary['travel_call_evidence'] = 'Amap/JS/VITE credentials blank; capability disabled; only draft, clarification and read requests issued'
-        summary['status'] = 'passed' if all((failed is None, len(cases) == len(REVIEW_SCENARIOS),
+        summary['status'] = 'passed' if all((failed is None, len(cases) == len(scenarios),
             all(item.get('status') == 'passed' and item.get('returncode') == 0 for item in cases),
-            sum(item.get('draft_submission_attempts', 0) for item in cases) == len(REVIEW_SCENARIOS),
-            db.get('task_count') == len(REVIEW_SCENARIOS), db.get('all_tasks_are_drafts'), db.get('itinerary_count') == 0,
-            db.get('draft_count') == len(REVIEW_SCENARIOS),
-            db.get('agent_call_events') == len(REVIEW_SCENARIOS), summary['api']['graceful'], summary['cleanup'],
+            sum(item.get('draft_submission_attempts', 0) for item in cases) == len(scenarios),
+            db.get('task_count') == len(scenarios), db.get('all_tasks_are_drafts'), db.get('itinerary_count') == 0,
+            db.get('draft_count') == len(scenarios),
+            db.get('agent_call_events') == len(scenarios), summary['api']['graceful'], summary['cleanup'],
             summary['source_unchanged'], summary['env_files_unchanged'])) else 'failed'
         summary['completed_at'] = now()
         with (output / 'summary.json').open('x', encoding='utf-8') as stream:

@@ -1,9 +1,11 @@
 """Isolated browser acceptance against the explicit TEST ONLY API, never production."""
 import os
+from contextlib import contextmanager
 import json
 from datetime import datetime, timezone
 from browser_runs import run_id, reserve, case_keys, verify_report
 from verification_context import capture,assert_context,tree_digest,digest
+from drill_runs import close_service
 import argparse
 from pathlib import Path
 import shutil
@@ -16,6 +18,25 @@ import urllib.error
 import urllib.request
 
 ROOT=Path(__file__).resolve().parents[1]
+
+
+@contextmanager
+def verification_workspace(destination,metadata):
+    """Publish terminal evidence only after the directory context has cleaned up."""
+    temporary=tempfile.TemporaryDirectory(prefix='browser-acceptance-',dir=ROOT/'.tmp')
+    metadata['cleanup_completed']=False
+    try:
+        with temporary as folder:
+            yield Path(folder)
+        metadata['cleanup_completed']=not Path(temporary.name).exists()
+        metadata['passed']=bool(metadata.get('passed') and metadata['cleanup_completed'])
+    except BaseException as error:
+        metadata.update(passed=False,failure_type=type(error).__name__,
+                        cleanup_completed=not Path(temporary.name).exists())
+        raise
+    finally:
+        metadata['completed_at']=datetime.now(timezone.utc).isoformat()
+        (destination/'run.json').write_text(json.dumps(metadata,indent=2)+'\n',encoding='utf-8')
 
 
 def verify(suite,browser,grep=None,identifier=None):
@@ -37,7 +58,7 @@ def verify(suite,browser,grep=None,identifier=None):
     with socket.socket() as first,socket.socket() as second:
         first.bind(("127.0.0.1",0));second.bind(("127.0.0.1",0))
         api_port,web_port=first.getsockname()[1],second.getsockname()[1]
-    with tempfile.TemporaryDirectory(prefix="browser-acceptance-",dir=ROOT/".tmp") as folder:
+    with verification_workspace(destination,metadata) as folder:
         folder=Path(folder)
         stop=folder/"stop"
         env.update({"E2E_WEB_PORT":str(web_port),"E2E_STOP_FILE":str(stop),"E2E_BASE_URL":f"http://127.0.0.1:{web_port}",
@@ -82,24 +103,17 @@ def verify(suite,browser,grep=None,identifier=None):
                 graceful=True
                 metadata['service_exits']=[]
                 for index,process in enumerate(processes):
-                    forced=False
-                    try:
-                        process.wait(timeout=10)
-                        graceful=graceful and process.returncode==0
-                    except subprocess.TimeoutExpired:
-                        forced=True;graceful=False;process.terminate();process.wait(timeout=5)
-                    metadata['service_exits'].append({'service':'api' if index==0 else 'web',
-                        'returncode':process.returncode,'forced':forced})
-                if not graceful:
-                    # Preserve shutdown evidence before TemporaryDirectory attempts
-                    # cleanup; a locked SQLite file must not erase the root logs.
-                    api_log.flush();web_log.flush()
-                    shutil.copyfile(folder/'api.log',destination/'api.log')
-                    shutil.copyfile(folder/'web.log',destination/'web.log')
+                    result=close_service(process,'api' if index==0 else 'web',timeout=10)
+                    result['service']=result.pop('name')
+                    metadata['service_exits'].append(result)
+                    graceful=graceful and result['returncode']==0 and not result['forced']
+                # Keep logs before cleanup even if graceful shutdown succeeded:
+                # a later SQLite/filesystem cleanup failure must remain diagnosable.
+                api_log.flush();web_log.flush()
+                shutil.copyfile(folder/'api.log',destination/'api.log')
+                shutil.copyfile(folder/'web.log',destination/'web.log')
                 metadata["services_stopped_gracefully"]=graceful
                 metadata["passed"]=bool(metadata["passed"] and graceful)
-                metadata["completed_at"]=datetime.now(timezone.utc).isoformat()
-                metadata_path.write_text(json.dumps(metadata,indent=2)+"\n",encoding="utf-8")
     if not metadata['passed']:raise RuntimeError('Browser verification or graceful shutdown failed')
     print(f"Browser acceptance passed: {identifier}/{browser}/{suite}, isolated TEST ONLY records.")
     return metadata

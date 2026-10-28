@@ -16,7 +16,7 @@ class LiveRequirementsRunnerTests(unittest.TestCase):
     def test_missing_opt_in_invalid_dates_and_path_escape_never_start_a_service(self):
         valid=['--allow-model-call','--reference-date','2026-10-28','--date','2026-10-30']
         for args in (valid[1:],['--allow-model-call','--reference-date','invalid','--date','2026-10-30'],
-                     valid+['--run-id','../escape']):
+                     valid+['--run-id','../escape'],valid+['--scenario','relative-date','relative-date']):
             with self.subTest(args=args),patch.object(live.subprocess,'Popen') as spawn,self.assertRaises(SystemExit):
                 live.main(args)
             spawn.assert_not_called()

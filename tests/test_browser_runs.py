@@ -46,10 +46,15 @@ class BrowserRunTests(unittest.TestCase):
                     report['suites'][0]['specs'][0]['tests'][0]['projectName']=browser
                     planned,_=case_keys(report)
                     context={'fingerprint':'TEST ONLY','files':[]}
-                    meta={'run_id':'TEST-MATRIX','browser':browser,'suite':suite,'complete_suite':True,'passed':True,'services_stopped_gracefully':True,'planned_cases':planned,'passed_count':1,'context':context,'report_sha256':digest(json.dumps(report).encode())}
+                    meta={'run_id':'TEST-MATRIX','browser':browser,'suite':suite,'complete_suite':True,'passed':True,'services_stopped_gracefully':True,'cleanup_completed':True,'planned_cases':planned,'passed_count':1,'context':context,'report_sha256':digest(json.dumps(report).encode())}
                     (path/'run.json').write_text(json.dumps(meta),encoding='utf-8');(path/'report.json').write_text(json.dumps(report),encoding='utf-8')
             with patch.object(matrix,'ROOT',root),patch.object(matrix,'capture',return_value=context):
                 self.assertEqual(matrix.summarize('TEST-MATRIX')['executions'],9)
+                meta['cleanup_completed']=False;(path/'run.json').write_text(json.dumps(meta),encoding='utf-8')
+                with self.assertRaises(ValueError):matrix.summarize('TEST-MATRIX')
+                meta.pop('cleanup_completed');(path/'run.json').write_text(json.dumps(meta),encoding='utf-8')
+                with self.assertRaises(ValueError):matrix.summarize('TEST-MATRIX')
+                meta['cleanup_completed']=True
                 meta['services_stopped_gracefully']=False;(path/'run.json').write_text(json.dumps(meta),encoding='utf-8')
                 with self.assertRaises(ValueError):matrix.summarize('TEST-MATRIX')
                 meta['services_stopped_gracefully']=True;meta['complete_suite']=False;(path/'run.json').write_text(json.dumps(meta),encoding='utf-8')

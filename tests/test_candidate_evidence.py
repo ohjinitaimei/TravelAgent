@@ -83,7 +83,7 @@ class CandidateEvidenceTests(unittest.TestCase):
                 planned, _ = case_keys(report)
                 self.write(self.browser_path(browser, suite), {
                     "run_id": self.identifier, "browser": browser, "suite": suite,
-                    "complete_suite": True, "passed": True, "services_stopped_gracefully": True,
+                    "complete_suite": True, "passed": True, "services_stopped_gracefully": True,"cleanup_completed":True,
                     "context": self.context, "planned_cases": planned, "passed_count": 1,
                     "report_sha256": digest(report_path.read_bytes()), "web_build": self.web,
                 })
@@ -218,6 +218,7 @@ class CandidateEvidenceTests(unittest.TestCase):
         cases = [
             (self.browser_path(), lambda record: record.update(complete_suite=False)),
             (self.browser_path(), lambda record: record.update(services_stopped_gracefully=False)),
+            (self.browser_path(), lambda record: record.update(cleanup_completed=False)),
             (self.drill_path("recovery", "run.json"), lambda record: record.update(cleanup_completed=False)),
             (self.drill_path("deployment"), lambda record: record.update(status="failed")),
             (self.drill_path("deployment"), lambda record: record["services"][0].update(forced=True)),
